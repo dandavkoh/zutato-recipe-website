@@ -1,3 +1,6 @@
+import { supabase } from './supabase';
+import type { AuthError } from '@supabase/supabase-js';
+
 // Auth API Types
 export interface AuthUser {
   id: string;
@@ -32,114 +35,358 @@ export interface ResetPasswordRequest {
   email: string;
 }
 
-// Mock Auth API - In a real app, this would connect to your backend
+// Real Supabase Auth API
 export class AuthApi {
-  private static users: AuthUser[] = [
-    {
-      id: '1',
-      email: 'demo@zutato.de',
-      firstName: 'Demo',
-      lastName: 'User',
-      emailVerified: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-  ];
-
   // Login
   static async login(email: string, password: string): Promise<AuthResponse> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    // For demo purposes, accept any password for demo@zutato.de
-    if (email === 'demo@zutato.de' && password.length >= 6) {
-      const user = this.users.find(u => u.email === email);
-      if (user) {
+      if (error) {
+        console.error('Login error:', error);
         return {
-          success: true,
-          user
+          success: false,
+          error: this.getErrorMessage(error)
         };
       }
-    }
 
-    return {
-      success: false,
-      error: 'Ungültige E-Mail-Adresse oder Passwort'
-    };
+      if (data.user) {
+        const authUser: AuthUser = {
+          id: data.user.id,
+          email: data.user.email!,
+          firstName: data.user.user_metadata?.first_name,
+          lastName: data.user.user_metadata?.last_name,
+          emailVerified: data.user.email_confirmed_at !== null,
+          createdAt: data.user.created_at,
+          updatedAt: data.user.updated_at,
+        };
+
+        return {
+          success: true,
+          user: authUser
+        };
+      }
+
+      return {
+        success: false,
+        error: 'Anmeldung fehlgeschlagen'
+      };
+    } catch (error) {
+      console.error('Unexpected login error:', error);
+      return {
+        success: false,
+        error: 'Ein unerwarteter Fehler ist aufgetreten'
+      };
+    }
   }
 
   // Register
   static async register(email: string, password: string, firstName: string, lastName: string): Promise<AuthResponse> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+          },
+        },
+      });
 
-    // Check if user already exists
-    const existingUser = this.users.find(u => u.email === email);
-    if (existingUser) {
+      if (error) {
+        console.error('Registration error:', error);
+        return {
+          success: false,
+          error: this.getErrorMessage(error)
+        };
+      }
+
+      if (data.user) {
+        const authUser: AuthUser = {
+          id: data.user.id,
+          email: data.user.email!,
+          firstName: data.user.user_metadata?.first_name,
+          lastName: data.user.user_metadata?.last_name,
+          emailVerified: data.user.email_confirmed_at !== null,
+          createdAt: data.user.created_at,
+          updatedAt: data.user.updated_at,
+        };
+
+        return {
+          success: true,
+          user: authUser,
+          message: 'Registrierung erfolgreich! Bitte bestätigen Sie Ihre E-Mail-Adresse.'
+        };
+      }
+
       return {
         success: false,
-        error: 'Ein Benutzer mit dieser E-Mail-Adresse existiert bereits'
+        error: 'Registrierung fehlgeschlagen'
+      };
+    } catch (error) {
+      console.error('Unexpected registration error:', error);
+      return {
+        success: false,
+        error: 'Ein unerwarteter Fehler ist aufgetreten'
       };
     }
-
-    // Create new user
-    const newUser: AuthUser = {
-      id: (this.users.length + 1).toString(),
-      email,
-      firstName,
-      lastName,
-      emailVerified: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    this.users.push(newUser);
-
-    return {
-      success: true,
-      user: newUser,
-      message: 'Registrierung erfolgreich! Bitte bestätigen Sie Ihre E-Mail-Adresse.'
-    };
   }
 
   // Reset Password
   static async resetPassword(email: string): Promise<AuthResponse> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
 
-    const user = this.users.find(u => u.email === email);
-    if (!user) {
+      if (error) {
+        console.error('Password reset error:', error);
+        return {
+          success: false,
+          error: this.getErrorMessage(error)
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Passwort-Reset-E-Mail wurde gesendet. Bitte überprüfen Sie Ihren Posteingang.'
+      };
+    } catch (error) {
+      console.error('Unexpected password reset error:', error);
       return {
         success: false,
-        error: 'Kein Benutzer mit dieser E-Mail-Adresse gefunden'
+        error: 'Ein unerwarteter Fehler ist aufgetreten'
       };
     }
-
-    return {
-      success: true,
-      message: 'Passwort-Reset-E-Mail wurde gesendet. Bitte überprüfen Sie Ihren Posteingang.'
-    };
   }
 
   // Get current user (for SSR)
   static async getCurrentUser(): Promise<AuthUser | null> {
-    // In a real app, this would check for a valid session/token
-    // For demo purposes, return the demo user
-    return this.users.find(u => u.email === 'demo@zutato.de') || null;
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (error) {
+        console.error('Get current user error:', error);
+        return null;
+      }
+
+      if (user) {
+        const authUser: AuthUser = {
+          id: user.id,
+          email: user.email!,
+          firstName: user.user_metadata?.first_name,
+          lastName: user.user_metadata?.last_name,
+          emailVerified: user.email_confirmed_at !== null,
+          createdAt: user.created_at,
+          updatedAt: user.updated_at,
+        };
+        return authUser;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Unexpected get current user error:', error);
+      return null;
+    }
   }
 
   // Logout
   static async logout(): Promise<void> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // In a real app, this would invalidate the session/token
-    console.log('User logged out');
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Logout error:', error);
+      }
+    } catch (error) {
+      console.error('Unexpected logout error:', error);
+    }
   }
 
   // Check if user is authenticated
   static async isAuthenticated(): Promise<boolean> {
-    const user = await this.getCurrentUser();
-    return !!user;
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      return !error && !!user;
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      return false;
+    }
+  }
+
+  // Listen to auth state changes
+  static onAuthStateChange(callback: (user: AuthUser | null) => void) {
+    return supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        const authUser: AuthUser = {
+          id: session.user.id,
+          email: session.user.email!,
+          firstName: session.user.user_metadata?.first_name,
+          lastName: session.user.user_metadata?.last_name,
+          emailVerified: session.user.email_confirmed_at !== null,
+          createdAt: session.user.created_at,
+          updatedAt: session.user.updated_at,
+        };
+        callback(authUser);
+      } else {
+        callback(null);
+      }
+    });
+  }
+
+  // Update user profile
+  static async updateProfile(userData: { firstName: string; lastName: string; email: string }): Promise<AuthResponse> {
+    try {
+      // Get current user to check if email is actually changing
+      const { data: currentUser } = await supabase.auth.getUser();
+      const currentEmail = currentUser.user?.email;
+      
+      // Update user metadata (first_name, last_name)
+      const { data, error } = await supabase.auth.updateUser({
+        data: {
+          first_name: userData.firstName,
+          last_name: userData.lastName,
+        },
+      });
+      
+      if (error) {
+        return {
+          success: false,
+          error: this.getErrorMessage(error)
+        };
+      }
+      
+      // If email is changing, update it separately
+      if (currentEmail && currentEmail !== userData.email) {
+        const { error: emailError } = await supabase.auth.updateUser({
+          email: userData.email,
+        });
+        
+        if (emailError) {
+          return {
+            success: false,
+            error: this.getErrorMessage(emailError)
+          };
+        }
+        
+        // Return the user with updated metadata, email change will require confirmation
+        return { 
+          success: true,
+          user: data.user ? {
+            id: data.user.id,
+            email: data.user.email!,
+            firstName: data.user.user_metadata?.first_name,
+            lastName: data.user.user_metadata?.last_name,
+            emailVerified: data.user.email_confirmed_at !== null,
+            createdAt: data.user.created_at,
+            updatedAt: data.user.updated_at,
+          } : undefined,
+          message: 'Profil aktualisiert. Bitte bestätigen Sie die E-Mail-Änderung in Ihrem Posteingang.'
+        };
+      }
+      
+      return {
+        success: true,
+        user: data.user ? {
+          id: data.user.id,
+          email: data.user.email!,
+          firstName: data.user.user_metadata?.first_name,
+          lastName: data.user.user_metadata?.last_name,
+          emailVerified: data.user.email_confirmed_at !== null,
+          createdAt: data.user.created_at,
+          updatedAt: data.user.updated_at,
+        } : undefined
+      };
+    } catch (error) {
+      console.error('Update profile error:', error);
+      return {
+        success: false,
+        error: 'Ein unerwarteter Fehler ist aufgetreten'
+      };
+    }
+  }
+
+  // Update password
+  static async updatePassword(currentPassword: string, newPassword: string): Promise<AuthResponse> {
+    try {
+      // First, verify the current password by trying to sign in
+      const { data: currentUser } = await supabase.auth.getUser();
+      const currentEmail = currentUser.user?.email;
+      
+      if (!currentEmail) {
+        return {
+          success: false,
+          error: 'Kein Benutzer angemeldet'
+        };
+      }
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: currentEmail,
+        password: currentPassword,
+      });
+      
+      if (signInError) {
+        return {
+          success: false,
+          error: 'Aktuelles Passwort ist falsch'
+        };
+      }
+      
+      // If current password is correct, update to new password
+      const { data, error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+      
+      if (error) {
+        return {
+          success: false,
+          error: this.getErrorMessage(error)
+        };
+      }
+
+      return {
+        success: true,
+        user: data.user ? {
+          id: data.user.id,
+          email: data.user.email!,
+          firstName: data.user.user_metadata?.first_name,
+          lastName: data.user.user_metadata?.last_name,
+          emailVerified: data.user.email_confirmed_at !== null,
+          createdAt: data.user.created_at,
+          updatedAt: data.user.updated_at,
+        } : undefined
+      };
+    } catch (error) {
+      console.error('Update password error:', error);
+      return {
+        success: false,
+        error: 'Ein unerwarteter Fehler ist aufgetreten'
+      };
+    }
+  }
+
+  // Helper method to get user-friendly error messages
+  private static getErrorMessage(error: AuthError): string {
+    switch (error.message) {
+      case 'Invalid login credentials':
+        return 'Ungültige E-Mail-Adresse oder Passwort';
+      case 'Email not confirmed':
+        return 'E-Mail-Adresse nicht bestätigt. Bitte überprüfen Sie Ihren Posteingang.';
+      case 'User already registered':
+        return 'Ein Benutzer mit dieser E-Mail-Adresse existiert bereits';
+      case 'Password should be at least 6 characters':
+        return 'Passwort muss mindestens 6 Zeichen lang sein';
+      case 'Unable to validate email address: invalid format':
+        return 'Ungültiges E-Mail-Format';
+      case 'Signup is disabled':
+        return 'Registrierung ist derzeit deaktiviert';
+      case 'Signup is disabled for this email domain':
+        return 'Registrierung ist für diese E-Mail-Domain deaktiviert';
+      default:
+        return error.message || 'Ein Fehler ist aufgetreten';
+    }
   }
 } 

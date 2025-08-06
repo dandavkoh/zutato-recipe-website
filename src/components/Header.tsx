@@ -3,9 +3,17 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import FontAwesomeIcon from './FontAwesomeIcon';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    // Redirect to home page after logout
+    window.location.href = '/';
+  };
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
@@ -37,13 +45,27 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Login Button */}
+          {/* Auth Button */}
           <div className="flex-shrink-0">
-            <Link href="/login">
-              <button className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-full font-medium transition-colors">
-                Anmelden
-              </button>
-            </Link>
+            {user ? (
+              <div className="flex items-center space-x-4">
+                <span className="text-gray-700">
+                  Hallo, {user.firstName || user.email}
+                </span>
+                <button
+                  onClick={handleLogout}
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-full font-medium transition-colors"
+                >
+                  Abmelden
+                </button>
+              </div>
+            ) : (
+              <Link href="/login">
+                <button className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-full font-medium transition-colors">
+                  Anmelden
+                </button>
+              </Link>
+            )}
           </div>
         </div>
 
@@ -67,13 +89,27 @@ export default function Header() {
               </Link>
             </div>
 
-            {/* Login Button and Menu */}
+            {/* Auth Button and Menu */}
             <div className="flex items-center space-x-3">
-              <Link href="/login">
-                <button className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-full text-sm font-medium transition-colors">
-                  Anmelden
-                </button>
-              </Link>
+              {user ? (
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-700">
+                    {user.firstName || user.email}
+                  </span>
+                  <button
+                    onClick={handleLogout}
+                    className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-full text-sm font-medium transition-colors"
+                  >
+                    Abmelden
+                  </button>
+                </div>
+              ) : (
+                <Link href="/login">
+                  <button className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-full text-sm font-medium transition-colors">
+                    Anmelden
+                  </button>
+                </Link>
+              )}
               
               {/* Burger Menu Button */}
               <button

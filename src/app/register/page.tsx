@@ -9,7 +9,7 @@ import {
   getPasswordStrength, 
   validatePassword
 } from '@/utils/authUtils';
-import { AuthApi } from '@/lib/authApi';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface RegisterFormData {
   email: string;
@@ -29,6 +29,7 @@ interface ValidationErrors {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { register } = useAuth();
   const [formData, setFormData] = useState<RegisterFormData>({
     email: '',
     password: '',
@@ -74,7 +75,7 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const result = await AuthApi.register(
+      const result = await register(
         formData.email,
         formData.password,
         formData.firstName,

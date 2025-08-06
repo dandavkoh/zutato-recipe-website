@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import FontAwesomeIcon from '@/components/FontAwesomeIcon';
 import { validateLoginForm, validateEmail } from '@/utils/authUtils';
-import { AuthApi } from '@/lib/authApi';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface LoginFormData {
   email: string;
@@ -21,6 +21,7 @@ interface ValidationErrors {
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { login, resetPassword } = useAuth();
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: '',
@@ -74,7 +75,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const result = await AuthApi.login(formData.email, formData.password);
+      const result = await login(formData.email, formData.password);
 
       if (result.success) {
         // Redirect to the page they were trying to access, or to home
@@ -100,7 +101,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const result = await AuthApi.resetPassword(formData.email);
+      const result = await resetPassword(formData.email);
 
       if (result.success) {
         setErrors({ general: 'Passwort-Reset-E-Mail wurde gesendet. Bitte überprüfen Sie Ihren Posteingang.' });
