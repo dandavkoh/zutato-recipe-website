@@ -79,8 +79,8 @@ export default function LoginPage() {
 
       if (result.success) {
         // Redirect to the page they were trying to access, or to home
-        const from = searchParams.get('from') || '/';
-        router.push(from);
+        const redirect = searchParams.get('redirect') || searchParams.get('from') || '/';
+        router.push(redirect);
       } else {
         setErrors({ general: result.error || 'Anmeldung fehlgeschlagen' });
       }
