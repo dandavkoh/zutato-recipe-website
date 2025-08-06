@@ -39,9 +39,11 @@ export default function Header() {
 
           {/* Login Button */}
           <div className="flex-shrink-0">
-            <button className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-full font-medium transition-colors">
-              Anmelden
-            </button>
+            <Link href="/login">
+              <button className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-full font-medium transition-colors">
+                Anmelden
+              </button>
+            </Link>
           </div>
         </div>
 
@@ -67,9 +69,11 @@ export default function Header() {
 
             {/* Login Button and Menu */}
             <div className="flex items-center space-x-3">
-              <button className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-full text-sm font-medium transition-colors">
-                Anmelden
-              </button>
+              <Link href="/login">
+                <button className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-full text-sm font-medium transition-colors">
+                  Anmelden
+                </button>
+              </Link>
               
               {/* Burger Menu Button */}
               <button
