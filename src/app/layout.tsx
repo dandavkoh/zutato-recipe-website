@@ -34,6 +34,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de">
+      <head>
+        <link 
+          rel="stylesheet" 
+          href="/fontawesome/css/all.min.css" 
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
