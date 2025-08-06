@@ -169,8 +169,12 @@ export class AuthApi {
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
       
+      // AuthSessionMissingError is expected for non-authenticated users
       if (error) {
-        console.error('Get current user error:', error);
+        // Don't log AuthSessionMissingError as it's expected for non-authenticated users
+        if (error.message !== 'Auth session missing!') {
+          console.error('Get current user error:', error);
+        }
         return null;
       }
 
@@ -189,7 +193,10 @@ export class AuthApi {
 
       return null;
     } catch (error) {
-      console.error('Unexpected get current user error:', error);
+      // Don't log AuthSessionMissingError as it's expected for non-authenticated users
+      if (error instanceof Error && error.message !== 'Auth session missing!') {
+        console.error('Unexpected get current user error:', error);
+      }
       return null;
     }
   }
@@ -212,7 +219,10 @@ export class AuthApi {
       const { data: { user }, error } = await supabase.auth.getUser();
       return !error && !!user;
     } catch (error) {
-      console.error('Auth check failed:', error);
+      // Don't log AuthSessionMissingError as it's expected for non-authenticated users
+      if (error instanceof Error && error.message !== 'Auth session missing!') {
+        console.error('Auth check failed:', error);
+      }
       return false;
     }
   }
