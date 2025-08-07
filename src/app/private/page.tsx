@@ -1,4 +1,4 @@
-import { requireAuth } from '@/utils/authUtils';
+import { requireAuth } from '@/utils/serverAuthUtils';
 
 export default async function PrivatePage() {
   const user = await requireAuth();
