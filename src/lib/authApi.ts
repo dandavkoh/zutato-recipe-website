@@ -55,8 +55,7 @@ export class AuthApi {
       }
 
       if (data.user) {
-        // Setze Cookies für Middleware
-        this.setAuthCookies(data.session);
+
         
         const authUser: AuthUser = {
           id: data.user.id,
@@ -111,10 +110,7 @@ export class AuthApi {
       }
 
       if (data.user) {
-        // Setze Cookies für Middleware (falls Session vorhanden)
-        if (data.session) {
-          this.setAuthCookies(data.session);
-        }
+
         
         const authUser: AuthUser = {
           id: data.user.id,
@@ -222,8 +218,7 @@ export class AuthApi {
         console.error('Logout error:', error);
       }
       
-      // Entferne Auth-Cookies
-      this.clearAuthCookies();
+
     } catch (error) {
       console.error('Unexpected logout error:', error);
     }
@@ -249,8 +244,6 @@ export class AuthApi {
     const supabase = createClient();
     return supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
       if (session?.user) {
-        // Setze Cookies bei Auth-State-Änderungen
-        this.setAuthCookies(session);
         
         const authUser: AuthUser = {
           id: session.user.id,
@@ -263,8 +256,6 @@ export class AuthApi {
         };
         callback(authUser);
       } else {
-        // Entferne Cookies bei Logout
-        this.clearAuthCookies();
         callback(null);
       }
     });
@@ -403,21 +394,7 @@ export class AuthApi {
     }
   }
 
-  // Helper method to set auth cookies for middleware
-  private static setAuthCookies(session: Session) {
-    if (session?.access_token) {
-      document.cookie = `sb-access-token=${session.access_token}; path=/; max-age=${session.expires_in}; secure; samesite=strict`;
-    }
-    if (session?.refresh_token) {
-      document.cookie = `sb-refresh-token=${session.refresh_token}; path=/; max-age=2592000; secure; samesite=strict`; // 30 days
-    }
-  }
 
-  // Helper method to clear auth cookies
-  private static clearAuthCookies() {
-    document.cookie = 'sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    document.cookie = 'sb-refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-  }
 
   // Helper method to get user-friendly error messages
   private static getErrorMessage(error: AuthError): string {
