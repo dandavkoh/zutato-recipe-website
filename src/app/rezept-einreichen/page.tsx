@@ -1,50 +1,7 @@
-'use client';
+import { requireAuth } from '@/utils/authUtils';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-
-export default function RezeptEinreichenPage() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-  const [isRedirecting, setIsRedirecting] = useState(false);
-
-  useEffect(() => {
-    // Wenn nicht geladen, warten
-    if (loading) return;
-
-    // Wenn kein User angemeldet, zur Login-Seite weiterleiten
-    if (!user) {
-      setIsRedirecting(true);
-      const currentPath = '/rezept-einreichen';
-      router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
-      return;
-    }
-  }, [user, loading, router]);
-
-  // Loading-Zustand anzeigen
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Lade...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Wenn kein User oder Weiterleitung läuft, Loading anzeigen
-  if (!user || isRedirecting) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Weiterleitung...</p>
-        </div>
-      </div>
-    );
-  }
+export default async function RezeptEinreichenPage() {
+  const user = await requireAuth();
 
   // Nur wenn User angemeldet, die Seite rendern
   return (

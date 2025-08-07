@@ -8,7 +8,7 @@ import {
   validateRegistrationForm, 
   getPasswordStrength, 
   validatePassword
-} from '@/utils/authUtils';
+} from '@/utils/clientAuthUtils';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface RegisterFormData {

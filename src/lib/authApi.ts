@@ -1,5 +1,5 @@
-import { supabase } from './supabase';
-import type { AuthError } from '@supabase/supabase-js';
+import { createClient } from '@/utils/supabase/client';
+import type { AuthError, AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 // Auth API Types
 export interface AuthUser {
@@ -40,6 +40,7 @@ export class AuthApi {
   // Login
   static async login(email: string, password: string): Promise<AuthResponse> {
     try {
+      const supabase = createClient();
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -54,6 +55,9 @@ export class AuthApi {
       }
 
       if (data.user) {
+        // Setze Cookies für Middleware
+        this.setAuthCookies(data.session);
+        
         const authUser: AuthUser = {
           id: data.user.id,
           email: data.user.email!,
@@ -86,6 +90,7 @@ export class AuthApi {
   // Register
   static async register(email: string, password: string, firstName: string, lastName: string): Promise<AuthResponse> {
     try {
+      const supabase = createClient();
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -106,6 +111,11 @@ export class AuthApi {
       }
 
       if (data.user) {
+        // Setze Cookies für Middleware (falls Session vorhanden)
+        if (data.session) {
+          this.setAuthCookies(data.session);
+        }
+        
         const authUser: AuthUser = {
           id: data.user.id,
           email: data.user.email!,
@@ -139,6 +149,7 @@ export class AuthApi {
   // Reset Password
   static async resetPassword(email: string): Promise<AuthResponse> {
     try {
+      const supabase = createClient();
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
@@ -167,6 +178,7 @@ export class AuthApi {
   // Get current user (for SSR)
   static async getCurrentUser(): Promise<AuthUser | null> {
     try {
+      const supabase = createClient();
       const { data: { user }, error } = await supabase.auth.getUser();
       
       // AuthSessionMissingError is expected for non-authenticated users
@@ -204,10 +216,14 @@ export class AuthApi {
   // Logout
   static async logout(): Promise<void> {
     try {
+      const supabase = createClient();
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Logout error:', error);
       }
+      
+      // Entferne Auth-Cookies
+      this.clearAuthCookies();
     } catch (error) {
       console.error('Unexpected logout error:', error);
     }
@@ -216,6 +232,7 @@ export class AuthApi {
   // Check if user is authenticated
   static async isAuthenticated(): Promise<boolean> {
     try {
+      const supabase = createClient();
       const { data: { user }, error } = await supabase.auth.getUser();
       return !error && !!user;
     } catch (error) {
@@ -229,8 +246,12 @@ export class AuthApi {
 
   // Listen to auth state changes
   static onAuthStateChange(callback: (user: AuthUser | null) => void) {
-    return supabase.auth.onAuthStateChange(async (event, session) => {
+    const supabase = createClient();
+    return supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
       if (session?.user) {
+        // Setze Cookies bei Auth-State-Änderungen
+        this.setAuthCookies(session);
+        
         const authUser: AuthUser = {
           id: session.user.id,
           email: session.user.email!,
@@ -242,6 +263,8 @@ export class AuthApi {
         };
         callback(authUser);
       } else {
+        // Entferne Cookies bei Logout
+        this.clearAuthCookies();
         callback(null);
       }
     });
@@ -250,6 +273,7 @@ export class AuthApi {
   // Update user profile
   static async updateProfile(userData: { firstName: string; lastName: string; email: string }): Promise<AuthResponse> {
     try {
+      const supabase = createClient();
       // Get current user to check if email is actually changing
       const { data: currentUser } = await supabase.auth.getUser();
       const currentEmail = currentUser.user?.email;
@@ -322,6 +346,7 @@ export class AuthApi {
   // Update password
   static async updatePassword(currentPassword: string, newPassword: string): Promise<AuthResponse> {
     try {
+      const supabase = createClient();
       // First, verify the current password by trying to sign in
       const { data: currentUser } = await supabase.auth.getUser();
       const currentEmail = currentUser.user?.email;
@@ -376,6 +401,22 @@ export class AuthApi {
         error: 'Ein unerwarteter Fehler ist aufgetreten'
       };
     }
+  }
+
+  // Helper method to set auth cookies for middleware
+  private static setAuthCookies(session: Session) {
+    if (session?.access_token) {
+      document.cookie = `sb-access-token=${session.access_token}; path=/; max-age=${session.expires_in}; secure; samesite=strict`;
+    }
+    if (session?.refresh_token) {
+      document.cookie = `sb-refresh-token=${session.refresh_token}; path=/; max-age=2592000; secure; samesite=strict`; // 30 days
+    }
+  }
+
+  // Helper method to clear auth cookies
+  private static clearAuthCookies() {
+    document.cookie = 'sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = 'sb-refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
   }
 
   // Helper method to get user-friendly error messages

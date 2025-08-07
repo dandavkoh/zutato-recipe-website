@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import FontAwesomeIcon from '@/components/FontAwesomeIcon';
-import { validateLoginForm, validateEmail } from '@/utils/authUtils';
+import { validateLoginForm, validateEmail } from '@/utils/clientAuthUtils';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface LoginFormData {
