@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
+import FontAwesomeIcon from "@/components/FontAwesomeIcon";
 
 type Difficulty = "einfach" | "mittel" | "schwer";
 
@@ -349,7 +350,7 @@ export default function RecipeForm() {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-1 w-full rounded border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+            className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
             placeholder="z.B. Milchreis"
             required
           />
@@ -360,7 +361,7 @@ export default function RecipeForm() {
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="mt-1 w-full rounded border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+            className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
             placeholder="z.B. nach Omas Art"
           />
         </div>
@@ -371,7 +372,7 @@ export default function RecipeForm() {
             min={1}
             value={portions}
             onChange={(e) => setPortions(Number(e.target.value))}
-            className="mt-1 w-full rounded border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+            className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
           />
         </div>
         <div>
@@ -379,7 +380,7 @@ export default function RecipeForm() {
           <select
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="mt-1 w-full rounded border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+            className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
           >
             <option value="">- Keine -</option>
             {categories.map((c) => (
@@ -392,7 +393,7 @@ export default function RecipeForm() {
           <select
             value={difficulty}
             onChange={(e) => setDifficulty(e.target.value as Difficulty)}
-            className="mt-1 w-full rounded border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+            className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
           >
             <option value="einfach">einfach</option>
             <option value="mittel">mittel</option>
@@ -407,7 +408,7 @@ export default function RecipeForm() {
               min={0}
               value={workingMinutes}
               onChange={(e) => setWorkingMinutes(e.target.value)}
-              className="mt-1 w-full rounded border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+              className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
             />
           </div>
           <div>
@@ -417,7 +418,7 @@ export default function RecipeForm() {
               min={0}
               value={cookingMinutes}
               onChange={(e) => setCookingMinutes(e.target.value)}
-              className="mt-1 w-full rounded border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+              className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
             />
           </div>
           <div>
@@ -427,7 +428,7 @@ export default function RecipeForm() {
               min={0}
               value={restingMinutes}
               onChange={(e) => setRestingMinutes(e.target.value)}
-              className="mt-1 w-full rounded border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+              className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
             />
           </div>
         </div>
@@ -436,7 +437,6 @@ export default function RecipeForm() {
       <div>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-lg font-semibold text-gray-900">Zutaten</h3>
-          <button type="button" onClick={addSection} className="text-sm text-orange-600 hover:text-orange-700">Abschnitt hinzufügen</button>
         </div>
         <div className="space-y-6">
           {sections.map((section, sIdx) => (
@@ -446,11 +446,18 @@ export default function RecipeForm() {
                   type="text"
                   value={section.name}
                   onChange={(e) => setSections((prev) => prev.map((s, i) => i === sIdx ? { ...s, name: e.target.value } : s))}
-                  className="flex-1 rounded border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                  className="flex-1 rounded border-gray-400 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
                   placeholder="Abschnittsname (optional, z.B. Tortenboden)"
                 />
                 {sections.length > 1 && (
-                  <button type="button" onClick={() => removeSection(sIdx)} className="text-sm text-red-600 hover:text-red-700">Entfernen</button>
+                  <button
+                    type="button"
+                    onClick={() => removeSection(sIdx)}
+                    aria-label="Abschnitt entfernen"
+                    className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded focus:outline-none focus:ring-2 focus:ring-red-500/40"
+                  >
+                    <FontAwesomeIcon icon="trash" size="sm" />
+                  </button>
                 )}
               </div>
 
@@ -465,7 +472,7 @@ export default function RecipeForm() {
                         step="0.01"
                         value={ing.quantity}
                         onChange={(e) => updateIngredient(sIdx, iIdx, (cur) => ({ ...cur, quantity: e.target.value }))}
-                        className="mt-1 w-full rounded border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                        className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
                       />
                     </div>
                     <div className="col-span-2">
@@ -473,7 +480,7 @@ export default function RecipeForm() {
                       <select
                         value={ing.unit_id || ""}
                         onChange={(e) => updateIngredient(sIdx, iIdx, (cur) => ({ ...cur, unit_id: e.target.value || null }))}
-                        className="mt-1 w-full rounded border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                        className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
                       >
                         <option value="">-</option>
                         {units.map((u) => (
@@ -501,7 +508,7 @@ export default function RecipeForm() {
                             setSearchQueryByIngredientId((p) => ({ ...p, [ing.tempId]: val }));
                             searchIngredients(ing.tempId, val);
                           }}
-                          className="mt-1 w-full rounded border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                          className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
                           placeholder="Suche nach Zutat (Produkt oder Produktgruppe) oder frei eingeben"
                         />
                         {/* Results dropdown */}
@@ -535,8 +542,15 @@ export default function RecipeForm() {
                         )}
                       </div>
                     </div>
-                    <div className="col-span-1 flex items-end">
-                      <button type="button" onClick={() => removeIngredient(sIdx, iIdx)} className="text-red-600 text-sm">Entfernen</button>
+                    <div className="col-span-1 flex h-full items-start justify-center pt-3">
+                      <button
+                        type="button"
+                        onClick={() => removeIngredient(sIdx, iIdx)}
+                        aria-label="Zutat entfernen"
+                        className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded focus:outline-none focus:ring-2 focus:ring-red-500/40"
+                      >
+                        <FontAwesomeIcon icon="trash" size="sm" />
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -548,16 +562,18 @@ export default function RecipeForm() {
             </div>
           ))}
         </div>
+        <div className="mt-4">
+          <button type="button" onClick={addSection} className="text-sm text-orange-600 hover:text-orange-700">Abschnitt hinzufügen</button>
+        </div>
       </div>
 
       <div>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-lg font-semibold text-gray-900">Zubereitung</h3>
-          <button type="button" onClick={addStep} className="text-sm text-orange-600 hover:text-orange-700">Schritt hinzufügen</button>
         </div>
         <div className="space-y-3">
           {steps.map((step, idx) => (
-            <div key={idx} className="grid grid-cols-12 gap-3 items-start">
+            <div key={idx} className="grid grid-cols-12 gap-3 items-stretch">
               <div className="col-span-1 flex items-center h-10">
                 <span className="text-gray-500 text-sm">{step.step_number}.</span>
               </div>
@@ -565,16 +581,26 @@ export default function RecipeForm() {
                 <textarea
                   value={step.instruction}
                   onChange={(e) => setSteps((prev) => prev.map((s, i) => i === idx ? { ...s, instruction: e.target.value } : s))}
-                  className="w-full rounded border-gray-300 focus:border-orange-500 focus:ring-orange-500 min-h-28"
+                  className="w-full rounded border-gray-400 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm min-h-28"
                   placeholder="Zubereitungsschritt"
                   rows={6}
                 />
               </div>
-              <div className="col-span-1 flex items-end">
-                <button type="button" onClick={() => removeStep(idx)} className="text-red-600 text-sm">Entfernen</button>
+              <div className="col-span-1 flex h-full items-center justify-center">
+                <button
+                  type="button"
+                  onClick={() => removeStep(idx)}
+                  aria-label="Schritt entfernen"
+                  className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded focus:outline-none focus:ring-2 focus:ring-red-500/40"
+                >
+                  <FontAwesomeIcon icon="trash" size="sm" />
+                </button>
               </div>
             </div>
           ))}
+        </div>
+        <div className="mt-4">
+          <button type="button" onClick={addStep} className="text-sm text-orange-600 hover:text-orange-700">Schritt hinzufügen</button>
         </div>
       </div>
 
