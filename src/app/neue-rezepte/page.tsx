@@ -1,79 +1,66 @@
 import Link from 'next/link';
+import { createClient } from '@/utils/supabase/server';
 
 export const metadata = {
   title: 'Neue Rezepte - KochMeister',
   description: 'Entdecke die neuesten Rezepte unserer Community. Frische Ideen und innovative Gerichte von Hobbyköchen und Profis.',
 };
 
-export default function NeueRezeptePage() {
-  const newRecipes = [
-    {
-      id: 1,
-      title: 'Avocado Toast mit Ei',
-      author: 'Sarah Müller',
-      time: '10 Min',
-      difficulty: 'Einfach',
-      rating: 4.6,
-      image: '🥑',
-      isNew: true,
-      date: 'vor 2 Stunden'
-    },
-    {
-      id: 2,
-      title: 'Quinoa Buddha Bowl',
-      author: 'Lisa Schmidt',
-      time: '25 Min',
-      difficulty: 'Einfach',
-      rating: 4.8,
-      image: '🥗',
-      isNew: true,
-      date: 'vor 4 Stunden'
-    },
-    {
-      id: 3,
-      title: 'Chocolate Chip Cookies',
-      author: 'Max Weber',
-      time: '35 Min',
-      difficulty: 'Mittel',
-      rating: 4.9,
-      image: '🍪',
-      isNew: true,
-      date: 'vor 6 Stunden'
-    },
-    {
-      id: 4,
-      title: 'Pasta Arrabbiata',
-      author: 'Marco Rossi',
-      time: '20 Min',
-      difficulty: 'Einfach',
-      rating: 4.7,
-      image: '🍝',
-      isNew: true,
-      date: 'vor 8 Stunden'
-    },
-    {
-      id: 5,
-      title: 'Smoothie Bowl',
-      author: 'Anna Klein',
-      time: '15 Min',
-      difficulty: 'Einfach',
-      rating: 4.5,
-      image: '🥤',
-      isNew: true,
-      date: 'vor 10 Stunden'
-    },
-    {
-      id: 6,
-      title: 'Thai Green Curry',
-      author: 'Tom Chen',
-      time: '40 Min',
-      difficulty: 'Mittel',
-      rating: 4.8,
-      image: '🍛',
-      isNew: true,
-      date: 'vor 12 Stunden'
-    }
-  ];
+type RecipeRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  difficulty: 'einfach' | 'mittel' | 'schwer';
+  working_time_minutes: number | null;
+  cooking_time_minutes: number | null;
+  resting_time_minutes: number | null;
+  image_url: string | null;
+  created_at: string;
+  category_name: string | null;
+  creator_email: string | null;
+  creator_name: string | null;
+};
+
+function capitalize(word: string) {
+  if (!word) return word;
+  return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
+function getTotalMinutes(r: RecipeRow): number | null {
+  const w = r.working_time_minutes ?? 0;
+  const c = r.cooking_time_minutes ?? 0;
+  const rest = r.resting_time_minutes ?? 0;
+  const sum = w + c + rest;
+  return sum > 0 ? sum : null;
+}
+
+function formatRelativeTime(dateStr: string): string {
+  const created = new Date(dateStr).getTime();
+  const now = Date.now();
+  const diffMs = Math.max(0, now - created);
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return 'gerade eben';
+  if (minutes < 60) return `vor ${minutes} Minute${minutes === 1 ? '' : 'n'}`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `vor ${hours} Stunde${hours === 1 ? '' : 'n'}`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `vor ${days} Tag${days === 1 ? '' : 'en'}`;
+  const weeks = Math.floor(days / 7);
+  return `vor ${weeks} Woche${weeks === 1 ? '' : 'n'}`;
+}
+
+export default async function NeueRezeptePage() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('recipes_with_details')
+    .select(
+      'id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, category_name, creator_email, creator_name'
+    )
+    .order('created_at', { ascending: false })
+    .limit(18);
+
+  const recipes: RecipeRow[] = (data as RecipeRow[]) || [];
+  const toSlug = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -131,42 +118,55 @@ export default function NeueRezeptePage() {
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {newRecipes.map((recipe) => (
-              <div key={recipe.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="relative">
-                  <div className="h-48 bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center text-6xl">
-                    {recipe.image}
-                  </div>
-                  {recipe.isNew && (
-                    <div className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                      Neu
+            {recipes.map((recipe) => {
+              const totalMinutes = getTotalMinutes(recipe);
+              const timeText = totalMinutes ? `${totalMinutes} Min` : '–';
+              const difficultyText = capitalize(recipe.difficulty);
+              const author = recipe.creator_name || recipe.creator_email || 'Unbekannt';
+              const isNew = Date.now() - new Date(recipe.created_at).getTime() < 1000 * 60 * 60 * 24;
+              const dateText = formatRelativeTime(recipe.created_at);
+              return (
+                <div key={recipe.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                  <div className="relative">
+                    <div className="h-48 bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center text-6xl">
+                      {recipe.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={recipe.image_url} alt={recipe.name} className="h-full w-full object-cover" />
+                      ) : (
+                        '🍽️'
+                      )}
                     </div>
-                  )}
-                  <div className="absolute top-4 right-4 bg-white bg-opacity-90 text-gray-600 px-2 py-1 rounded text-xs">
-                    {recipe.date}
+                    {isNew && (
+                      <div className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                        Neu
+                      </div>
+                    )}
+                    <div className="absolute top-4 right-4 bg-white bg-opacity-90 text-gray-600 px-2 py-1 rounded text-xs">
+                      {dateText}
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <h3 className="font-semibold text-lg text-gray-900 mb-2">
+                      {recipe.name}
+                    </h3>
+                    <p className="text-gray-600 text-sm mb-3">
+                      von {author}
+                    </p>
+                    <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                      <span>⏱️ {timeText}</span>
+                      <span>📊 {difficultyText}</span>
+                      <span>⭐ 4.8</span>
+                    </div>
+                    <Link 
+                      href={`/rezepte/${recipe.id}/${toSlug(recipe.name)}`}
+                      className="block w-full bg-orange-600 hover:bg-orange-700 text-white text-center py-2 rounded-lg font-medium transition-colors"
+                    >
+                      Rezept anzeigen
+                    </Link>
                   </div>
                 </div>
-                <div className="p-6">
-                  <h3 className="font-semibold text-lg text-gray-900 mb-2">
-                    {recipe.title}
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-3">
-                    von {recipe.author}
-                  </p>
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                    <span>⏱️ {recipe.time}</span>
-                    <span>📊 {recipe.difficulty}</span>
-                    <span>⭐ {recipe.rating}</span>
-                  </div>
-                  <Link 
-                    href={`/rezepte/${recipe.title.toLowerCase().replace(/\s+/g, '-')}`}
-                    className="block w-full bg-orange-600 hover:bg-orange-700 text-white text-center py-2 rounded-lg font-medium transition-colors"
-                  >
-                    Rezept anzeigen
-                  </Link>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Load More Button */}
