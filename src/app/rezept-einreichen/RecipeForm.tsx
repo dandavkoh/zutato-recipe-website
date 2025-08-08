@@ -142,6 +142,8 @@ export default function RecipeForm() {
   const [searchQueryByIngredientId, setSearchQueryByIngredientId] = useState<Record<string, string>>({});
   const [searchResultsByIngredientId, setSearchResultsByIngredientId] = useState<Record<string, ProductOrGroup[]>>({});
   const [searchLoadingByIngredientId, setSearchLoadingByIngredientId] = useState<Record<string, boolean>>({});
+  const [isSelectingByClickByIngredientId, setIsSelectingByClickByIngredientId] = useState<Record<string, boolean>>({});
+  const [isDropdownOpenByIngredientId, setIsDropdownOpenByIngredientId] = useState<Record<string, boolean>>({});
 
   async function searchIngredients(ingTempId: string, term: string) {
     setSearchQueryByIngredientId((prev) => ({ ...prev, [ingTempId]: term }));
@@ -280,14 +282,14 @@ export default function RecipeForm() {
         ingredients: sections.flatMap((s) =>
           s.ingredients
             .filter((ing) => ing.quantity.trim() && ing.link)
-            .map((ing) => ({
+            .map((ing, idx) => ({
               sectionTempId: s.name.trim() ? s.tempId : null, // unnamed/default section -> null section_id
               quantity: Number(ing.quantity),
               unit_id: ing.unit_id || null,
               product_group_id: ing.link?.kind === "group" ? ing.link.product_group_id : null,
               product_id: ing.link?.kind === "product" ? ing.link.product_id : null,
               custom_ingredient_name: ing.link?.kind === "custom" ? ing.link.custom_ingredient_name : null,
-              sort_order: ing.sort_order,
+              sort_order: idx,
             }))
         ),
         steps: steps
@@ -506,37 +508,124 @@ export default function RecipeForm() {
                               link: val ? { kind: "custom", custom_ingredient_name: val } : null,
                             }));
                             setSearchQueryByIngredientId((p) => ({ ...p, [ing.tempId]: val }));
+                            setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: true }));
                             searchIngredients(ing.tempId, val);
+                          }}
+                          onFocus={() => {
+                            const current = searchQueryByIngredientId[ing.tempId] ?? "";
+                            if (current.trim()) {
+                              setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: true }));
+                            }
+                          }}
+                          onBlur={() => {
+                            // Delay to allow item click (mousedown) to run first
+                            setTimeout(() => {
+                              const selecting = !!isSelectingByClickByIngredientId[ing.tempId];
+                              if (selecting) {
+                                // reset flag and skip auto-select
+                                setIsSelectingByClickByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                return;
+                              }
+                              const userText = (searchQueryByIngredientId[ing.tempId] ?? (ing.link?.kind === "custom" ? ing.link.custom_ingredient_name : "")) || "";
+                              const trimmed = userText.trim();
+                              if (!trimmed) {
+                                setSearchResultsByIngredientId((p) => ({ ...p, [ing.tempId]: [] }));
+                                setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                return;
+                              }
+                              const results = searchResultsByIngredientId[ing.tempId] || [];
+                              const hasExact = results.some((r) => r.title.toLowerCase() === trimmed.toLowerCase());
+                              if (!hasExact) {
+                                // choose custom as first
+                                updateIngredient(sIdx, iIdx, (cur) => ({
+                                  ...cur,
+                                  link: { kind: "custom", custom_ingredient_name: trimmed },
+                                }));
+                                setSearchQueryByIngredientId((p) => ({ ...p, [ing.tempId]: trimmed }));
+                                setSearchResultsByIngredientId((p) => ({ ...p, [ing.tempId]: [] }));
+                                setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                return;
+                              }
+                              if (results.length > 0) {
+                                const r = results[0];
+                                updateIngredient(sIdx, iIdx, (cur) => ({
+                                  ...cur,
+                                  link:
+                                    r.type === "product"
+                                      ? { kind: "product", product_id: r.id, label: r.title }
+                                      : { kind: "group", product_group_id: r.id, label: r.title },
+                                }));
+                                setSearchQueryByIngredientId((p) => ({ ...p, [ing.tempId]: r.title }));
+                                setSearchResultsByIngredientId((p) => ({ ...p, [ing.tempId]: [] }));
+                                setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                              }
+                            }, 120);
                           }}
                           className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
                           placeholder="Suche nach Zutat (Produkt oder Produktgruppe) oder frei eingeben"
                         />
-                        {/* Results dropdown */}
-                        {searchResultsByIngredientId[ing.tempId]?.length ? (
-                          <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded shadow">
-                            <ul className="max-h-56 overflow-auto">
-                              {searchResultsByIngredientId[ing.tempId].map((r) => (
-                                <li
-                                  key={r.id + (r.type || "")}
-                                  className="px-3 py-2 hover:bg-orange-50 cursor-pointer text-sm"
-                                  onClick={() => {
-                                    updateIngredient(sIdx, iIdx, (cur) => ({
-                                      ...cur,
-                                      link:
-                                        r.type === "product"
-                                          ? { kind: "product", product_id: r.id, label: r.title }
-                                          : { kind: "group", product_group_id: r.id, label: r.title },
-                                    }));
-                                    setSearchResultsByIngredientId((p) => ({ ...p, [ing.tempId]: [] }));
-                                    setSearchQueryByIngredientId((p) => ({ ...p, [ing.tempId]: r.title }));
-                                  }}
-                                >
-                                  {r.title} {r.type ? `(${r.type})` : ""}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ) : null}
+                        {/* Results dropdown with user's raw input as first suggestion if not exactly matched */}
+                        {(() => {
+                          const userText = (searchQueryByIngredientId[ing.tempId] ?? (ing.link?.kind === "custom" ? ing.link.custom_ingredient_name : "")) || "";
+                          const trimmed = userText.trim();
+                          const results = searchResultsByIngredientId[ing.tempId] || [];
+                          if (!trimmed) return null;
+                          const hasExact = results.some((r) => r.title.toLowerCase() === trimmed.toLowerCase());
+                          const isOpen = !!isDropdownOpenByIngredientId[ing.tempId];
+                          if (!isOpen) return null;
+                          return (
+                            <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded shadow text-gray-900">
+                              <ul className="max-h-56 overflow-auto divide-y divide-gray-100">
+                                {!hasExact && (
+                                  <li
+                                    key={"custom-" + ing.tempId}
+                                    className="px-3 py-2 hover:bg-orange-50 cursor-pointer text-sm text-gray-900"
+                                    onMouseDown={() => {
+                                      setIsSelectingByClickByIngredientId((p) => ({ ...p, [ing.tempId]: true }));
+                                    }}
+                                    onClick={() => {
+                                      updateIngredient(sIdx, iIdx, (cur) => ({
+                                        ...cur,
+                                        link: { kind: "custom", custom_ingredient_name: trimmed },
+                                      }));
+                                      setSearchResultsByIngredientId((p) => ({ ...p, [ing.tempId]: [] }));
+                                      setSearchQueryByIngredientId((p) => ({ ...p, [ing.tempId]: trimmed }));
+                                      setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                      setIsSelectingByClickByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                    }}
+                                  >
+                                    {trimmed}
+                                  </li>
+                                )}
+                                {results.map((r) => (
+                                  <li
+                                    key={r.id + (r.type || "")}
+                                    className="px-3 py-2 hover:bg-orange-50 cursor-pointer text-sm text-gray-900"
+                                    onMouseDown={() => {
+                                      // Mark that we are selecting by click to avoid blur auto-select conflicting
+                                      setIsSelectingByClickByIngredientId((p) => ({ ...p, [ing.tempId]: true }));
+                                    }}
+                                    onClick={() => {
+                                      updateIngredient(sIdx, iIdx, (cur) => ({
+                                        ...cur,
+                                        link:
+                                          r.type === "product"
+                                            ? { kind: "product", product_id: r.id, label: r.title }
+                                            : { kind: "group", product_group_id: r.id, label: r.title },
+                                      }));
+                                      setSearchResultsByIngredientId((p) => ({ ...p, [ing.tempId]: [] }));
+                                      setSearchQueryByIngredientId((p) => ({ ...p, [ing.tempId]: r.title }));
+                                      setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                      setIsSelectingByClickByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                    }}
+                                  >
+                                    {r.title} {r.type ? `(${r.type})` : ""}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          );
+                        })()}
                         {ing.link && (ing.link as any).label && (
                           <div className="text-xs text-gray-500 mt-1">Ausgewählt: {(ing.link as any).label}</div>
                         )}
