@@ -12,6 +12,7 @@ interface UpdateRecipeRequestBody {
   working_time_minutes?: number | null;
   cooking_time_minutes?: number | null;
   resting_time_minutes?: number | null;
+  image_url?: string | null; // optional update
   sections: Array<{ tempId: string; name: string; sort_order: number }>;
   ingredients: Array<{
     sectionTempId: string | null; // null means default unnamed section
@@ -59,18 +60,22 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     }
 
     // 1) Update recipe metadata
+    const updatePayload: any = {
+      name: body.name,
+      description: body.description ?? null,
+      portions: body.portions,
+      difficulty: body.difficulty,
+      category_id: body.category_id,
+      working_time_minutes: body.working_time_minutes ?? null,
+      cooking_time_minutes: body.cooking_time_minutes ?? null,
+      resting_time_minutes: body.resting_time_minutes ?? null,
+    };
+    if (typeof body.image_url !== 'undefined') {
+      updatePayload.image_url = body.image_url;
+    }
     const { error: updErr } = await supabase
       .from("recipes")
-      .update({
-        name: body.name,
-        description: body.description ?? null,
-        portions: body.portions,
-        difficulty: body.difficulty,
-        category_id: body.category_id,
-        working_time_minutes: body.working_time_minutes ?? null,
-        cooking_time_minutes: body.cooking_time_minutes ?? null,
-        resting_time_minutes: body.resting_time_minutes ?? null,
-      })
+      .update(updatePayload)
       .eq("id", recipeId);
     if (updErr) {
       return NextResponse.json({ error: updErr.message }, { status: 400 });

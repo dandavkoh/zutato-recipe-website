@@ -12,6 +12,7 @@ interface CreateRecipeRequestBody {
   working_time_minutes?: number | null;
   cooking_time_minutes?: number | null;
   resting_time_minutes?: number | null;
+  image_url?: string | null;
   sections: Array<{ tempId: string; name: string; sort_order: number }>;
   ingredients: Array<{
     sectionTempId: string | null; // null means default unnamed section
@@ -55,6 +56,7 @@ export async function POST(request: Request) {
         working_time_minutes: body.working_time_minutes ?? null,
         cooking_time_minutes: body.cooking_time_minutes ?? null,
         resting_time_minutes: body.resting_time_minutes ?? null,
+        image_url: body.image_url ?? null,
         created_by: user.id,
       })
       .select("id")

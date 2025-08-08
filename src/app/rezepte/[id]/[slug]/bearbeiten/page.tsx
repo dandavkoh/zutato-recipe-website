@@ -52,6 +52,8 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
   const [workingMinutes, setWorkingMinutes] = useState<string>("");
   const [cookingMinutes, setCookingMinutes] = useState<string>("");
   const [restingMinutes, setRestingMinutes] = useState<string>("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const [sections, setSections] = useState<Section[]>([]);
   const [steps, setSteps] = useState<StepRow[]>([]);
@@ -73,7 +75,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
         const { data: recipe } = await supabase
           .from("recipes_with_details")
           .select(
-            "id, name, description, portions, difficulty, category_id, working_time_minutes, cooking_time_minutes, resting_time_minutes"
+            "id, name, description, portions, difficulty, category_id, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url"
           )
           .eq("id", resolved.id)
           .maybeSingle();
@@ -87,6 +89,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
         setWorkingMinutes(((recipe as any).working_time_minutes as number | null)?.toString() || "");
         setCookingMinutes(((recipe as any).cooking_time_minutes as number | null)?.toString() || "");
         setRestingMinutes(((recipe as any).resting_time_minutes as number | null)?.toString() || "");
+        if ((recipe as any).image_url) setImagePreview((recipe as any).image_url as string);
 
         const { data: ing } = await supabase
           .from("recipe_ingredients_with_details")
@@ -149,6 +152,21 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
     setSuccess(null);
     setSaving(true);
     try {
+      // optional: upload new image
+      let uploadedImageUrl: string | null = null;
+      if (imageFile) {
+        const ext = imageFile.name.split('.').pop()?.toLowerCase() || 'jpg';
+        const path = `recipes/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { data: storageData, error: storageErr } = await supabase.storage.from('recipes').upload(path, imageFile, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+        if (!storageErr && storageData) {
+          const { data: publicUrl } = supabase.storage.from('recipes').getPublicUrl(storageData.path);
+          uploadedImageUrl = publicUrl.publicUrl;
+        }
+      }
+
       const payload = {
         name: name.trim(),
         description: description.trim() || undefined,
@@ -158,6 +176,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
         working_time_minutes: workingMinutes ? Number(workingMinutes) : null,
         cooking_time_minutes: cookingMinutes ? Number(cookingMinutes) : null,
         resting_time_minutes: restingMinutes ? Number(restingMinutes) : null,
+        image_url: uploadedImageUrl ?? undefined,
         sections: sections.map((s) => ({ tempId: s.tempId, name: s.name.trim(), sort_order: s.sort_order })),
         ingredients: sections.flatMap((s) =>
           s.ingredients.map((ing, idx) => ({
@@ -202,6 +221,16 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
       {success && <div className="bg-green-50 text-green-800 border border-green-200 rounded p-3 text-sm mb-4">{success}</div>}
       <form onSubmit={onSave} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700">Titelbild (optional)</label>
+            <div className="mt-1 flex items-center gap-4">
+              <input type="file" accept="image/*" onChange={(e)=> { const f=e.target.files?.[0] || null; setImageFile(f); setImagePreview(f ? URL.createObjectURL(f) : imagePreview); }} className="rounded" />
+              {imagePreview && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={imagePreview} alt="Vorschau" className="h-16 w-16 object-cover rounded border" />
+              )}
+            </div>
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Rezeptname</label>
             <input value={name} onChange={(e) => setName(e.target.value)} className="mt-1 w-full rounded" />
