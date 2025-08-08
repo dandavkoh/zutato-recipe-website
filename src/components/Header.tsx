@@ -77,6 +77,11 @@ export default function Header() {
           <Link href="/beliebte-rezepte" className="text-gray-700 hover:text-orange-600 font-medium transition-colors">
             Beliebte Rezepte
           </Link>
+          {user && (
+            <Link href="/meine-rezepte" className="text-gray-700 hover:text-orange-600 font-medium transition-colors">
+              Meine Rezepte
+            </Link>
+          )}
         </div>
 
         {/* Mobile Header */}
@@ -161,6 +166,15 @@ export default function Header() {
                 >
                   Beliebte Rezepte
                 </Link>
+                    {user && (
+                      <Link 
+                        href="/meine-rezepte" 
+                        className="text-gray-700 hover:text-orange-600 font-medium transition-colors py-2"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Meine Rezepte
+                      </Link>
+                    )}
               </div>
             </div>
           )}
