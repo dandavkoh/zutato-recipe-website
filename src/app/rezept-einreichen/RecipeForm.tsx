@@ -352,7 +352,7 @@ export default function RecipeForm() {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
+            className="mt-1 w-full rounded"
             placeholder="z.B. Milchreis"
             required
           />
@@ -363,7 +363,7 @@ export default function RecipeForm() {
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
+            className="mt-1 w-full rounded"
             placeholder="z.B. nach Omas Art"
           />
         </div>
@@ -374,7 +374,7 @@ export default function RecipeForm() {
             min={1}
             value={portions}
             onChange={(e) => setPortions(Number(e.target.value))}
-            className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
+            className="mt-1 w-full rounded"
           />
         </div>
         <div>
@@ -382,7 +382,7 @@ export default function RecipeForm() {
           <select
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
+            className="mt-1 w-full rounded"
           >
             <option value="">- Keine -</option>
             {categories.map((c) => (
@@ -395,7 +395,7 @@ export default function RecipeForm() {
           <select
             value={difficulty}
             onChange={(e) => setDifficulty(e.target.value as Difficulty)}
-            className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
+            className="mt-1 w-full rounded"
           >
             <option value="einfach">einfach</option>
             <option value="mittel">mittel</option>
@@ -410,7 +410,7 @@ export default function RecipeForm() {
               min={0}
               value={workingMinutes}
               onChange={(e) => setWorkingMinutes(e.target.value)}
-              className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
+              className="mt-1 w-full rounded"
             />
           </div>
           <div>
@@ -420,7 +420,7 @@ export default function RecipeForm() {
               min={0}
               value={cookingMinutes}
               onChange={(e) => setCookingMinutes(e.target.value)}
-              className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
+              className="mt-1 w-full rounded"
             />
           </div>
           <div>
@@ -430,7 +430,7 @@ export default function RecipeForm() {
               min={0}
               value={restingMinutes}
               onChange={(e) => setRestingMinutes(e.target.value)}
-              className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
+              className="mt-1 w-full rounded"
             />
           </div>
         </div>
@@ -448,7 +448,7 @@ export default function RecipeForm() {
                   type="text"
                   value={section.name}
                   onChange={(e) => setSections((prev) => prev.map((s, i) => i === sIdx ? { ...s, name: e.target.value } : s))}
-                  className="flex-1 rounded border-gray-400 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
+                  className="flex-1 rounded"
                   placeholder="Abschnittsname (optional, z.B. Tortenboden)"
                 />
                 {sections.length > 1 && (
@@ -474,7 +474,7 @@ export default function RecipeForm() {
                         step="0.01"
                         value={ing.quantity}
                         onChange={(e) => updateIngredient(sIdx, iIdx, (cur) => ({ ...cur, quantity: e.target.value }))}
-                        className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
+                        className="mt-1 w-full rounded"
                       />
                     </div>
                     <div className="col-span-2">
@@ -482,7 +482,7 @@ export default function RecipeForm() {
                       <select
                         value={ing.unit_id || ""}
                         onChange={(e) => updateIngredient(sIdx, iIdx, (cur) => ({ ...cur, unit_id: e.target.value || null }))}
-                        className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
+                        className="mt-1 w-full rounded"
                       >
                         <option value="">-</option>
                         {units.map((u) => (
@@ -561,7 +561,7 @@ export default function RecipeForm() {
                               }
                             }, 120);
                           }}
-                          className="mt-1 w-full rounded border-gray-400 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
+                          className="mt-1 w-full rounded"
                           placeholder="Suche nach Zutat (Produkt oder Produktgruppe) oder frei eingeben"
                         />
                         {/* Results dropdown with user's raw input as first suggestion if not exactly matched */}
@@ -670,7 +670,7 @@ export default function RecipeForm() {
                 <textarea
                   value={step.instruction}
                   onChange={(e) => setSteps((prev) => prev.map((s, i) => i === idx ? { ...s, instruction: e.target.value } : s))}
-                  className="w-full rounded border-gray-400 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm min-h-28"
+                  className="w-full rounded min-h-28"
                   placeholder="Zubereitungsschritt"
                   rows={6}
                 />
