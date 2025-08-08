@@ -1,4 +1,5 @@
 import { requireAuth } from '@/utils/serverAuthUtils';
+import RecipeForm from './RecipeForm';
 
 export default async function RezeptEinreichenPage() {
   const user = await requireAuth();
@@ -36,23 +37,7 @@ export default async function RezeptEinreichenPage() {
           </div>
         </div>
 
-        {/* Test Content */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            🎉 Willkommen auf der Rezept-Einreichen-Seite!
-          </h2>
-          <p className="text-gray-600 mb-4">
-            Du bist erfolgreich angemeldet und kannst jetzt dein Rezept einreichen.
-          </p>
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <p className="text-orange-800">
-              <strong>Status:</strong> Authentifiziert ✅
-            </p>
-            <p className="text-orange-700 text-sm mt-1">
-              User ID: {user.id}
-            </p>
-          </div>
-        </div>
+        <RecipeForm />
       </div>
     </div>
   );
