@@ -49,7 +49,13 @@ function formatRelativeTime(dateStr: string): string {
   return `vor ${weeks} Woche${weeks === 1 ? '' : 'n'}`;
 }
 
-export default async function NeueRezeptePage() {
+export default async function NeueRezeptePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const { page } = await searchParams;
+  const pageSize = 10;
+  const pageNum = Math.max(1, parseInt(Array.isArray(page) ? page[0] || '1' : page || '1'));
+  const from = (pageNum - 1) * pageSize;
+  const to = from + pageSize; // we will fetch one extra to detect next page
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('recipes_with_details')
@@ -57,9 +63,11 @@ export default async function NeueRezeptePage() {
       'id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, category_name, creator_email, creator_name'
     )
     .order('created_at', { ascending: false })
-    .limit(18);
+    .range(from, to);
 
-  const recipes: RecipeRow[] = (data as RecipeRow[]) || [];
+  const fetched: RecipeRow[] = (data as RecipeRow[]) || [];
+  const hasNext = fetched.length > pageSize;
+  const recipes = hasNext ? fetched.slice(0, pageSize) : fetched;
   const toSlug = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
 
   return (
@@ -169,11 +177,24 @@ export default async function NeueRezeptePage() {
             })}
           </div>
 
-          {/* Load More Button */}
-          <div className="text-center mt-12">
-            <button className="bg-white hover:bg-gray-50 text-orange-600 border-2 border-orange-600 px-8 py-3 rounded-full font-medium transition-colors">
-              Weitere Rezepte laden
-            </button>
+          {/* Pagination */}
+          <div className="flex items-center justify-center gap-4 mt-12">
+            {pageNum > 1 && (
+              <Link
+                href={`/neue-rezepte?page=${pageNum - 1}`}
+                className="bg-white hover:bg-gray-50 text-orange-600 border-2 border-orange-600 px-6 py-2 rounded-full font-medium transition-colors"
+              >
+                Zurück
+              </Link>
+            )}
+            {hasNext && (
+              <Link
+                href={`/neue-rezepte?page=${pageNum + 1}`}
+                className="bg-white hover:bg-gray-50 text-orange-600 border-2 border-orange-600 px-6 py-2 rounded-full font-medium transition-colors"
+              >
+                Weitere Rezepte laden
+              </Link>
+            )}
           </div>
         </div>
       </section>
