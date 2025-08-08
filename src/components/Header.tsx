@@ -29,19 +29,19 @@ export default function Header() {
 
           {/* Search Bar */}
           <div className="flex-1 max-w-2xl mx-8">
-            <div className="relative">
+            <div className="flex">
               <input
                 type="text"
                 placeholder="Rezepte suchen..."
-                className="w-full pl-12 pr-4 py-3 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full flex-1 pl-4 pr-4 py-3 rounded-l-full rounded-r-none !rounded-r-none border border-gray-400 border-r-0 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
               />
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <FontAwesomeIcon 
-                  icon="search" 
-                  className="text-gray-400" 
-                  size="lg"
-                />
-              </div>
+              <button
+                type="button"
+                className="inline-flex items-center justify-center px-5 py-3 rounded-r-full border border-gray-400 border-l-0 -ml-px bg-orange-600 hover:bg-orange-700 text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                aria-label="Suchen"
+              >
+                <FontAwesomeIcon icon="search" className="text-white" size="lg" />
+              </button>
             </div>
           </div>
 
@@ -127,19 +127,19 @@ export default function Header() {
 
           {/* Mobile Search Bar */}
           <div className="pb-4">
-            <div className="relative">
+            <div className="flex">
               <input
                 type="text"
                 placeholder="Rezepte suchen..."
-                className="w-full pl-12 pr-4 py-3 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full flex-1 pl-4 pr-4 py-3 rounded-l-full rounded-r-none !rounded-r-none border border-gray-400 border-r-0 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
               />
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <FontAwesomeIcon 
-                  icon="search" 
-                  className="text-gray-400" 
-                  size="lg"
-                />
-              </div>
+              <button
+                type="button"
+                className="inline-flex items-center justify-center px-5 py-3 rounded-r-full border border-gray-400 border-l-0 -ml-px bg-orange-600 hover:bg-orange-700 text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                aria-label="Suchen"
+              >
+                <FontAwesomeIcon icon="search" className="text-white" size="lg" />
+              </button>
             </div>
           </div>
 
