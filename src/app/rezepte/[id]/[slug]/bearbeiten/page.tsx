@@ -157,12 +157,12 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
       if (imageFile) {
         const ext = imageFile.name.split('.').pop()?.toLowerCase() || 'jpg';
         const path = `recipes/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        const { data: storageData, error: storageErr } = await supabase.storage.from('recipes').upload(path, imageFile, {
+        const { data: storageData, error: storageErr } = await supabase.storage.from('public-bucket').upload(path, imageFile, {
           cacheControl: '3600',
           upsert: false,
         });
         if (!storageErr && storageData) {
-          const { data: publicUrl } = supabase.storage.from('recipes').getPublicUrl(storageData.path);
+          const { data: publicUrl } = supabase.storage.from('public-bucket').getPublicUrl(storageData.path);
           uploadedImageUrl = publicUrl.publicUrl;
         }
       }
