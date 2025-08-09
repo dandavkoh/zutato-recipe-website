@@ -127,7 +127,7 @@ export default function RecipeForm() {
       setLoading(true);
       try {
         const [unitsRes, catRes] = await Promise.all([
-          supabase.from("units").select("id, name, short_name").order("name"),
+          supabase.from("recipe_units").select("id, name, short_name").order("name"),
           supabase.from("recipe_categories").select("id, name").order("name"),
         ]);
 
