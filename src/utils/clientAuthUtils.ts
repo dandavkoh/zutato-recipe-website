@@ -107,7 +107,7 @@ export const validatePassword = (password: string): { isValid: boolean; errors: 
     errors.push('Mindestens eine Zahl');
   }
 
-  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+  if (!/[!@#$%^&*(),.?":{}|<>_+=\[\]\\;:'"`~]/.test(password)) {
     errors.push('Mindestens ein Sonderzeichen');
   }
 
