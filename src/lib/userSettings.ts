@@ -18,9 +18,28 @@ export class UserSettingsApi {
       }
 
       const { data, error } = await supabase
-        .from('user_settings')
+        .from('public_user_nicknames')
         .select('nickname')
         .eq('user_id', authData.user.id)
+        .single();
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, nickname: data?.nickname ?? '' };
+    } catch {
+      return { success: false, error: 'Ein unerwarteter Fehler ist aufgetreten' };
+    }
+  }
+
+  static async getPublicNicknameByUserId(userId: string): Promise<UserSettingsResponse> {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('public_user_nicknames')
+        .select('nickname')
+        .eq('user_id', userId)
         .single();
 
       if (error) {

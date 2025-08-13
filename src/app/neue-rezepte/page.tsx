@@ -19,6 +19,7 @@ type RecipeRow = {
   category_name: string | null;
   creator_email: string | null;
   creator_name: string | null;
+  created_by: string | null;
 };
 
 function capitalize(word: string) {
@@ -60,7 +61,7 @@ export default async function NeueRezeptePage({ searchParams }: { searchParams: 
   const { data, error } = await supabase
     .from('recipes_with_details')
     .select(
-      'id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, category_name, creator_email, creator_name'
+      'id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, category_name, creator_email, creator_name, created_by'
     )
     .order('created_at', { ascending: false })
     .range(from, to);
@@ -68,6 +69,20 @@ export default async function NeueRezeptePage({ searchParams }: { searchParams: 
   const fetched: RecipeRow[] = (data as RecipeRow[]) || [];
   const hasNext = fetched.length > pageSize;
   const recipes = hasNext ? fetched.slice(0, pageSize) : fetched;
+
+  // Fetch public nicknames for authors
+  const authorIds = Array.from(
+    new Set((recipes.map((r) => r.created_by).filter((v): v is string => Boolean(v))))
+  );
+  let nicknameByUserId: Record<string, string> = {};
+  if (authorIds.length > 0) {
+    const { data: nickRows } = await supabase
+      .from('public_user_nicknames')
+      .select('user_id, nickname')
+      .in('user_id', authorIds);
+    const rows = (nickRows as { user_id: string; nickname: string | null }[] | null) || [];
+    nicknameByUserId = Object.fromEntries(rows.filter(r => Boolean(r.nickname)).map(r => [r.user_id, r.nickname as string]));
+  }
   const toSlug = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
 
   return (
@@ -130,7 +145,7 @@ export default async function NeueRezeptePage({ searchParams }: { searchParams: 
               const totalMinutes = getTotalMinutes(recipe);
               const timeText = totalMinutes ? `${totalMinutes} Min` : '–';
               const difficultyText = capitalize(recipe.difficulty);
-              const author = recipe.creator_name || recipe.creator_email || 'Unbekannt';
+              const author = (recipe.created_by && nicknameByUserId[recipe.created_by]) || recipe.creator_name || recipe.creator_email || 'Unbekannt';
               const isNew = Date.now() - new Date(recipe.created_at).getTime() < 1000 * 60 * 60 * 24;
               const dateText = formatRelativeTime(recipe.created_at);
               return (
