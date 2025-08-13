@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server';
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 
 type Difficulty = 'einfach' | 'mittel' | 'schwer';
 
@@ -136,6 +137,34 @@ export default async function RecipeDetailPage({ params }: { params: { id: strin
     return aKey - bKey;
   });
 
+  // Fetch rating summary server-side and whether user has rated (for gating UI)
+  const { data: ratingRows } = await supabase
+    .from('recipe_ratings')
+    .select('rating')
+    .eq('recipe_id', params.id)
+    .eq('is_deleted', false);
+  const ratings = (ratingRows || []).map((row: any) => row.rating as number);
+  const ratingCount = ratings.length;
+  const ratingAverage = ratingCount > 0 ? ratings.reduce((a, b) => a + b, 0) / ratingCount : null;
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  let userHasRated = false;
+  if (user) {
+    const { data: myRating } = await supabase
+      .from('recipe_ratings')
+      .select('id')
+      .eq('recipe_id', params.id)
+      .eq('user_id', user.id)
+      .eq('is_deleted', false)
+      .maybeSingle();
+    userHasRated = Boolean(myRating);
+  }
+
+  const { default: RecipeRatingSummary } = await import('@/components/RecipeRatingSummary');
+  const { default: RateRecipeButton } = await import('@/components/RateRecipeButton');
+
   return (
     <div className="min-h-screen bg-gray-50">
       <section className="bg-white border-b">
@@ -150,6 +179,9 @@ export default async function RecipeDetailPage({ params }: { params: { id: strin
                 <span>🍽️ {r.portions} Portionen</span>
                 <span>📊 {difficultyLabel}</span>
                 {totalTime && <span>⏱️ {totalTime}</span>}
+                <span>
+                  <RecipeRatingSummary average={ratingAverage} count={ratingCount} />
+                </span>
               </div>
             </div>
             <div className="md:col-span-1">
@@ -159,6 +191,17 @@ export default async function RecipeDetailPage({ params }: { params: { id: strin
                   <img src={r.image_url} alt={r.name} className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-6xl">🍽️</span>
+                )}
+              </div>
+              <div className="mt-4">
+                {user ? (
+                  userHasRated ? (
+                    <div className="text-sm text-gray-600">Danke für deine Bewertung!</div>
+                  ) : (
+                    <RateRecipeButton recipeId={params.id} />
+                  )
+                ) : (
+                  <Link href="/login" className="text-sm text-orange-600 hover:underline">Jetzt anmelden um zu bewerten</Link>
                 )}
               </div>
             </div>
@@ -202,6 +245,38 @@ export default async function RecipeDetailPage({ params }: { params: { id: strin
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+// Client button wrapper to open dialog
+function RateRecipeButton({ recipeId }: { recipeId: string }) {
+  const [open, setOpen] = React.useState(false);
+  const [refreshKey, setRefreshKey] = React.useState(0);
+  const handleSubmitted = () => {
+    // After submit, refresh page to reflect rating summary and hide button
+    // Using client navigation refresh
+    if (typeof window !== 'undefined') {
+      setRefreshKey((k) => k + 1);
+      window.location.reload();
+    }
+  };
+  return (
+    <div className="flex items-center">
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="w-full md:w-auto bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm"
+      >
+        Rezept bewerten
+      </button>
+      <RatingDialog
+        key={refreshKey}
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        onSubmitted={handleSubmitted}
+        recipeId={recipeId}
+      />
     </div>
   );
 }

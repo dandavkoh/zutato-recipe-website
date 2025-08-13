@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
+import RecipeRatingSummary from '@/components/RecipeRatingSummary';
 
 export const metadata = {
   title: 'Neue Rezepte - KochMeister',
@@ -69,6 +70,30 @@ export default async function NeueRezeptePage({ searchParams }: { searchParams: 
   const fetched: RecipeRow[] = (data as RecipeRow[]) || [];
   const hasNext = fetched.length > pageSize;
   const recipes = hasNext ? fetched.slice(0, pageSize) : fetched;
+
+  // Fetch rating summaries for all recipe ids
+  const recipeIds = recipes.map((r) => r.id);
+  let ratingSummaryById: Record<string, { average: number | null; count: number }> = {};
+  if (recipeIds.length > 0) {
+    const { data: ratings } = await supabase
+      .from('recipe_ratings')
+      .select('recipe_id, rating')
+      .in('recipe_id', recipeIds)
+      .eq('is_deleted', false);
+    const grouped: Record<string, number[]> = {};
+    for (const row of (ratings as any[]) || []) {
+      const rid = row.recipe_id as string;
+      const rt = row.rating as number;
+      if (!grouped[rid]) grouped[rid] = [];
+      grouped[rid].push(rt);
+    }
+    for (const rid of recipeIds) {
+      const list = grouped[rid] || [];
+      const count = list.length;
+      const avg = count > 0 ? list.reduce((a, b) => a + b, 0) / count : null;
+      ratingSummaryById[rid] = { average: avg, count };
+    }
+  }
 
   // Fetch public nicknames for authors
   const authorIds = Array.from(
@@ -178,7 +203,12 @@ export default async function NeueRezeptePage({ searchParams }: { searchParams: 
                     <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                       <span>⏱️ {timeText}</span>
                       <span>📊 {difficultyText}</span>
-                      <span>⭐ 4.8</span>
+                      <span>
+                        <RecipeRatingSummary
+                          average={ratingSummaryById[recipe.id]?.average ?? null}
+                          count={ratingSummaryById[recipe.id]?.count ?? 0}
+                        />
+                      </span>
                     </div>
                     <Link 
                       href={`/rezepte/${recipe.id}/${toSlug(recipe.name)}`}
