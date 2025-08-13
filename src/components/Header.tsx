@@ -49,9 +49,12 @@ export default function Header() {
           <div className="flex-shrink-0">
             {user ? (
               <div className="flex items-center space-x-4">
-                <span className="text-gray-700">
-                  Hallo, {user.firstName || user.email}
-                </span>
+                <Link href="/account" className="text-gray-700 hover:text-orange-600 font-medium transition-colors">
+                  <span className="inline-flex items-center gap-2">
+                    <FontAwesomeIcon icon="user" className="text-gray-700" size="lg" />
+                    {user.firstName || user.email}
+                  </span>
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-full font-medium transition-colors"
@@ -98,9 +101,12 @@ export default function Header() {
             <div className="flex items-center space-x-3">
               {user ? (
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-700">
-                    {user.firstName || user.email}
-                  </span>
+                  <Link href="/account" className="text-sm text-gray-700 hover:text-orange-600 font-medium transition-colors">
+                    <span className="inline-flex items-center gap-1">
+                      <FontAwesomeIcon icon="user" className="text-gray-700" size="base" />
+                      {user.firstName || user.email}
+                    </span>
+                  </Link>
                   <button
                     onClick={handleLogout}
                     className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-full text-sm font-medium transition-colors"
@@ -173,6 +179,15 @@ export default function Header() {
                         onClick={() => setIsMenuOpen(false)}
                       >
                         Meine Rezepte
+                      </Link>
+                    )}
+                    {user && (
+                      <Link 
+                        href="/account" 
+                        className="text-gray-700 hover:text-orange-600 font-medium transition-colors py-2"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Account
                       </Link>
                     )}
               </div>
