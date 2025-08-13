@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import FontAwesomeIcon from '@/components/FontAwesomeIcon';
 import { AuthApi } from '@/lib/authApi';
 import { validateEmail, validatePassword, getPasswordStrength } from '@/utils/clientAuthUtils';
+import { UserSettingsApi } from '@/lib/userSettings';
 
 interface AccountFormProps {
   initialUser: {
@@ -17,6 +18,7 @@ interface ValidationErrors {
   firstName?: string;
   lastName?: string;
   email?: string;
+  nickname?: string;
   currentPassword?: string;
   newPassword?: string;
   confirmPassword?: string;
@@ -33,6 +35,9 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
   });
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [loading, setLoading] = useState(false);
+  const [nickname, setNickname] = useState('');
+  const [nicknameLoading, setNicknameLoading] = useState(false);
+  const [nicknameSuccess, setNicknameSuccess] = useState('');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -43,6 +48,18 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
     if (name.trim().length < 2) return { isValid: false, error: 'Mindestens 2 Zeichen' };
     return { isValid: true };
   };
+
+  useEffect(() => {
+    const loadNickname = async () => {
+      setNicknameLoading(true);
+      const res = await UserSettingsApi.getNickname();
+      if (res.success) {
+        setNickname(res.nickname || '');
+      }
+      setNicknameLoading(false);
+    };
+    loadNickname();
+  }, []);
 
   const validateProfileForm = (): boolean => {
     const newErrors: ValidationErrors = {};
@@ -75,6 +92,36 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name as keyof ValidationErrors]) setErrors((prev) => ({ ...prev, [name]: undefined }));
     if (successMessage) setSuccessMessage('');
+  };
+
+  const handleNicknameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNickname(e.target.value);
+    if (errors.nickname) setErrors((prev) => ({ ...prev, nickname: undefined }));
+    if (nicknameSuccess) setNicknameSuccess('');
+  };
+
+  const validateNickname = (value: string) => {
+    const v = value.trim();
+    if (!v) return 'Pflichtfeld';
+    if (v.length < 3) return 'Mindestens 3 Zeichen';
+    if (!/^[a-zA-Z0-9_\-.]+$/.test(v)) return 'Nur Buchstaben, Zahlen, Unterstrich, Punkt oder Bindestrich erlaubt';
+    return '';
+  };
+
+  const handleSaveNickname = async () => {
+    const validationError = validateNickname(nickname);
+    if (validationError) {
+      setErrors((prev) => ({ ...prev, nickname: validationError }));
+      return;
+    }
+    setNicknameLoading(true);
+    const res = await UserSettingsApi.updateNickname(nickname);
+    if (res.success) {
+      setNicknameSuccess('Accountname gespeichert.');
+    } else {
+      setErrors((prev) => ({ ...prev, nickname: res.error || 'Fehler beim Speichern' }));
+    }
+    setNicknameLoading(false);
   };
 
   const handleSaveProfile = async () => {
@@ -130,6 +177,44 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
           <div className="text-green-700 text-sm">{successMessage}</div>
         </div>
       )}
+
+      <div className="mb-8 bg-white border border-gray-200 rounded-xl shadow-sm p-5 sm:p-6">
+        <label className="block text-gray-900 text-sm font-semibold mb-4">
+          Accountname
+        </label>
+        <div className="mb-4">
+          <div className={`flex items-center bg-gray-50 border ${errors.nickname ? 'border-red-500' : 'border-gray-400 hover:border-gray-500'} rounded-lg overflow-hidden focus-within:border-orange-600 focus-within:ring-2 focus-within:ring-orange-500/40 gap-3`}>
+            <span className="pl-3 text-gray-500">
+              <FontAwesomeIcon icon="fa-at" size="base" style="regular" fixedWidth />
+            </span>
+            <input
+              type="text"
+              name="nickname"
+              value={nickname}
+              onChange={handleNicknameChange}
+              className="w-full flex-1 bg-transparent pr-0 py-3 text-gray-900 placeholder-gray-500 outline-none pl-0 !pl-0"
+              placeholder="z. B. kochmeister42"
+              disabled={Boolean(nickname)}
+            />
+          </div>
+          {errors.nickname && (
+            <p className="text-red-600 text-sm mt-1">{errors.nickname}</p>
+          )}
+          {nicknameSuccess && (
+            <p className="text-green-700 text-sm mt-1">{nicknameSuccess}</p>
+          )}
+          <p className="text-xs text-gray-500 mt-1">Dein öffentlicher Name. Einmal vergeben, kann er nicht gelöscht werden.</p>
+        </div>
+        {!nickname && (
+          <button
+            onClick={handleSaveNickname}
+            disabled={nicknameLoading}
+            className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50"
+          >
+            {nicknameLoading ? 'Speichere...' : 'Accountname speichern'}
+          </button>
+        )}
+      </div>
 
       <div className="mb-8 bg-white border border-gray-200 rounded-xl shadow-sm p-5 sm:p-6">
         <label className="block text-gray-900 text-sm font-semibold mb-4">
