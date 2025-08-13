@@ -137,16 +137,16 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
         </label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div>
-            <div className="relative">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-                <FontAwesomeIcon icon="fa-user" size="base" style="regular" />
-              </div>
+            <div className={`flex items-center bg-gray-50 border ${errors.firstName ? 'border-red-500' : 'border-gray-400 hover:border-gray-500'} rounded-lg overflow-hidden focus-within:border-orange-600 focus-within:ring-2 focus-within:ring-orange-500/40 gap-3`}>
+              <span className="pl-3 text-gray-500">
+                <FontAwesomeIcon icon="fa-user" size="base" style="regular" fixedWidth />
+              </span>
               <input
                 type="text"
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleInputChange}
-                className={`w-full bg-gray-50 border ${errors.firstName ? 'border-red-500' : 'border-gray-400'} rounded-lg pl-10 pr-4 py-3 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40`}
+                className="w-full flex-1 bg-transparent pr-0 py-3 text-gray-900 placeholder-gray-500 outline-none pl-0 !pl-0"
                 placeholder="Vorname"
               />
             </div>
@@ -156,16 +156,16 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
           </div>
 
           <div>
-            <div className="relative">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-                <FontAwesomeIcon icon="fa-user" size="base" style="regular" />
-              </div>
+            <div className={`flex items-center bg-gray-50 border ${errors.lastName ? 'border-red-500' : 'border-gray-400 hover:border-gray-500'} rounded-lg overflow-hidden focus-within:border-orange-600 focus-within:ring-2 focus-within:ring-orange-500/40 gap-3`}>
+              <span className="pl-3 text-gray-500">
+                <FontAwesomeIcon icon="fa-user" size="base" style="regular" fixedWidth />
+              </span>
               <input
                 type="text"
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleInputChange}
-                className={`w-full bg-gray-50 border ${errors.lastName ? 'border-red-500' : 'border-gray-400'} rounded-lg pl-10 pr-4 py-3 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40`}
+                className="w-full flex-1 bg-transparent pr-0 py-3 text-gray-900 placeholder-gray-500 outline-none pl-0 !pl-0"
                 placeholder="Nachname"
               />
             </div>
@@ -176,16 +176,16 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
         </div>
 
         <div className="mb-4">
-          <div className="relative">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-              <FontAwesomeIcon icon="fa-envelope" size="base" style="regular" />
-            </div>
+          <div className={`flex items-center bg-gray-50 border ${errors.email ? 'border-red-500' : 'border-gray-400 hover:border-gray-500'} rounded-lg overflow-hidden focus-within:border-orange-600 focus-within:ring-2 focus-within:ring-orange-500/40 gap-3`}>
+            <span className="pl-3 text-gray-500">
+              <FontAwesomeIcon icon="fa-envelope" size="base" style="regular" fixedWidth />
+            </span>
             <input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleInputChange}
-              className={`w-full bg-gray-50 border ${errors.email ? 'border-red-500' : 'border-gray-400'} rounded-lg pl-10 pr-4 py-3 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40`}
+              className="w-full flex-1 bg-transparent pr-0 py-3 text-gray-900 placeholder-gray-500 outline-none pl-0 !pl-0"
               placeholder="E-Mail-Adresse"
             />
           </div>
@@ -209,22 +209,22 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
         </label>
 
         <div className="mb-4">
-          <div className="relative">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-              <FontAwesomeIcon icon="fa-lock" size="base" style="regular" />
-            </div>
+          <div className={`flex items-center bg-gray-50 border ${errors.currentPassword ? 'border-red-500' : 'border-gray-400 hover:border-gray-500'} rounded-lg overflow-hidden focus-within:border-orange-600 focus-within:ring-2 focus-within:ring-orange-500/40 gap-3 pr-1`}>
+            <span className="pl-3 text-gray-500">
+              <FontAwesomeIcon icon="fa-lock" size="base" style="regular" fixedWidth />
+            </span>
             <input
               type={showCurrentPassword ? 'text' : 'password'}
               name="currentPassword"
               value={formData.currentPassword}
               onChange={handleInputChange}
-              className={`w-full bg-gray-50 border ${errors.currentPassword ? 'border-red-500' : 'border-gray-400'} rounded-lg pl-10 pr-12 py-3 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40`}
+              className="w-full flex-1 bg-transparent pr-0 py-3 text-gray-900 placeholder-gray-500 outline-none pl-0 !pl-0"
               placeholder="Aktuelles Passwort"
             />
             <button
               type="button"
               onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              className="px-3 text-gray-500 hover:text-gray-700 shrink-0"
             >
               <FontAwesomeIcon icon={showCurrentPassword ? 'fa-eye-slash' : 'fa-eye'} size="base" style="regular" />
             </button>
@@ -235,22 +235,22 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
         </div>
 
         <div className="mb-4">
-          <div className="relative">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-              <FontAwesomeIcon icon="fa-lock" size="base" style="regular" />
-            </div>
+          <div className={`flex items-center bg-gray-50 border ${errors.newPassword ? 'border-red-500' : 'border-gray-400 hover:border-gray-500'} rounded-lg overflow-hidden focus-within:border-orange-600 focus-within:ring-2 focus-within:ring-orange-500/40 gap-3 pr-1`}>
+            <span className="pl-3 text-gray-500">
+              <FontAwesomeIcon icon="fa-lock" size="base" style="regular" fixedWidth />
+            </span>
             <input
               type={showNewPassword ? 'text' : 'password'}
               name="newPassword"
               value={formData.newPassword}
               onChange={handleInputChange}
-              className={`w-full bg-gray-50 border ${errors.newPassword ? 'border-red-500' : 'border-gray-400'} rounded-lg pl-10 pr-12 py-3 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40`}
+              className="w-full flex-1 bg-transparent pr-0 py-3 text-gray-900 placeholder-gray-500 outline-none pl-0 !pl-0"
               placeholder="Neues Passwort"
             />
             <button
               type="button"
               onClick={() => setShowNewPassword(!showNewPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              className="px-3 text-gray-500 hover:text-gray-700 shrink-0"
             >
               <FontAwesomeIcon icon={showNewPassword ? 'fa-eye-slash' : 'fa-eye'} size="base" style="regular" />
             </button>
@@ -281,22 +281,22 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
         </div>
 
         <div className="mb-4">
-          <div className="relative">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-              <FontAwesomeIcon icon="fa-lock" size="base" style="regular" />
-            </div>
+          <div className={`flex items-center bg-gray-50 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-400 hover:border-gray-500'} rounded-lg overflow-hidden focus-within:border-orange-600 focus-within:ring-2 focus-within:ring-orange-500/40 gap-3 pr-1`}>
+            <span className="pl-3 text-gray-500">
+              <FontAwesomeIcon icon="fa-lock" size="base" style="regular" fixedWidth />
+            </span>
             <input
               type={showConfirmPassword ? 'text' : 'password'}
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleInputChange}
-              className={`w-full bg-gray-50 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-400'} rounded-lg pl-10 pr-12 py-3 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40`}
+              className="w-full flex-1 bg-transparent pr-0 py-3 text-gray-900 placeholder-gray-500 outline-none pl-0 !pl-0"
               placeholder="Passwort bestätigen"
             />
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              className="px-3 text-gray-500 hover:text-gray-700 shrink-0"
             >
               <FontAwesomeIcon icon={showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'} size="base" style="regular" />
             </button>
