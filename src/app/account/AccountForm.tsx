@@ -38,6 +38,7 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
   const [nickname, setNickname] = useState('');
   const [nicknameLoading, setNicknameLoading] = useState(false);
   const [nicknameSuccess, setNicknameSuccess] = useState('');
+  const [isNicknameLocked, setIsNicknameLocked] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -55,6 +56,7 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
       const res = await UserSettingsApi.getNickname();
       if (res.success) {
         setNickname(res.nickname || '');
+        setIsNicknameLocked(Boolean(res.nickname));
       }
       setNicknameLoading(false);
     };
@@ -118,6 +120,7 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
     const res = await UserSettingsApi.updateNickname(nickname);
     if (res.success) {
       setNicknameSuccess('Accountname gespeichert.');
+      setIsNicknameLocked(true);
     } else {
       setErrors((prev) => ({ ...prev, nickname: res.error || 'Fehler beim Speichern' }));
     }
@@ -194,7 +197,7 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
               onChange={handleNicknameChange}
               className="w-full flex-1 bg-transparent pr-0 py-3 text-gray-900 placeholder-gray-500 outline-none pl-0 !pl-0"
               placeholder="z. B. kochmeister42"
-              disabled={Boolean(nickname)}
+              disabled={isNicknameLocked}
             />
           </div>
           {errors.nickname && (
@@ -205,7 +208,7 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
           )}
           <p className="text-xs text-gray-500 mt-1">Dein öffentlicher Name. Einmal vergeben, kann er nicht gelöscht werden.</p>
         </div>
-        {!nickname && (
+        {!isNicknameLocked && (
           <button
             onClick={handleSaveNickname}
             disabled={nicknameLoading}

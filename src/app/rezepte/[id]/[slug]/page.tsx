@@ -18,6 +18,7 @@ type RecipeDetails = {
   created_at: string;
   creator_name: string | null;
   creator_email: string | null;
+  created_by: string | null;
 };
 
 type IngredientRow = {
@@ -63,12 +64,15 @@ function formatQuantity(qty: number): string {
   return qty.toString();
 }
 
-export async function generateMetadata({ params }: { params: { id: string; slug: string } }) {
+type RouteParams = { id: string; slug: string };
+
+export async function generateMetadata(props: { params: Promise<RouteParams> }) {
   const supabase = await createClient();
+  const { id } = await props.params;
   const { data } = await supabase
     .from('recipes_with_details')
     .select('name, description')
-    .eq('id', params.id)
+    .eq('id', id)
     .maybeSingle();
 
   if (!data) return { title: 'Rezept', description: 'Rezeptdetails' };
@@ -81,15 +85,16 @@ export async function generateMetadata({ params }: { params: { id: string; slug:
   };
 }
 
-export default async function RecipeDetailPage({ params }: { params: { id: string; slug: string } }) {
+export default async function RecipeDetailPage(props: { params: Promise<RouteParams> }) {
   const supabase = await createClient();
+  const { id } = await props.params;
 
   const { data: recipe, error: recipeError } = await supabase
     .from('recipes_with_details')
     .select(
-      'id, name, description, portions, difficulty, category_name, image_url, working_time_minutes, cooking_time_minutes, resting_time_minutes, created_at, creator_name, creator_email'
+      'id, name, description, portions, difficulty, category_name, image_url, working_time_minutes, cooking_time_minutes, resting_time_minutes, created_at, creator_name, creator_email, created_by'
     )
-    .eq('id', params.id)
+    .eq('id', id)
     .maybeSingle();
 
   if (recipeError || !recipe) {
@@ -101,14 +106,14 @@ export default async function RecipeDetailPage({ params }: { params: { id: strin
     .select(
       'id, recipe_id, section_name, section_sort_order, quantity, unit_name, unit_short_name, ingredient_display_name, sort_order'
     )
-    .eq('recipe_id', params.id)
+    .eq('recipe_id', id)
     .order('section_sort_order', { ascending: true, nullsFirst: true })
     .order('sort_order', { ascending: true });
 
   const { data: steps } = await supabase
     .from('recipe_steps_with_details')
     .select('id, recipe_id, step_number, instruction')
-    .eq('recipe_id', params.id)
+    .eq('recipe_id', id)
     .order('step_number', { ascending: true });
 
   const r = recipe as RecipeDetails;
@@ -117,7 +122,16 @@ export default async function RecipeDetailPage({ params }: { params: { id: strin
 
   const totalTime = formatTotalMinutes(r.working_time_minutes, r.cooking_time_minutes, r.resting_time_minutes);
   const difficultyLabel = capitalize(r.difficulty);
-  const author = r.creator_name || r.creator_email || 'Unbekannt';
+  let authorNickname: string | null = null;
+  if (r.created_by) {
+    const { data: nickRow } = await supabase
+      .from('public_user_nicknames')
+      .select('nickname')
+      .eq('user_id', r.created_by)
+      .maybeSingle();
+    authorNickname = ((nickRow as any)?.nickname as string | null) ?? null;
+  }
+  const author = authorNickname || r.creator_name || r.creator_email || 'Unbekannt';
 
   // Group ingredients by section (null => Default/Unnamed)
   const grouped: Array<{ name: string | null; sortOrder: number | null; items: IngredientRow[] }> = [];
@@ -141,7 +155,7 @@ export default async function RecipeDetailPage({ params }: { params: { id: strin
   const { data: ratingRows } = await supabase
     .from('recipe_ratings')
     .select('rating')
-    .eq('recipe_id', params.id)
+    .eq('recipe_id', id)
     .eq('is_deleted', false);
   const ratings = (ratingRows || []).map((row: any) => row.rating as number);
   const ratingCount = ratings.length;
@@ -155,7 +169,7 @@ export default async function RecipeDetailPage({ params }: { params: { id: strin
     const { data: myRating } = await supabase
       .from('recipe_ratings')
       .select('id')
-      .eq('recipe_id', params.id)
+      .eq('recipe_id', id)
       .eq('user_id', user.id)
       .eq('is_deleted', false)
       .maybeSingle();
@@ -164,6 +178,7 @@ export default async function RecipeDetailPage({ params }: { params: { id: strin
 
   const { default: RecipeRatingSummary } = await import('@/components/RecipeRatingSummary');
   const { default: RateRecipeButton } = await import('@/components/RateRecipeButton');
+  const { default: CommentsSection } = await import('@/components/CommentsSection');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -198,7 +213,7 @@ export default async function RecipeDetailPage({ params }: { params: { id: strin
                   userHasRated ? (
                     <div className="text-sm text-gray-600">Danke für deine Bewertung!</div>
                   ) : (
-                    <RateRecipeButton recipeId={params.id} />
+                    <RateRecipeButton recipeId={id} />
                   )
                 ) : (
                   <Link href="/login" className="text-sm text-orange-600 hover:underline">Jetzt anmelden um zu bewerten</Link>
@@ -242,6 +257,11 @@ export default async function RecipeDetailPage({ params }: { params: { id: strin
                 </li>
               ))}
             </ol>
+          </div>
+          <div className="md:col-span-2">
+            <div className="mt-8">
+              <CommentsSection recipeId={id} currentUserId={user ? user.id : null} />
+            </div>
           </div>
         </div>
       </section>
