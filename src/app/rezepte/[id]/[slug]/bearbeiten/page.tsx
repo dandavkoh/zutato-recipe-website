@@ -14,6 +14,16 @@ type IngredientLink =
   | { kind: "group"; product_group_id: string; label: string }
   | { kind: "custom"; custom_ingredient_name: string };
 
+type ProductOrGroup = {
+  id: string;
+  title: string;
+  rank: number;
+  src: "fts" | "fuzzy" | "exact";
+  icon: string;
+  category_id: string;
+  type?: "product" | "group";
+};
+
 interface IngredientRow {
   tempId: string;
   quantity: string;
@@ -60,6 +70,44 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Ingredient search state (mirror create form behavior)
+  const [searchQueryByIngredientId, setSearchQueryByIngredientId] = useState<Record<string, string>>({});
+  const [searchResultsByIngredientId, setSearchResultsByIngredientId] = useState<Record<string, ProductOrGroup[]>>({});
+  const [searchLoadingByIngredientId, setSearchLoadingByIngredientId] = useState<Record<string, boolean>>({});
+  const [isSelectingByClickByIngredientId, setIsSelectingByClickByIngredientId] = useState<Record<string, boolean>>({});
+  const [isDropdownOpenByIngredientId, setIsDropdownOpenByIngredientId] = useState<Record<string, boolean>>({});
+
+  async function searchIngredients(ingTempId: string, term: string) {
+    setSearchQueryByIngredientId((prev) => ({ ...prev, [ingTempId]: term }));
+    if (!term || term.trim().length < 2) {
+      setSearchResultsByIngredientId((p) => ({ ...p, [ingTempId]: [] }));
+      return;
+    }
+    setSearchLoadingByIngredientId((p) => ({ ...p, [ingTempId]: true }));
+    try {
+      const { data } = await supabase.rpc("search_products_and_groups", {
+        term,
+        limit_fts: 10,
+        limit_fuzzy: 5,
+      });
+      setSearchResultsByIngredientId((p) => ({ ...p, [ingTempId]: (data || []) as ProductOrGroup[] }));
+    } finally {
+      setSearchLoadingByIngredientId((p) => ({ ...p, [ingTempId]: false }));
+    }
+  }
+
+  function updateIngredient(sectionIdx: number, ingIdx: number, updater: (ing: IngredientRow) => IngredientRow) {
+    setSections((prev) => {
+      const copy = [...prev];
+      const section = { ...copy[sectionIdx] };
+      const ingredients = [...section.ingredients];
+      ingredients[ingIdx] = updater(ingredients[ingIdx]);
+      section.ingredients = ingredients;
+      copy[sectionIdx] = section;
+      return copy;
+    });
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -129,7 +177,21 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
         });
 
         const sectionsArr = Array.from(bySection.values()).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+        // Prefill search input text for each ingredient with its display name (product/group) or custom name
+        const initialSearch: Record<string, string> = {};
+        for (const sec of sectionsArr) {
+          for (const ingRow of sec.ingredients) {
+            if (ingRow.link?.kind === 'custom' && ingRow.link.custom_ingredient_name) {
+              initialSearch[ingRow.tempId] = ingRow.link.custom_ingredient_name;
+            } else if ((ingRow as any).link && (ingRow as any).link.label) {
+              initialSearch[ingRow.tempId] = (ingRow as any).link.label as string;
+            }
+          }
+        }
+
         setSections(sectionsArr.length > 0 ? sectionsArr : [{ tempId: generateId("section"), name: "", sort_order: 0, ingredients: [] }]);
+        setSearchQueryByIngredientId(initialSearch);
 
         const { data: stepsData } = await supabase
           .from("recipe_steps_with_details")
@@ -212,14 +274,20 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
     }
   }
 
-  if (loading) return <div className="max-w-5xl mx-auto p-6">Laden...</div>;
+  if (loading) return <div className="min-h-screen bg-gray-50 py-8"><div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">Laden...</div></div>;
 
   return (
-    <div className="max-w-5xl mx-auto p-6">
-      <h1 className="text-2xl font-semibold mb-4">Rezept bearbeiten</h1>
-      {error && <div className="bg-red-50 text-red-800 border border-red-200 rounded p-3 text-sm mb-4">{error}</div>}
-      {success && <div className="bg-green-50 text-green-800 border border-green-200 rounded p-3 text-sm mb-4">{success}</div>}
-      <form onSubmit={onSave} className="space-y-6">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Rezept bearbeiten</h1>
+          <p className="text-gray-600">Passe dein Rezept an und speichere die Änderungen</p>
+        </div>
+
+        {error && <div className="bg-red-50 text-red-800 border border-red-200 rounded p-3 text-sm mb-6">{error}</div>}
+        {success && <div className="bg-green-50 text-green-800 border border-green-200 rounded p-3 text-sm mb-6">{success}</div>}
+
+        <form onSubmit={onSave} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700">Titelbild (optional)</label>
@@ -233,11 +301,11 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Rezeptname</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} className="mt-1 w-full rounded" />
+              <input value={name} onChange={(e) => setName(e.target.value)} className="mt-1 w-full rounded" placeholder="z.B. Milchreis" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Zusätzliche Info</label>
-            <input value={description} onChange={(e) => setDescription(e.target.value)} className="mt-1 w-full rounded" />
+              <input value={description} onChange={(e) => setDescription(e.target.value)} className="mt-1 w-full rounded" placeholder="z.B. nach Omas Art" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Portionen</label>
@@ -278,50 +346,219 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
 
         {/* Ingredients minimal editing: list section + items */}
         <div>
-          <h2 className="text-lg font-semibold mb-2">Zutaten</h2>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-semibold text-gray-900">Zutaten</h3>
+            </div>
           <div className="space-y-6">
             {sections.map((section, sIdx) => (
               <div key={section.tempId} className="border rounded p-4">
-                <input value={section.name} onChange={(e) => setSections((prev) => prev.map((s, i) => i === sIdx ? { ...s, name: e.target.value } : s))} className="w-full rounded mb-3" placeholder="Abschnittsname (optional)" />
+                  <div className="flex items-center gap-3 mb-4">
+                    <input value={section.name} onChange={(e) => setSections((prev) => prev.map((s, i) => i === sIdx ? { ...s, name: e.target.value } : s))} className="flex-1 rounded" placeholder="Abschnittsname (optional, z.B. Tortenboden)" />
+                  </div>
                 <div className="space-y-3">
                   {section.ingredients.map((ing, iIdx) => (
                     <div key={ing.tempId} className="grid grid-cols-12 gap-3 items-start">
-                      <input type="number" min={0} step="0.01" value={ing.quantity} onChange={(e) => setSections((prev) => { const cp=[...prev]; const sec={...cp[sIdx]}; const ings=[...sec.ingredients]; ings[iIdx] = { ...ings[iIdx], quantity: e.target.value }; sec.ingredients=ings; cp[sIdx]=sec; return cp; })} className="col-span-2 rounded" />
-                      <select value={ing.unit_id || ""} onChange={(e) => setSections((prev) => { const cp=[...prev]; const sec={...cp[sIdx]}; const ings=[...sec.ingredients]; ings[iIdx] = { ...ings[iIdx], unit_id: e.target.value || null }; sec.ingredients=ings; cp[sIdx]=sec; return cp; })} className="col-span-2 rounded">
+                        <div className="col-span-2">
+                          <label className="block text-xs text-gray-500">Menge</label>
+                          <input type="number" min={0} step="0.01" value={ing.quantity} onChange={(e) => setSections((prev) => { const cp=[...prev]; const sec={...cp[sIdx]}; const ings=[...sec.ingredients]; ings[iIdx] = { ...ings[iIdx], quantity: e.target.value }; sec.ingredients=ings; cp[sIdx]=sec; return cp; })} className="mt-1 w-full rounded" />
+                        </div>
+                        <div className="col-span-2">
+                          <label className="block text-xs text-gray-500">Einheit</label>
+                          <select value={ing.unit_id || ""} onChange={(e) => setSections((prev) => { const cp=[...prev]; const sec={...cp[sIdx]}; const ings=[...sec.ingredients]; ings[iIdx] = { ...ings[iIdx], unit_id: e.target.value || null }; sec.ingredients=ings; cp[sIdx]=sec; return cp; })} className="mt-1 w-full rounded">
                         <option value="">-</option>
                         {units.map((u) => <option key={u.id} value={u.id}>{u.short_name || u.name}</option>)}
                       </select>
-                      <input value={ing.link?.kind === 'custom' ? ing.link.custom_ingredient_name : (ing as any).label || ''} onChange={(e) => setSections((prev) => { const cp=[...prev]; const sec={...cp[sIdx]}; const ings=[...sec.ingredients]; const val=e.target.value; ings[iIdx] = { ...ings[iIdx], link: val ? { kind: 'custom', custom_ingredient_name: val } as any : null }; sec.ingredients=ings; cp[sIdx]=sec; return cp; })} className="col-span-7 rounded" placeholder="Zutat" />
-                      <div className="col-span-1 flex items-center justify-center">
-                        <button type="button" onClick={() => setSections((prev) => { const cp=[...prev]; const sec={...cp[sIdx]}; sec.ingredients = sec.ingredients.filter((_, j)=> j!==iIdx).map((ing2, j)=> ({...ing2, sort_order: j})); cp[sIdx]=sec; return cp; })} className="text-red-600">Löschen</button>
+                        </div>
+                        <div className="col-span-7">
+                          <label className="block text-xs text-gray-500">Zutat</label>
+                          <div className="relative">
+                            <input
+                              value={
+                                ing.link?.kind === 'custom'
+                                  ? ing.link.custom_ingredient_name
+                                  : (searchQueryByIngredientId[ing.tempId] ?? '')
+                              }
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                // set as custom while typing; selection can override via dropdown
+                                updateIngredient(sIdx, iIdx, (cur) => ({
+                                  ...cur,
+                                  link: val ? { kind: 'custom', custom_ingredient_name: val } as any : null,
+                                }));
+                                setSearchQueryByIngredientId((p) => ({ ...p, [ing.tempId]: val }));
+                                setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: true }));
+                                searchIngredients(ing.tempId, val);
+                              }}
+                              onFocus={() => {
+                                const current = searchQueryByIngredientId[ing.tempId] ?? '';
+                                if (current.trim()) {
+                                  setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: true }));
+                                }
+                              }}
+                              onBlur={() => {
+                                setTimeout(() => {
+                                  const selecting = !!isSelectingByClickByIngredientId[ing.tempId];
+                                  if (selecting) {
+                                    setIsSelectingByClickByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                    return;
+                                  }
+                                  const userText = (searchQueryByIngredientId[ing.tempId] ?? (ing.link?.kind === 'custom' ? ing.link.custom_ingredient_name : '')) || '';
+                                  const trimmed = userText.trim();
+                                  if (!trimmed) {
+                                    setSearchResultsByIngredientId((p) => ({ ...p, [ing.tempId]: [] }));
+                                    setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                    return;
+                                  }
+                                  const results = searchResultsByIngredientId[ing.tempId] || [];
+                                  const hasExact = results.some((r) => r.title.toLowerCase() === trimmed.toLowerCase());
+                                  if (!hasExact) {
+                                    updateIngredient(sIdx, iIdx, (cur) => ({
+                                      ...cur,
+                                      link: { kind: 'custom', custom_ingredient_name: trimmed },
+                                    }));
+                                    setSearchQueryByIngredientId((p) => ({ ...p, [ing.tempId]: trimmed }));
+                                    setSearchResultsByIngredientId((p) => ({ ...p, [ing.tempId]: [] }));
+                                    setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                    return;
+                                  }
+                                  if (results.length > 0) {
+                                    const r = results[0];
+                                    updateIngredient(sIdx, iIdx, (cur) => ({
+                                      ...cur,
+                                      link:
+                                        r.type === 'product'
+                                          ? { kind: 'product', product_id: r.id, label: r.title }
+                                          : { kind: 'group', product_group_id: r.id, label: r.title },
+                                    }));
+                                    setSearchQueryByIngredientId((p) => ({ ...p, [ing.tempId]: r.title }));
+                                    setSearchResultsByIngredientId((p) => ({ ...p, [ing.tempId]: [] }));
+                                    setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                  }
+                                }, 120);
+                              }}
+                              className="mt-1 w-full rounded"
+                              placeholder="Suche nach Zutat (Produkt oder Produktgruppe) oder frei eingeben"
+                            />
+                            {(() => {
+                              const userText = (searchQueryByIngredientId[ing.tempId] ?? (ing.link?.kind === 'custom' ? ing.link.custom_ingredient_name : '')) || '';
+                              const trimmed = userText.trim();
+                              const results = searchResultsByIngredientId[ing.tempId] || [];
+                              if (!trimmed) return null;
+                              const isOpen = !!isDropdownOpenByIngredientId[ing.tempId];
+                              if (!isOpen) return null;
+                              const hasExact = results.some((r) => r.title.toLowerCase() === trimmed.toLowerCase());
+                              return (
+                                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded shadow text-gray-900">
+                                  <ul className="max-h-56 overflow-auto divide-y divide-gray-100">
+                                    {!hasExact && (
+                                      <li
+                                        key={"custom-" + ing.tempId}
+                                        className="px-3 py-2 hover:bg-orange-50 cursor-pointer text-sm text-gray-900"
+                                        onMouseDown={() => {
+                                          setIsSelectingByClickByIngredientId((p) => ({ ...p, [ing.tempId]: true }));
+                                        }}
+                                        onClick={() => {
+                                          updateIngredient(sIdx, iIdx, (cur) => ({
+                                            ...cur,
+                                            link: { kind: 'custom', custom_ingredient_name: trimmed },
+                                          }));
+                                          setSearchResultsByIngredientId((p) => ({ ...p, [ing.tempId]: [] }));
+                                          setSearchQueryByIngredientId((p) => ({ ...p, [ing.tempId]: trimmed }));
+                                          setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                          setIsSelectingByClickByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                        }}
+                                      >
+                                        {trimmed}
+                                      </li>
+                                    )}
+                                    {results.map((r) => (
+                                      <li
+                                        key={r.id + (r.type || '')}
+                                        className="px-3 py-2 hover:bg-orange-50 cursor-pointer text-sm text-gray-900"
+                                        onMouseDown={() => {
+                                          setIsSelectingByClickByIngredientId((p) => ({ ...p, [ing.tempId]: true }));
+                                        }}
+                                        onClick={() => {
+                                          updateIngredient(sIdx, iIdx, (cur) => ({
+                                            ...cur,
+                                            link:
+                                              r.type === 'product'
+                                                ? { kind: 'product', product_id: r.id, label: r.title }
+                                                : { kind: 'group', product_group_id: r.id, label: r.title },
+                                          }));
+                                          setSearchResultsByIngredientId((p) => ({ ...p, [ing.tempId]: [] }));
+                                          setSearchQueryByIngredientId((p) => ({ ...p, [ing.tempId]: r.title }));
+                                          setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                          setIsSelectingByClickByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                        }}
+                                      >
+                                        {r.title} {r.type ? `(${r.type})` : ''}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              );
+                            })()}
+                            {ing.link && (ing as any).label && (
+                              <div className="text-xs text-gray-500 mt-1">Ausgewählt: {(ing as any).label}</div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="col-span-1 flex h-full items-start justify-center pt-3">
+                          <button type="button" onClick={() => setSections((prev) => { const cp=[...prev]; const sec={...cp[sIdx]}; sec.ingredients = sec.ingredients.filter((_, j)=> j!==iIdx).map((ing2, j)=> ({...ing2, sort_order: j})); cp[sIdx]=sec; return cp; })} className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded">Löschen</button>
                       </div>
                     </div>
                   ))}
                 </div>
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      onClick={() => setSections((prev) => {
+                        const copy = [...prev];
+                        const sec = { ...copy[sIdx] };
+                        const next: IngredientRow = { tempId: generateId('ing'), quantity: '', unit_id: null, link: null, sort_order: sec.ingredients.length };
+                        sec.ingredients = [...sec.ingredients, next];
+                        copy[sIdx] = sec;
+                        return copy;
+                      })}
+                      className="text-sm text-orange-600 hover:text-orange-700"
+                    >
+                      Zutat hinzufügen
+                    </button>
+                </div>
               </div>
             ))}
+          </div>
+            <div className="mt-4">
+              <button type="button" onClick={() => setSections((prev)=> [...prev, { tempId: generateId('section'), name: '', sort_order: prev.length, ingredients: [] }])} className="text-sm text-orange-600 hover:text-orange-700">Abschnitt hinzufügen</button>
           </div>
         </div>
 
         <div>
-          <h2 className="text-lg font-semibold mb-2">Zubereitung</h2>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-semibold text-gray-900">Zubereitung</h3>
+            </div>
           <div className="space-y-3">
             {steps.map((st, i) => (
               <div key={i} className="grid grid-cols-12 gap-3 items-start">
-                <div className="col-span-1 flex items-center">{st.step_number}.</div>
-                <textarea value={st.instruction} onChange={(e) => setSteps((prev)=> prev.map((s, idx)=> idx===i ? { ...s, instruction: e.target.value } : s))} className="col-span-10 rounded" rows={4} />
-                <div className="col-span-1 flex items-center justify-center"><button type="button" onClick={()=> setSteps((prev)=> prev.filter((_, idx)=> idx!==i).map((s, idx)=> ({...s, step_number: idx+1})))} className="text-red-600">Löschen</button></div>
+                  <div className="col-span-1 flex items-center h-10"><span className="text-gray-500 text-sm">{st.step_number}.</span></div>
+                  <textarea value={st.instruction} onChange={(e) => setSteps((prev)=> prev.map((s, idx)=> idx===i ? { ...s, instruction: e.target.value } : s))} className="col-span-10 rounded min-h-28" rows={6} />
+                  <div className="col-span-1 flex h-full items-center justify-center"><button type="button" onClick={()=> setSteps((prev)=> prev.filter((_, idx)=> idx!==i).map((s, idx)=> ({...s, step_number: idx+1})))} className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded">Löschen</button></div>
               </div>
             ))}
           </div>
+            <div className="mt-4">
+              <button type="button" onClick={() => setSteps((prev)=> [...prev, { step_number: prev.length + 1, instruction: '' }])} className="text-sm text-orange-600 hover:text-orange-700">Schritt hinzufügen</button>
+          </div>
         </div>
 
-        <div>
-          <button type="submit" disabled={saving} className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded">
+          <div className="pt-2">
+            <button type="submit" disabled={saving} className="inline-flex items-center px-4 py-2 rounded bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50">
             {saving ? 'Speichern...' : 'Speichern'}
           </button>
         </div>
       </form>
+      </div>
     </div>
   );
 }

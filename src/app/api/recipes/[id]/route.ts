@@ -81,10 +81,19 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       return NextResponse.json({ error: updErr.message }, { status: 400 });
     }
 
-    // 2) Clear existing children (ingredients then steps then sections)
-    await supabase.from("recipe_ingredients").delete().eq("recipe_id", recipeId);
-    await supabase.from("recipe_steps").delete().eq("recipe_id", recipeId);
-    await supabase.from("recipe_ingredient_sections").delete().eq("recipe_id", recipeId);
+    // 2) Clear existing children (ingredients -> steps -> sections) to re-create from payload
+    const { error: delIngErr } = await supabase.from('recipe_ingredients').delete().eq('recipe_id', recipeId);
+    if (delIngErr) {
+      return NextResponse.json({ error: delIngErr.message }, { status: 400 });
+    }
+    const { error: delStepsErr } = await supabase.from('recipe_steps').delete().eq('recipe_id', recipeId);
+    if (delStepsErr) {
+      return NextResponse.json({ error: delStepsErr.message }, { status: 400 });
+    }
+    const { error: delSecErr } = await supabase.from('recipe_ingredient_sections').delete().eq('recipe_id', recipeId);
+    if (delSecErr) {
+      return NextResponse.json({ error: delSecErr.message }, { status: 400 });
+    }
 
     // 3) Re-insert sections (named only) and map temp ids
     const namedSections = (body.sections || []).filter((s) => s.name && s.name.trim());
@@ -113,34 +122,46 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       }
     }
 
-    // 4) Insert ingredients
-    if ((body.ingredients || []).length > 0) {
-      const ingredientsPayload = body.ingredients.map((ing) => ({
-        recipe_id: recipeId,
-        section_id: ing.sectionTempId ? sectionIdByTempId[ing.sectionTempId] ?? null : null,
-        quantity: ing.quantity,
-        unit_id: ing.unit_id,
-        product_group_id: ing.product_group_id ?? null,
-        product_id: ing.product_id ?? null,
-        custom_ingredient_name: ing.custom_ingredient_name ?? null,
-        sort_order: ing.sort_order,
-      }));
-      const { error: ingErr } = await supabase.from("recipe_ingredients").insert(ingredientsPayload);
-      if (ingErr) {
-        return NextResponse.json({ error: ingErr.message }, { status: 400 });
+    // 4) Upsert ingredients and remove stale ones
+    const ingredientsList = (body.ingredients || []).map((ing) => ({
+      recipe_id: recipeId,
+      section_id: ing.sectionTempId ? sectionIdByTempId[ing.sectionTempId] ?? null : null,
+      quantity: ing.quantity,
+      unit_id: ing.unit_id,
+      product_group_id: ing.product_group_id ?? null,
+      product_id: ing.product_id ?? null,
+      custom_ingredient_name: ing.custom_ingredient_name ?? null,
+      sort_order: ing.sort_order,
+    }));
+
+    // Delete previous and insert new in a deterministic sequence (emulating transaction)
+    const { error: delOldIngErr } = await supabase.from('recipe_ingredients').delete().eq('recipe_id', recipeId);
+    if (delOldIngErr) {
+      return NextResponse.json({ error: delOldIngErr.message }, { status: 400 });
+    }
+    if (ingredientsList.length > 0) {
+      const { error: insNewIngErr } = await supabase.from('recipe_ingredients').insert(ingredientsList);
+      if (insNewIngErr) {
+        return NextResponse.json({ error: insNewIngErr.message }, { status: 400 });
       }
     }
 
-    // 5) Insert steps
-    if ((body.steps || []).length > 0) {
-      const stepsPayload = body.steps.map((st) => ({
+    // 5) Insert steps (wipe-and-replace) with normalized numbering 1..n
+    const stepsList = (body.steps || []).filter((s) => s && typeof s.step_number === 'number');
+    if (stepsList.length > 0) {
+      const normalized = stepsList
+        .sort((a, b) => a.step_number - b.step_number)
+        .map((s, idx) => ({ step_number: idx + 1, instruction: s.instruction }));
+
+      const stepsPayload = normalized.map((st) => ({
         recipe_id: recipeId,
         step_number: st.step_number,
         instruction: st.instruction,
       }));
-      const { error: stepErr } = await supabase.from("recipe_steps").insert(stepsPayload);
-      if (stepErr) {
-        return NextResponse.json({ error: stepErr.message }, { status: 400 });
+
+      const { error: stepsInsErr } = await supabase.from('recipe_steps').insert(stepsPayload);
+      if (stepsInsErr) {
+        return NextResponse.json({ error: stepsInsErr.message }, { status: 400 });
       }
     }
 
