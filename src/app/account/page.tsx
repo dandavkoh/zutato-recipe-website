@@ -1,4 +1,5 @@
 import { requireAuth } from '@/utils/serverAuthUtils';
+import Link from 'next/link';
 import AccountForm from './AccountForm';
 
 export const metadata = {
@@ -17,6 +18,9 @@ export default async function AccountPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Account verwalten</h1>
               <p className="text-gray-600">Bearbeite deine Profilinformationen und ändere dein Passwort</p>
+            </div>
+            <div className="text-sm">
+              <Link href={`/user/${user.id}`} className="text-orange-700 hover:underline">Öffentliches Profil ansehen</Link>
             </div>
           </div>
         </div>
