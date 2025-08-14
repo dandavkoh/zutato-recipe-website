@@ -165,6 +165,7 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
     data: { user },
   } = await supabase.auth.getUser();
   let userHasRated = false;
+  let inCookbook = false;
   if (user) {
     const { data: myRating } = await supabase
       .from('recipe_ratings')
@@ -174,10 +175,18 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
       .eq('is_deleted', false)
       .maybeSingle();
     userHasRated = Boolean(myRating);
+    const { data: cbRow } = await supabase
+      .from('user_cookbook_recipes')
+      .select('id')
+      .eq('recipe_id', id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    inCookbook = Boolean(cbRow);
   }
 
   const { default: RecipeRatingSummary } = await import('@/components/RecipeRatingSummary');
   const { default: RateRecipeButton } = await import('@/components/RateRecipeButton');
+  const { default: CookbookToggleButton } = await import('@/components/CookbookToggleButton');
   const { default: CommentsSection } = await import('@/components/CommentsSection');
 
   return (
@@ -214,7 +223,7 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
                   <span className="text-6xl">🍽️</span>
                 )}
               </div>
-              <div className="mt-4">
+              <div className="mt-4 space-y-2">
                 {user ? (
                   userHasRated ? (
                     <div className="text-sm text-gray-600">Danke für deine Bewertung!</div>
@@ -224,6 +233,13 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
                 ) : (
                   <Link href="/login" className="text-sm text-orange-600 hover:underline">Jetzt anmelden um zu bewerten</Link>
                 )}
+                <div>
+                  {user ? (
+                    <CookbookToggleButton recipeId={id} initialInCookbook={inCookbook} />
+                  ) : (
+                    <Link href="/login" className="text-sm text-orange-600 hover:underline">Zum Kochbuch hinzufügen (Anmeldung erforderlich)</Link>
+                  )}
+                </div>
               </div>
             </div>
           </div>

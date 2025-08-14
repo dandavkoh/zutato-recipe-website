@@ -85,6 +85,11 @@ export default function Header() {
               Meine Rezepte
             </Link>
           )}
+          {user && (
+            <Link href="/mein-kochbuch" className="text-gray-700 hover:text-orange-600 font-medium transition-colors">
+              Mein Kochbuch
+            </Link>
+          )}
         </div>
 
         {/* Mobile Header */}
@@ -179,6 +184,15 @@ export default function Header() {
                         onClick={() => setIsMenuOpen(false)}
                       >
                         Meine Rezepte
+                      </Link>
+                    )}
+                    {user && (
+                      <Link 
+                        href="/mein-kochbuch" 
+                        className="text-gray-700 hover:text-orange-600 font-medium transition-colors py-2"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Mein Kochbuch
                       </Link>
                     )}
                     {user && (
