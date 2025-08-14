@@ -52,24 +52,94 @@ function formatRelativeTime(dateStr: string): string {
 }
 
 export default async function NeueRezeptePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const { page } = await searchParams;
+  const qp = await searchParams;
+  const pageRaw = qp.page;
+  const cat = Array.isArray(qp.cat) ? qp.cat[0] : qp.cat || '';
+  const diff = Array.isArray(qp.diff) ? qp.diff[0] : qp.diff || '';
+  const sort = (Array.isArray(qp.sort) ? qp.sort[0] : qp.sort || 'newest') as 'newest' | 'rating' | 'time';
+
   const pageSize = 10;
-  const pageNum = Math.max(1, parseInt(Array.isArray(page) ? page[0] || '1' : page || '1'));
+  const pageNum = Math.max(1, parseInt(Array.isArray(pageRaw) ? pageRaw[0] || '1' : pageRaw || '1'));
   const from = (pageNum - 1) * pageSize;
   const to = from + pageSize; // we will fetch one extra to detect next page
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('recipes_with_details')
-    .select(
-      'id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, category_name, creator_email, creator_name, created_by'
-    )
-    .order('created_at', { ascending: false })
-    .range(from, to);
 
-  const fetched: RecipeRow[] = (data as RecipeRow[]) || [];
-  const hasNext = fetched.length > pageSize;
-  const recipes = hasNext ? fetched.slice(0, pageSize) : fetched;
+  // Load categories for filter dropdown
+  type Category = { id: string; name: string };
+  const { data: categoriesRows } = await supabase
+    .from('recipe_categories')
+    .select('id, name')
+    .order('name', { ascending: true });
+  const categories: Category[] = (categoriesRows as Category[] | null) || [];
+
+  let recipes: RecipeRow[] = [];
+  let hasNext = false;
+
+  if (sort === 'newest') {
+    let query = supabase
+      .from('recipes_with_details')
+      .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, category_name, creator_email, creator_name, created_by')
+      .order('created_at', { ascending: false });
+    if (cat) query = query.eq('category_id', cat);
+    if (diff) query = query.eq('difficulty', diff);
+    const { data } = await query.range(from, to);
+    const fetched: RecipeRow[] = (data as RecipeRow[]) || [];
+    hasNext = fetched.length > pageSize;
+    recipes = hasNext ? fetched.slice(0, pageSize) : fetched;
+  } else {
+    // For rating/time sorts, fetch all matching (bounded by a reasonable cap) then sort client-side
+    let base = supabase
+      .from('recipes_with_details')
+      .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, category_name, creator_email, creator_name, created_by');
+    if (cat) base = base.eq('category_id', cat);
+    if (diff) base = base.eq('difficulty', diff);
+    // Cap to a reasonable number to avoid huge payloads
+    const { data: allRows } = await base.order('created_at', { ascending: false }).limit(300);
+    const allRecipes: RecipeRow[] = (allRows as RecipeRow[]) || [];
+
+    if (sort === 'time') {
+      allRecipes.sort((a, b) => (getTotalMinutes(a) ?? Infinity) - (getTotalMinutes(b) ?? Infinity));
+      const start = (pageNum - 1) * pageSize;
+      const end = start + pageSize;
+      hasNext = allRecipes.length > end;
+      recipes = allRecipes.slice(start, end);
+    } else {
+      // sort === 'rating'
+      const ids = allRecipes.map((r) => r.id);
+      let avgById: Record<string, { avg: number; count: number }> = {};
+      if (ids.length > 0) {
+        const { data: ratings } = await supabase
+          .from('recipe_ratings')
+          .select('recipe_id, rating')
+          .in('recipe_id', ids)
+          .eq('is_deleted', false);
+        const grouped: Record<string, number[]> = {};
+        for (const row of (ratings as any[]) || []) {
+          const rid = row.recipe_id as string;
+          const rt = row.rating as number;
+          (grouped[rid] ||= []).push(rt);
+        }
+        for (const rid of ids) {
+          const list = grouped[rid] || [];
+          const count = list.length;
+          const avg = count > 0 ? list.reduce((a, b) => a + b, 0) / count : 0;
+          avgById[rid] = { avg, count };
+        }
+      }
+      allRecipes.sort((a, b) => {
+        const ra = avgById[a.id] || { avg: 0, count: 0 };
+        const rb = avgById[b.id] || { avg: 0, count: 0 };
+        if (rb.avg !== ra.avg) return rb.avg - ra.avg; // avg desc
+        if (rb.count !== ra.count) return rb.count - ra.count; // tie-break by count
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+      const start = (pageNum - 1) * pageSize;
+      const end = start + pageSize;
+      hasNext = allRecipes.length > end;
+      recipes = allRecipes.slice(start, end);
+    }
+  }
 
   // Fetch rating summaries for all recipe ids
   const recipeIds = recipes.map((r) => r.id);
@@ -139,26 +209,27 @@ export default async function NeueRezeptePage({ searchParams }: { searchParams: 
       {/* Filters */}
       <section className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-wrap gap-4">
-            <select className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
-              <option>Alle Kategorien</option>
-              <option>Hauptgerichte</option>
-              <option>Desserts</option>
-              <option>Vegetarisch</option>
-              <option>Schnell & Einfach</option>
+          <form className="flex flex-wrap gap-4" method="get">
+            <input type="hidden" name="page" value="1" />
+            <select name="cat" defaultValue={cat} className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+              <option value="">Alle Kategorien</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
             </select>
-            <select className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
-              <option>Alle Schwierigkeiten</option>
-              <option>Einfach</option>
-              <option>Mittel</option>
-              <option>Schwer</option>
+            <select name="diff" defaultValue={diff} className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+              <option value="">Alle Schwierigkeiten</option>
+              <option value="einfach">Einfach</option>
+              <option value="mittel">Mittel</option>
+              <option value="schwer">Schwer</option>
             </select>
-            <select className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
-              <option>Neueste zuerst</option>
-              <option>Bewertung</option>
-              <option>Zeit</option>
+            <select name="sort" defaultValue={sort} className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+              <option value="newest">Neueste zuerst</option>
+              <option value="rating">Bewertung</option>
+              <option value="time">Zeit</option>
             </select>
-          </div>
+            <button type="submit" className="px-5 py-2 rounded-lg bg-orange-600 text-white hover:bg-orange-700">Filtern</button>
+          </form>
         </div>
       </section>
 
