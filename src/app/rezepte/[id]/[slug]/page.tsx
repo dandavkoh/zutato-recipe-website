@@ -125,7 +125,7 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
   let authorNickname: string | null = null;
   if (r.created_by) {
     const { data: nickRow } = await supabase
-      .from('public_user_nicknames')
+      .from('public_user_profile')
       .select('nickname')
       .eq('user_id', r.created_by)
       .maybeSingle();

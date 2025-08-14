@@ -18,7 +18,7 @@ export class UserSettingsApi {
       }
 
       const { data, error } = await supabase
-        .from('public_user_nicknames')
+        .from('public_user_profile')
         .select('nickname')
         .eq('user_id', authData.user.id)
         .single();
@@ -37,7 +37,7 @@ export class UserSettingsApi {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
-        .from('public_user_nicknames')
+        .from('public_user_profile')
         .select('nickname')
         .eq('user_id', userId)
         .single();
@@ -66,11 +66,9 @@ export class UserSettingsApi {
       }
 
       const { error } = await supabase
-        .from('user_settings')
-        .upsert(
-          { user_id: authData.user.id, nickname: normalized },
-          { onConflict: 'user_id' }
-        );
+        .from('public_user_profile')
+        .update({ nickname: normalized })
+        .eq('user_id', authData.user.id);
 
       if (error) {
         const pgError = error as PostgrestError;

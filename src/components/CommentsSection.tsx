@@ -26,7 +26,7 @@ export default async function CommentsSection({ recipeId, currentUserId }: { rec
   let nicknameByUserId: Record<string, string> = {};
   if (userIds.length > 0) {
     const { data: nickRows } = await supabase
-      .from('public_user_nicknames')
+      .from('public_user_profile')
       .select('user_id, nickname')
       .in('user_id', userIds);
     const rows = (nickRows as { user_id: string; nickname: string | null }[] | null) || [];
