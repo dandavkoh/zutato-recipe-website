@@ -23,7 +23,7 @@ export default async function BlogPostPage({ params }: { params: Promise<RoutePa
   const supabase = await createClient();
   const { data } = await supabase
     .from('blog_posts')
-    .select('title, content, cover_image_url, published_at, reading_time_minutes, status, is_deleted')
+    .select('id, title, content, cover_image_url, published_at, reading_time_minutes, status, is_deleted')
     .eq('slug', slug)
     .maybeSingle();
   const post: any = data;
@@ -31,6 +31,10 @@ export default async function BlogPostPage({ params }: { params: Promise<RoutePa
   if (!post || post.is_deleted || post.status !== 'published' || (post.published_at && new Date(post.published_at) > new Date())) {
     notFound();
   }
+
+  const { data: auth } = await supabase.auth.getUser();
+  const currentUserId = auth?.user?.id ?? null;
+  const { default: BlogCommentsSection } = await import('@/components/BlogCommentsSection');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -55,6 +59,9 @@ export default async function BlogPostPage({ params }: { params: Promise<RoutePa
           <article className="prose prose-orange max-w-none">
             <div className="whitespace-pre-wrap text-gray-900 leading-7">{post.content}</div>
           </article>
+          <div className="mt-10">
+            <BlogCommentsSection postId={post.id} currentUserId={currentUserId} />
+          </div>
         </div>
       </section>
     </div>
