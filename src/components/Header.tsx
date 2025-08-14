@@ -1,18 +1,34 @@
-'use client';
+ 'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
 import FontAwesomeIcon from './FontAwesomeIcon';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, logout } = useAuth();
+  const [searchTerm, setSearchTerm] = useState('');
+  const router = useRouter();
 
   const handleLogout = async () => {
     await logout();
     // Redirect to home page after logout
     window.location.href = '/';
+  };
+
+  const triggerSearch = () => {
+    const term = searchTerm.trim();
+    if (!term) return;
+    router.push(`/suche?q=${encodeURIComponent(term)}`);
+    setIsMenuOpen(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      triggerSearch();
+    }
   };
 
   return (
@@ -33,10 +49,14 @@ export default function Header() {
               <input
                 type="text"
                 placeholder="Rezepte suchen..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="w-full flex-1 pl-4 pr-4 py-3 rounded-l-full rounded-r-none !rounded-r-none border border-gray-400 border-r-0 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
               />
               <button
                 type="button"
+                onClick={triggerSearch}
                 className="inline-flex items-center justify-center px-5 py-3 rounded-r-full border border-gray-400 border-l-0 -ml-px bg-orange-600 hover:bg-orange-700 text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500/40"
                 aria-label="Suchen"
               >
@@ -147,10 +167,14 @@ export default function Header() {
               <input
                 type="text"
                 placeholder="Rezepte suchen..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="w-full flex-1 pl-4 pr-4 py-3 rounded-l-full rounded-r-none !rounded-r-none border border-gray-400 border-r-0 bg-gray-50 text-gray-900 placeholder-gray-500 hover:border-gray-500 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/40 focus:outline-none shadow-sm"
               />
               <button
                 type="button"
+                onClick={triggerSearch}
                 className="inline-flex items-center justify-center px-5 py-3 rounded-r-full border border-gray-400 border-l-0 -ml-px bg-orange-600 hover:bg-orange-700 text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500/40"
                 aria-label="Suchen"
               >
