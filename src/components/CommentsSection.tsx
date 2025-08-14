@@ -2,6 +2,7 @@ import React from 'react';
 import { createClient } from '@/utils/supabase/server';
 import NewCommentClient from '@/components/NewCommentClient';
 import EditCommentClient from '@/components/EditCommentClient';
+import Link from 'next/link';
 
 type Comment = {
   id: string;
@@ -45,7 +46,13 @@ export default async function CommentsSection({ recipeId, currentUserId }: { rec
         <ul className="divide-y divide-gray-200">
           {comments.map((c) => (
             <li key={c.id} className="py-3">
-              <div className="text-sm font-medium text-gray-800 mb-1">{nicknameByUserId[c.user_id] || 'Unbekannt'}</div>
+              <div className="text-sm font-medium text-gray-800 mb-1">
+                {nicknameByUserId[c.user_id] ? (
+                  <Link href={`/user/${c.user_id}`} className="text-orange-700 hover:underline">{nicknameByUserId[c.user_id]}</Link>
+                ) : (
+                  'Unbekannt'
+                )}
+              </div>
               <div className="text-sm text-gray-900 whitespace-pre-wrap">{c.comment}</div>
               <div className="text-xs text-gray-500 mt-1">
                 {new Date(c.created_at).toLocaleString('de-DE')}

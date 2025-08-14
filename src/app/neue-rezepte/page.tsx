@@ -170,7 +170,7 @@ export default async function NeueRezeptePage({ searchParams }: { searchParams: 
               const totalMinutes = getTotalMinutes(recipe);
               const timeText = totalMinutes ? `${totalMinutes} Min` : '–';
               const difficultyText = capitalize(recipe.difficulty);
-              const author = (recipe.created_by && nicknameByUserId[recipe.created_by]) || recipe.creator_name || recipe.creator_email || 'Unbekannt';
+              const authorNick = recipe.created_by ? nicknameByUserId[recipe.created_by] : null;
               const isNew = Date.now() - new Date(recipe.created_at).getTime() < 1000 * 60 * 60 * 24;
               const dateText = formatRelativeTime(recipe.created_at);
               return (
@@ -198,7 +198,11 @@ export default async function NeueRezeptePage({ searchParams }: { searchParams: 
                       {recipe.name}
                     </h3>
                     <p className="text-gray-600 text-sm mb-3">
-                      von {author}
+                      von {recipe.created_by && authorNick ? (
+                        <Link href={`/user/${recipe.created_by}`} className="text-orange-700 hover:underline">{authorNick}</Link>
+                      ) : (
+                        (recipe.creator_name || recipe.creator_email || 'Unbekannt')
+                      )}
                     </p>
                     <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                       <span>⏱️ {timeText}</span>

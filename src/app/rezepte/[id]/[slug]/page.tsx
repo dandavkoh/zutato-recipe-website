@@ -189,7 +189,13 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{r.name}</h1>
               {r.description && <p className="text-gray-600 mb-4">{r.description}</p>}
               <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                <span>👤 {author}</span>
+                <span>
+                  👤 {r.created_by && authorNickname ? (
+                    <Link href={`/user/${r.created_by}`} className="text-orange-700 hover:underline">{authorNickname}</Link>
+                  ) : (
+                    author
+                  )}
+                </span>
                 {r.category_name && <span>🏷️ {r.category_name}</span>}
                 <span>🍽️ {r.portions} Portionen</span>
                 <span>📊 {difficultyLabel}</span>
