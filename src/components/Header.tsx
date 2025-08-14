@@ -1,6 +1,6 @@
  'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import FontAwesomeIcon from './FontAwesomeIcon';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +11,7 @@ export default function Header() {
   const { user, logout } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const router = useRouter();
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   const handleLogout = async () => {
     await logout();
@@ -30,6 +31,32 @@ export default function Header() {
       triggerSearch();
     }
   };
+
+  // Check admin flag when user changes
+  React.useEffect(() => {
+    let alive = true;
+    const run = async () => {
+      try {
+        if (!user) {
+          if (alive) setIsAdmin(false);
+          return;
+        }
+        const res = await fetch('/api/admin/is-admin', { cache: 'no-store' });
+        if (!res.ok) {
+          if (alive) setIsAdmin(false);
+          return;
+        }
+        const j = await res.json();
+        if (alive) setIsAdmin(Boolean(j?.isAdmin));
+      } catch {
+        if (alive) setIsAdmin(false);
+      }
+    };
+    run();
+    return () => {
+      alive = false;
+    };
+  }, [user]);
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
@@ -100,6 +127,9 @@ export default function Header() {
           <Link href="/beliebte-rezepte" className="text-gray-700 hover:text-orange-600 font-medium transition-colors">
             Beliebte Rezepte
           </Link>
+          <Link href="/blog" className="text-gray-700 hover:text-orange-600 font-medium transition-colors">
+            Blog
+          </Link>
           {user && (
             <Link href="/meine-rezepte" className="text-gray-700 hover:text-orange-600 font-medium transition-colors">
               Meine Rezepte
@@ -108,6 +138,11 @@ export default function Header() {
           {user && (
             <Link href="/mein-kochbuch" className="text-gray-700 hover:text-orange-600 font-medium transition-colors">
               Mein Kochbuch
+            </Link>
+          )}
+          {user && isAdmin && (
+            <Link href="/admin" className="text-gray-700 hover:text-orange-600 font-medium transition-colors">
+              Admin
             </Link>
           )}
         </div>
@@ -201,6 +236,13 @@ export default function Header() {
                 >
                   Beliebte Rezepte
                 </Link>
+                <Link 
+                  href="/blog" 
+                  className="text-gray-700 hover:text-orange-600 font-medium transition-colors py-2"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Blog
+                </Link>
                     {user && (
                       <Link 
                         href="/meine-rezepte" 
@@ -217,6 +259,15 @@ export default function Header() {
                         onClick={() => setIsMenuOpen(false)}
                       >
                         Mein Kochbuch
+                      </Link>
+                    )}
+                    {user && isAdmin && (
+                      <Link 
+                        href="/admin" 
+                        className="text-gray-700 hover:text-orange-600 font-medium transition-colors py-2"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Admin
                       </Link>
                     )}
                     {user && (
