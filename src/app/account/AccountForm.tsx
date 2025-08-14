@@ -39,6 +39,11 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
   const [nicknameLoading, setNicknameLoading] = useState(false);
   const [nicknameSuccess, setNicknameSuccess] = useState('');
   const [isNicknameLocked, setIsNicknameLocked] = useState(false);
+  const [banner, setBanner] = useState<string>('');
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
+  const [socialLinks, setSocialLinks] = useState<{ instagram?: string; tiktok?: string; facebook?: string; x?: string; pinterest?: string }>({});
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -60,7 +65,22 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
       }
       setNicknameLoading(false);
     };
+    const loadPublicProfile = async () => {
+      const prof = await UserSettingsApi.getUserPublicProfile();
+      if (prof.success) {
+        setBanner(prof.banner || '');
+        setAvatarUrl(prof.avatar_url || '');
+        setSocialLinks({
+          instagram: prof.social_links?.instagram || '',
+          tiktok: prof.social_links?.tiktok || '',
+          facebook: prof.social_links?.facebook || '',
+          x: prof.social_links?.x || '',
+          pinterest: prof.social_links?.pinterest || '',
+        });
+      }
+    };
     loadNickname();
+    loadPublicProfile();
   }, []);
 
   const validateProfileForm = (): boolean => {
@@ -148,6 +168,43 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
     }
   };
 
+  const handleSavePublicProfile = async () => {
+    setProfileSaving(true);
+    setProfileError(null);
+    const payload = {
+      banner: banner || null,
+      avatar_url: avatarUrl || null,
+      social_links: {
+        instagram: socialLinks.instagram ? socialLinks.instagram : null,
+        tiktok: socialLinks.tiktok ? socialLinks.tiktok : null,
+        facebook: socialLinks.facebook ? socialLinks.facebook : null,
+        x: socialLinks.x ? socialLinks.x : null,
+        pinterest: socialLinks.pinterest ? socialLinks.pinterest : null,
+      },
+    };
+    const res = await UserSettingsApi.updateUserPublicProfile(payload);
+    if (!res.success) {
+      setProfileError(res.error || 'Profil konnte nicht aktualisiert werden');
+    } else {
+      setSuccessMessage(res.message || 'Profil aktualisiert.');
+    }
+    setProfileSaving(false);
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setProfileSaving(true);
+    const res = await UserSettingsApi.uploadAvatar(f);
+    if (res.success) {
+      setAvatarUrl(res.avatar_url || '');
+      setSuccessMessage(res.message || 'Profilbild aktualisiert.');
+    } else {
+      setProfileError(res.error || 'Profilbild konnte nicht hochgeladen werden');
+    }
+    setProfileSaving(false);
+  };
+
   const handleChangePassword = async () => {
     if (!validatePasswordForm()) return;
     setLoading(true);
@@ -181,6 +238,85 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
         </div>
       )}
 
+      <div className="mb-8 bg-white border border-gray-200 rounded-xl shadow-sm p-5 sm:p-6">
+        <label className="block text-gray-900 text-sm font-semibold mb-4">
+          Öffentliches Profil
+        </label>
+        <div className="grid grid-cols-1 gap-4 mb-4">
+          <div>
+            <label className="block text-sm text-gray-700 mb-2">Profilbild</label>
+            <div className="flex items-center gap-4">
+              <div className="h-16 w-16 rounded-full bg-gray-100 overflow-hidden border">
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center text-gray-400 text-xl">👤</div>
+                )}
+              </div>
+              <input type="file" accept="image/*" onChange={handleAvatarUpload} />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm text-gray-700 mb-2">Kurzbeschreibung</label>
+            <textarea
+              value={banner}
+              onChange={(e) => setBanner(e.target.value)}
+              rows={3}
+              className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              placeholder="Erzähl kurz über dich..."
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-700 mb-2">Social Links</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                type="url"
+                placeholder="Instagram URL"
+                value={socialLinks.instagram || ''}
+                onChange={(e) => setSocialLinks((s) => ({ ...s, instagram: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
+              />
+              <input
+                type="url"
+                placeholder="TikTok URL"
+                value={socialLinks.tiktok || ''}
+                onChange={(e) => setSocialLinks((s) => ({ ...s, tiktok: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
+              />
+              <input
+                type="url"
+                placeholder="Facebook URL"
+                value={socialLinks.facebook || ''}
+                onChange={(e) => setSocialLinks((s) => ({ ...s, facebook: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
+              />
+              <input
+                type="url"
+                placeholder="X (Twitter) URL"
+                value={socialLinks.x || ''}
+                onChange={(e) => setSocialLinks((s) => ({ ...s, x: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
+              />
+              <input
+                type="url"
+                placeholder="Pinterest URL"
+                value={socialLinks.pinterest || ''}
+                onChange={(e) => setSocialLinks((s) => ({ ...s, pinterest: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
+              />
+            </div>
+          </div>
+        </div>
+        {profileError && <div className="text-sm text-red-600 mb-2">{profileError}</div>}
+        <button
+          onClick={handleSavePublicProfile}
+          disabled={profileSaving}
+          className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50"
+        >
+          {profileSaving ? 'Speichere...' : 'Öffentliches Profil speichern'}
+        </button>
+      </div>
       <div className="mb-8 bg-white border border-gray-200 rounded-xl shadow-sm p-5 sm:p-6">
         <label className="block text-gray-900 text-sm font-semibold mb-4">
           Accountname
