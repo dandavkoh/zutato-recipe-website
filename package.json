@@ -6,11 +6,13 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
+    "postinstall": "mkdir -p public/klaro && cp node_modules/klaro/dist/klaro-no-css.js public/klaro/klaro.js && cp node_modules/klaro/dist/klaro.css public/klaro/klaro.css || true",
     "lint": "next lint"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.53.0",
+    "klaro": "^0.7.21",
     "next": "15.4.5",
     "react": "19.1.0",
     "react-dom": "19.1.0"

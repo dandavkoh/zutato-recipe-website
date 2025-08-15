@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
 import NicknameGuard from '@/components/NicknameGuard';
+import KlaroConsent from '../components/KlaroConsent';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,6 +48,7 @@ export default function RootLayout({
       >
         <AuthProvider>
           <Header />
+          <KlaroConsent />
           <main className="flex-1">
             {children}
           </main>
