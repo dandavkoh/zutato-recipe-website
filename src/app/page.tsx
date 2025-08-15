@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import RecipeRatingSummary from '@/components/RecipeRatingSummary';
+import EzoicAd from '@/components/EzoicAd';
 
 type RecipeRow = {
   id: string;
@@ -102,6 +103,13 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* High-visibility, non-intrusive ad below hero */}
+      <div className="bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <EzoicAd className="my-2" />
+        </div>
+      </div>
 
       {/* Featured Categories */}
       <section className="py-16 bg-white">
