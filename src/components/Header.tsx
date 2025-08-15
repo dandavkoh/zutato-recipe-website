@@ -121,11 +121,8 @@ export default function Header() {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex justify-center space-x-8 py-3 border-t border-gray-100">
-          <Link href="/neue-rezepte" className="text-gray-700 hover:text-orange-600 font-medium transition-colors">
-            Neue Rezepte
-          </Link>
-          <Link href="/beliebte-rezepte" className="text-gray-700 hover:text-orange-600 font-medium transition-colors">
-            Beliebte Rezepte
+          <Link href="/alle-rezepte" className="text-gray-700 hover:text-orange-600 font-medium transition-colors">
+            Alle Rezepte
           </Link>
           <Link href="/blog" className="text-gray-700 hover:text-orange-600 font-medium transition-colors">
             Blog
@@ -223,19 +220,13 @@ export default function Header() {
             <div className="border-t border-gray-100 py-4">
               <div className="flex flex-col space-y-3">
                 <Link 
-                  href="/neue-rezepte" 
+                  href="/alle-rezepte" 
                   className="text-gray-700 hover:text-orange-600 font-medium transition-colors py-2"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Neue Rezepte
+                  Alle Rezepte
                 </Link>
-                <Link 
-                  href="/beliebte-rezepte" 
-                  className="text-gray-700 hover:text-orange-600 font-medium transition-colors py-2"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Beliebte Rezepte
-                </Link>
+                
                 <Link 
                   href="/blog" 
                   className="text-gray-700 hover:text-orange-600 font-medium transition-colors py-2"

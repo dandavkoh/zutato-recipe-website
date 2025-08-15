@@ -94,8 +94,10 @@ export default async function MeineRezeptePage() {
                     </div>
                     <div className="p-6">
                       <h3 className="font-semibold text-lg text-gray-900 mb-2">{r.name}</h3>
-                      {r.description && (
+                      {r.description ? (
                         <p className="text-gray-600 text-sm mb-3 line-clamp-2">{r.description}</p>
+                      ) : (
+                        <div className="mb-3 h-5"></div>
                       )}
                       <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                         <span>⏱️ {timeText}</span>

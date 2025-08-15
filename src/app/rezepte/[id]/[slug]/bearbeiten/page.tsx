@@ -114,8 +114,8 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
       try {
         const resolved = await params;
         const [unitsRes, catRes] = await Promise.all([
-          supabase.from("recipe_units").select("id, name, short_name").order("name"),
-          supabase.from("recipe_categories").select("id, name").order("name"),
+          supabase.from("recipe_units").select("id, name, short_name, sort_order").order("sort_order", { ascending: true }),
+          supabase.from("recipe_categories").select("id, name, sort_order").order("sort_order", { ascending: true }),
         ]);
         if (!unitsRes.error && unitsRes.data) setUnits(unitsRes.data as any);
         if (!catRes.error && catRes.data) setCategories(catRes.data as any);

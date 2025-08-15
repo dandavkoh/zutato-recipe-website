@@ -21,15 +21,11 @@ export default function Footer() {
             <h3 className="text-lg font-semibold mb-4 text-orange-400">Schnellzugriff</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/neue-rezepte" className="text-gray-300 hover:text-orange-400 transition-colors text-sm">
-                  Neue Rezepte
+                <Link href="/alle-rezepte" className="text-gray-300 hover:text-orange-400 transition-colors text-sm">
+                  Alle Rezepte
                 </Link>
               </li>
-              <li>
-                <Link href="/beliebte-rezepte" className="text-gray-300 hover:text-orange-400 transition-colors text-sm">
-                  Beliebte Rezepte
-                </Link>
-              </li>
+              
               <li>
                 <Link href="/kategorien" className="text-gray-300 hover:text-orange-400 transition-colors text-sm">
                   Kategorien
