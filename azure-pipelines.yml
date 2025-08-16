@@ -10,7 +10,7 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
-  GITHUB_REPO: 'https://dandavkoh:$(ZUTATO_MIRROR_PAT)@github.com/dandavkoh/ZUTATO-Website.git'
+  GITHUB_REPO: 'https://dandavkoh:$(GITHUB_ZUTATO_WEBSITE_MIRROR_PAT)@github.com/dandavkoh/ZUTATO-Website.git'
 
 steps:
 - checkout: self
