@@ -13,15 +13,16 @@ variables:
   GITHUB_REPO: 'https://dandavkoh:$(ZUTATO_MIRROR_PAT)@github.com/dandavkoh/ZUTATO-Website.git'
 
 steps:
-  - script: |
-      git config --global user.name "azure-pipeline"
-      git config --global user.email "pipeline@azure.com"
+- checkout: self
+  clean: true
+- script: |
+    git config --global user.name "azure-pipeline"
+    git config --global user.email "pipeline@azure.com"
 
-      # Klonen des eigenen Repos spiegelnd
-      git clone --mirror $(Build.Repository.Uri) repo.git
-      cd repo.git
+    # Spiegelndes Klonen des lokal vorhandenen Repos
+    git clone --mirror . repo.git
+    cd repo.git
 
-      # Push zu GitHub
-      git remote add github $(GITHUB_REPO)
-      git push --mirror github
-    displayName: 'Mirror Azure Repo to GitHub'
+    git remote add github $(GITHUB_REPO)
+    git push --mirror github
+  displayName: 'Mirror Azure Repo to GitHub'
