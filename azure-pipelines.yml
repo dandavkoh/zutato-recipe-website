@@ -1,0 +1,31 @@
+# Node.js
+# Build a general Node.js project with npm.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
+
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  GITHUB_REPO: 'https://dandavkoh:$(GITHUB_ZUTATO_WEBSITE_MIRROR_PAT)@github.com/dandavkoh/ZUTATO-Website.git'
+
+steps:
+- checkout: self
+  clean: true
+- script: |
+    git config --global user.name "azure-pipeline"
+    git config --global user.email "pipeline@azure.com"
+
+    # Spiegelndes Klonen des lokal vorhandenen Repos
+    git clone --mirror . repo.git
+    cd repo.git
+
+    git remote add github $(GITHUB_REPO)
+    # git push --mirror github
+    git push github --all
+    git push github --tags
+
+  displayName: 'Mirror Azure Repo to GitHub'
