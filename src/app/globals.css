@@ -25,6 +25,107 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Klaro overrides: present consent as centered dialog matching site */
+.klaro .cookie-modal .cm-modal.cm-klaro {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  right: auto !important;
+  transform: translate(-50%, -50%) !important;
+  margin: 0 !important;
+  width: min(90vw, 680px) !important;
+  max-height: 80vh !important;
+  overflow: auto;
+  background: #ffffff !important;
+  color: #111827 !important;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+  border: 1px solid rgba(0,0,0,0.08);
+  z-index: 1002 !important;
+}
+
+/* Prevent Klaro's media queries from repositioning on wider screens */
+@media (min-width: 660px) {
+  .klaro .cookie-modal .cm-modal.cm-klaro {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+  }
+}
+
+.klaro .cookie-modal .cm-modal .cm-header {
+  padding: 20px 24px 8px;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+.klaro .cookie-modal .cm-modal .cm-body {
+  padding: 16px 24px;
+}
+
+.klaro .cookie-modal .cm-modal .cm-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 16px 24px 20px;
+  border-top: 1px solid rgba(0,0,0,0.06);
+}
+
+.klaro .cookie-modal .cm-modal .cm-btn {
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.klaro .cookie-modal .cm-modal .cm-btn.cm-btn-success,
+.klaro .cookie-notice .cm-btn.cm-btn-success {
+  background-color: #ea580c; /* brand orange */
+}
+
+.klaro .cookie-modal .cm-modal .cm-btn.cm-btn-close {
+  background-color: #e5e7eb; /* gray-200 */
+  color: #111827; /* gray-900 */
+}
+
+/* Dimmed background overlay */
+.klaro .cookie-modal .cm-bg {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(2px);
+  z-index: 1000 !important;
+}
+
+/* Typography alignment */
+.klaro .cookie-modal .cm-modal h1.title {
+  font-size: 1.125rem; /* text-lg */
+  font-weight: 700;
+  color: #111827;
+}
+
+.klaro .cookie-modal .cm-modal p,
+.klaro .cookie-modal .cm-modal li {
+  color: #111827;
+}
+
+/* Improve readability for secondary texts */
+.klaro .cookie-modal .cm-modal .cm-list-title { color: #111827; }
+.klaro .cookie-modal .cm-modal .cm-list-description,
+.klaro .cookie-modal .cm-modal p.purposes,
+.klaro .cookie-modal .cm-modal .cm-footer .cm-powered-by { color: #374151; }
+.klaro .cookie-modal .cm-modal .cm-opt-out,
+.klaro .cookie-modal .cm-modal .cm-required { color: #4b5563; }
+
+/* Also style the notice-as-modal variant */
+.klaro .cookie-modal-notice {
+  z-index: 1002 !important;
+  background: #ffffff !important;
+  color: #111827 !important;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+  width: min(90vw, 480px);
+}
+
 /* Global form control readability and affordance */
 input:not([type="checkbox"]):not([type="radio"]),
 select,

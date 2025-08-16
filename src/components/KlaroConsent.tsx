@@ -58,6 +58,8 @@ export default function KlaroConsent() {
       cookieName: 'klaro',
       cookieExpiresAfterDays: 180,
       mustConsent: false,
+      // Show the initial notice as a centered modal dialog
+      noticeAsModal: true,
       acceptAll: true,
       hideDeclineAll: false,
       hideLearnMore: false,
@@ -70,7 +72,7 @@ export default function KlaroConsent() {
           },
           consentNotice: {
             description:
-              'Wir verwenden Cookies, um unsere Website zu verbessern und Werbung zu finanzieren. Sie können Ihre Auswahl jederzeit ändern.',
+              'Wir verwenden Cookies, um unsere Website zu verbessern und durch Werbung zu finanzieren. Sie können Ihre Auswahl jederzeit ändern.',
           },
           ok: 'Akzeptieren',
           acceptAll: 'Alle akzeptieren',
