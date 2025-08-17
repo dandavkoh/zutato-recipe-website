@@ -248,15 +248,15 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
           <div>
             <label className="block text-sm text-gray-700 mb-2">Profilbild</label>
             <div className="flex items-center gap-4">
-              <div className="h-16 w-16 rounded-full bg-gray-100 overflow-hidden border">
+              <div className="h-16 w-16 rounded-full bg-gray-100 overflow-hidden border flex items-center justify-center shrink-0">
                 {avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
                 ) : (
-                  <div className="h-full w-full flex items-center justify-center text-gray-400 text-xl">👤</div>
+                  <FontAwesomeIcon icon="user" style="regular" className="text-gray-400 text-2xl" />
                 )}
               </div>
-              <input type="file" accept="image/*" onChange={handleAvatarUpload} />
+              <input type="file" accept="image/*" onChange={handleAvatarUpload} className="w-auto max-w-[240px] text-sm" />
             </div>
           </div>
           <div>
@@ -272,48 +272,30 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
           <div>
             <label className="block text-sm text-gray-700 mb-2">Social Links</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <input
-                type="url"
-                placeholder="Instagram URL"
-                value={socialLinks.instagram || ''}
-                onChange={(e) => setSocialLinks((s) => ({ ...s, instagram: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
-              />
-              <input
-                type="url"
-                placeholder="TikTok URL"
-                value={socialLinks.tiktok || ''}
-                onChange={(e) => setSocialLinks((s) => ({ ...s, tiktok: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
-              />
-              <input
-                type="url"
-                placeholder="Facebook URL"
-                value={socialLinks.facebook || ''}
-                onChange={(e) => setSocialLinks((s) => ({ ...s, facebook: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
-              />
-              <input
-                type="url"
-                placeholder="X (Twitter) URL"
-                value={socialLinks.x || ''}
-                onChange={(e) => setSocialLinks((s) => ({ ...s, x: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
-              />
-              <input
-                type="url"
-                placeholder="Pinterest URL"
-                value={socialLinks.pinterest || ''}
-                onChange={(e) => setSocialLinks((s) => ({ ...s, pinterest: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
-              />
-              <input
-                type="url"
-                placeholder="YouTube Kanal URL"
-                value={socialLinks.youtube || ''}
-                onChange={(e) => setSocialLinks((s) => ({ ...s, youtube: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
-              />
+              <div className="flex items-center bg-gray-50 border border-gray-300 rounded-lg overflow-hidden focus-within:border-orange-600 focus-within:ring-2 focus-within:ring-orange-500/40">
+                <span className="w-10 h-10 flex items-center justify-center text-gray-500"><FontAwesomeIcon icon="instagram" style="brands" fixedWidth /></span>
+                <input type="url" placeholder="Instagram URL" value={socialLinks.instagram || ''} onChange={(e) => setSocialLinks((s) => ({ ...s, instagram: e.target.value }))} className="w-full flex-1 bg-transparent px-3 py-2 text-sm outline-none" />
+              </div>
+              <div className="flex items-center bg-gray-50 border border-gray-300 rounded-lg overflow-hidden focus-within:border-orange-600 focus-within:ring-2 focus-within:ring-orange-500/40">
+                <span className="w-10 h-10 flex items-center justify-center text-gray-500"><FontAwesomeIcon icon="tiktok" style="brands" fixedWidth /></span>
+                <input type="url" placeholder="TikTok URL" value={socialLinks.tiktok || ''} onChange={(e) => setSocialLinks((s) => ({ ...s, tiktok: e.target.value }))} className="w-full flex-1 bg-transparent px-3 py-2 text-sm outline-none" />
+              </div>
+              <div className="flex items-center bg-gray-50 border border-gray-300 rounded-lg overflow-hidden focus-within:border-orange-600 focus-within:ring-2 focus-within:ring-orange-500/40">
+                <span className="w-10 h-10 flex items-center justify-center text-gray-500"><FontAwesomeIcon icon="facebook" style="brands" fixedWidth /></span>
+                <input type="url" placeholder="Facebook URL" value={socialLinks.facebook || ''} onChange={(e) => setSocialLinks((s) => ({ ...s, facebook: e.target.value }))} className="w-full flex-1 bg-transparent px-3 py-2 text-sm outline-none" />
+              </div>
+              <div className="flex items-center bg-gray-50 border border-gray-300 rounded-lg overflow-hidden focus-within:border-orange-600 focus-within:ring-2 focus-within:ring-orange-500/40">
+                <span className="w-10 h-10 flex items-center justify-center text-gray-500"><FontAwesomeIcon icon="x-twitter" style="brands" fixedWidth /></span>
+                <input type="url" placeholder="X (Twitter) URL" value={socialLinks.x || ''} onChange={(e) => setSocialLinks((s) => ({ ...s, x: e.target.value }))} className="w-full flex-1 bg-transparent px-3 py-2 text-sm outline-none" />
+              </div>
+              <div className="flex items-center bg-gray-50 border border-gray-300 rounded-lg overflow-hidden focus-within:border-orange-600 focus-within:ring-2 focus-within:ring-orange-500/40">
+                <span className="w-10 h-10 flex items-center justify-center text-gray-500"><FontAwesomeIcon icon="pinterest" style="brands" fixedWidth /></span>
+                <input type="url" placeholder="Pinterest URL" value={socialLinks.pinterest || ''} onChange={(e) => setSocialLinks((s) => ({ ...s, pinterest: e.target.value }))} className="w-full flex-1 bg-transparent px-3 py-2 text-sm outline-none" />
+              </div>
+              <div className="flex items-center bg-gray-50 border border-gray-300 rounded-lg overflow-hidden focus-within:border-orange-600 focus-within:ring-2 focus-within:ring-orange-500/40">
+                <span className="w-10 h-10 flex items-center justify-center text-gray-500"><FontAwesomeIcon icon="youtube" style="brands" fixedWidth /></span>
+                <input type="url" placeholder="YouTube Kanal URL" value={socialLinks.youtube || ''} onChange={(e) => setSocialLinks((s) => ({ ...s, youtube: e.target.value }))} className="w-full flex-1 bg-transparent px-3 py-2 text-sm outline-none" />
+              </div>
             </div>
           </div>
         </div>
