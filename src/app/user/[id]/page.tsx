@@ -35,7 +35,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<Ro
   // calc rating summary for recipes
   const recipeList = (recipes as any[]) || [];
   const recipeIds = recipeList.map((r) => r.id);
-  let ratingSummaryById: Record<string, { average: number | null; count: number }> = {};
+  const ratingSummaryById: Record<string, { average: number | null; count: number }> = {};
   if (recipeIds.length > 0) {
     const { data: ratings } = await supabase
       .from('recipe_ratings')

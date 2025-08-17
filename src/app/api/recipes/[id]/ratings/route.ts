@@ -5,7 +5,7 @@ type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, context: Params) {
   try {
-    const { params } = await context;
+    const params = await context.params;
     const recipeId = params.id;
 
     const supabase = await createClient();
@@ -63,7 +63,7 @@ export async function GET(_request: Request, context: Params) {
 export async function POST(request: Request, context: Params) {
   try {
     const body = (await request.json()) as { rating?: number };
-    const { params } = await context;
+    const params = await context.params;
     const recipeId = params.id;
 
     const rating = Number(body?.rating);

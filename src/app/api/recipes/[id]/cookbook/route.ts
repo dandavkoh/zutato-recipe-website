@@ -5,7 +5,7 @@ type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, context: Params) {
   try {
-    const { params } = await context;
+    const params = await context.params;
     const recipeId = params.id;
 
     const supabase = await createClient();
@@ -32,7 +32,7 @@ export async function GET(_request: Request, context: Params) {
 
 export async function POST(_request: Request, context: Params) {
   try {
-    const { params } = await context;
+    const params = await context.params;
     const recipeId = params.id;
 
     const supabase = await createClient();
@@ -65,7 +65,7 @@ export async function POST(_request: Request, context: Params) {
 
 export async function DELETE(_request: Request, context: Params) {
   try {
-    const { params } = await context;
+    const params = await context.params;
     const recipeId = params.id;
 
     const supabase = await createClient();

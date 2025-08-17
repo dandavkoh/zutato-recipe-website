@@ -41,7 +41,7 @@ export default async function HomePage() {
   const recent: RecipeRow[] = (recentRows as RecipeRow[] | null) || [];
 
   const ids = recent.map((r) => r.id);
-  let avgById: Record<string, { avg: number; count: number }> = {};
+  const avgById: Record<string, { avg: number; count: number }> = {};
   if (ids.length > 0) {
     const { data: ratings } = await supabase
       .from('recipe_ratings')

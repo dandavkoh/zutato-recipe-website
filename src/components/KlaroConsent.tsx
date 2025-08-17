@@ -9,6 +9,7 @@ import React, { useEffect } from 'react'
 declare global {
   interface Window {
     klaro?: any
+    ezstandalone?: any
   }
 }
 
@@ -151,15 +152,13 @@ function loadEzoic(tagId: string, afterLoad: () => void) {
 function enableEzoicPersonalized(tagId: string) {
   loadEzoic(tagId, () => {
     // Personalized ads (default). Ensure library is ready and enable.
-    // @ts-ignore
     window.ezstandalone = window.ezstandalone || {}
-    // @ts-ignore
-    ezstandalone.cmd = ezstandalone.cmd || []
-    // @ts-ignore
-    ezstandalone.cmd.push(function () {
+    window.ezstandalone.cmd = window.ezstandalone.cmd || []
+    window.ezstandalone.cmd.push(function () {
       try {
-        // @ts-ignore
-        ezstandalone.enable && ezstandalone.enable()
+        if (window.ezstandalone && window.ezstandalone.enable) {
+          window.ezstandalone.enable()
+        }
       } catch {}
     })
   })
@@ -168,17 +167,16 @@ function enableEzoicPersonalized(tagId: string) {
 function enableEzoicNonPersonalized(tagId: string) {
   loadEzoic(tagId, () => {
     // Non-personalized: limitCookies instructs Ezoic to reduce cookie usage
-    // @ts-ignore
     window.ezstandalone = window.ezstandalone || {}
-    // @ts-ignore
-    ezstandalone.cmd = ezstandalone.cmd || []
-    // @ts-ignore
-    ezstandalone.cmd.push(function () {
+    window.ezstandalone.cmd = window.ezstandalone.cmd || []
+    window.ezstandalone.cmd.push(function () {
       try {
-        // @ts-ignore
-        ezstandalone.config && ezstandalone.config({ limitCookies: true })
-        // @ts-ignore
-        ezstandalone.enable && ezstandalone.enable()
+        if (window.ezstandalone && window.ezstandalone.config) {
+          window.ezstandalone.config({ limitCookies: true })
+        }
+        if (window.ezstandalone && window.ezstandalone.enable) {
+          window.ezstandalone.enable()
+        }
       } catch {}
     })
   })

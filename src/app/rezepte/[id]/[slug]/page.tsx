@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import RateRecipeButton from '@/components/RateRecipeButton';
 
 type Difficulty = 'einfach' | 'mittel' | 'schwer';
 
@@ -287,38 +288,6 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
           </div>
         </div>
       </section>
-    </div>
-  );
-}
-
-// Client button wrapper to open dialog
-function RateRecipeButton({ recipeId }: { recipeId: string }) {
-  const [open, setOpen] = React.useState(false);
-  const [refreshKey, setRefreshKey] = React.useState(0);
-  const handleSubmitted = () => {
-    // After submit, refresh page to reflect rating summary and hide button
-    // Using client navigation refresh
-    if (typeof window !== 'undefined') {
-      setRefreshKey((k) => k + 1);
-      window.location.reload();
-    }
-  };
-  return (
-    <div className="flex items-center">
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="w-full md:w-auto bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm"
-      >
-        Rezept bewerten
-      </button>
-      <RatingDialog
-        key={refreshKey}
-        isOpen={open}
-        onClose={() => setOpen(false)}
-        onSubmitted={handleSubmitted}
-        recipeId={recipeId}
-      />
     </div>
   );
 }

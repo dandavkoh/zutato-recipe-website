@@ -29,7 +29,7 @@ interface UpdateRecipeRequestBody {
 export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const body = (await request.json()) as UpdateRecipeRequestBody;
-    const { params } = await context;
+    const params = await context.params;
     const recipeId = params.id;
 
     if (!body?.name || !body?.portions || !body?.difficulty) {
@@ -97,7 +97,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
 
     // 3) Re-insert sections (named only) and map temp ids
     const namedSections = (body.sections || []).filter((s) => s.name && s.name.trim());
-    let sectionIdByTempId: Record<string, string> = {};
+    const sectionIdByTempId: Record<string, string> = {};
     if (namedSections.length > 0) {
       const { data: sectionInserts, error: secErr } = await supabase
         .from("recipe_ingredient_sections")

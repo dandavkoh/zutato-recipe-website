@@ -104,7 +104,7 @@ export default async function AlleRezeptePage({ searchParams }: { searchParams: 
       recipes = allRecipes.slice(start, end);
     } else {
       const ids = allRecipes.map((r) => r.id);
-      let avgById: Record<string, { avg: number; count: number }> = {};
+      const avgById: Record<string, { avg: number; count: number }> = {};
       if (ids.length > 0) {
         const { data: ratings } = await supabase
           .from('recipe_ratings')
@@ -139,7 +139,7 @@ export default async function AlleRezeptePage({ searchParams }: { searchParams: 
   }
 
   const recipeIds = recipes.map((r) => r.id);
-  let ratingSummaryById: Record<string, { average: number | null; count: number }> = {};
+  const ratingSummaryById: Record<string, { average: number | null; count: number }> = {};
   if (recipeIds.length > 0) {
     const { data: ratings } = await supabase
       .from('recipe_ratings')

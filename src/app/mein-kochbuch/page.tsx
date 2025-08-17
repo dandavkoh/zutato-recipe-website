@@ -57,7 +57,7 @@ export default async function MeinKochbuchPage() {
 
   // Rating summary
   const recipeIdsForRatings = recipes.map((r) => r.id);
-  let ratingSummaryById: Record<string, { average: number | null; count: number }> = {};
+  const ratingSummaryById: Record<string, { average: number | null; count: number }> = {};
   if (recipeIdsForRatings.length > 0) {
     const { data: ratings } = await supabase
       .from('recipe_ratings')

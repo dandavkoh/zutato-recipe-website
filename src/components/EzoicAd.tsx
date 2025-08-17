@@ -22,22 +22,17 @@ export default function EzoicAd({ placeholderId, required = false, sizes, classN
     // Queue showAds, ezstandalone will run it once the library is ready (loaded by Klaro callback)
     // This will do nothing if the user hasn't made a consent choice yet (since we don't load the library in that case).
     try {
-      // @ts-ignore
       window.ezstandalone = window.ezstandalone || {}
-      // @ts-ignore
-      ezstandalone.cmd = ezstandalone.cmd || []
-      // @ts-ignore
-      ezstandalone.cmd.push(function () {
+      window.ezstandalone.cmd = window.ezstandalone.cmd || []
+      window.ezstandalone.cmd.push(function () {
         try {
           if (sizes || required) {
             const entry: any = { id }
             if (required) entry.required = true
             if (sizes) entry.sizes = sizes
-            // @ts-ignore
-            ezstandalone.showAds([entry])
+            window.ezstandalone.showAds([entry])
           } else {
-            // @ts-ignore
-            ezstandalone.showAds(id)
+            window.ezstandalone.showAds(id)
           }
         } catch {}
       })

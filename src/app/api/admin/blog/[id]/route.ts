@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 
-type Params = { params: Promise<{ id: string }> };
-
 async function ensureAdmin(supabase: Awaited<ReturnType<typeof createClient>>): Promise<{ userId: string } | null> {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth?.user) return null;
@@ -22,13 +20,13 @@ async function ensureAdmin(supabase: Awaited<ReturnType<typeof createClient>>): 
   return { userId: auth.user.id };
 }
 
-export async function PUT(request: Request, context: Params) {
+export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await createClient();
     const admin = await ensureAdmin(supabase);
     if (!admin) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 403 });
 
-    const { params } = await context;
+    const params = await context.params;
     const id = params.id;
 
     const body = (await request.json()) as {
@@ -60,13 +58,13 @@ export async function PUT(request: Request, context: Params) {
   }
 }
 
-export async function DELETE(_request: Request, context: Params) {
+export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await createClient();
     const admin = await ensureAdmin(supabase);
     if (!admin) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 403 });
 
-    const { params } = await context;
+    const params = await context.params;
     const id = params.id;
 
     // Soft delete by policy preference

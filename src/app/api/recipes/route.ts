@@ -70,7 +70,7 @@ export async function POST(request: Request) {
 
     // 2) Insert sections that have a name. We treat unnamed/default section as null section_id for its ingredients
     const namedSections = (body.sections || []).filter((s) => s.name && s.name.trim());
-    let sectionIdByTempId: Record<string, string> = {};
+    const sectionIdByTempId: Record<string, string> = {};
     if (namedSections.length > 0) {
       const { data: sectionInserts, error: secErr } = await supabase
         .from("recipe_ingredient_sections")
