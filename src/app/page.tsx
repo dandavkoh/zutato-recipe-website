@@ -73,6 +73,23 @@ export default async function HomePage() {
     })
     .slice(0, 10);
 
+  // Fetch latest 3 published blog posts
+  type PublicPost = {
+    id: string;
+    slug: string;
+    title: string;
+    excerpt: string | null;
+    cover_image_url: string;
+    published_at: string | null;
+    reading_time_minutes: number | null;
+  };
+  const { data: latestBlogRows } = await supabase
+    .from('public_blog_posts')
+    .select('id, slug, title, excerpt, cover_image_url, published_at, reading_time_minutes')
+    .order('published_at', { ascending: false, nullsFirst: false })
+    .limit(3);
+  const latestPosts: PublicPost[] = (latestBlogRows as PublicPost[] | null) || [];
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -156,6 +173,42 @@ export default async function HomePage() {
             </Link>
           </div>
           <RecipeCarousel recipes={top10} ratingById={avgById} />
+        </div>
+      </section>
+
+      {/* Latest Blog Posts */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900">Aktuelle Blogartikel</h2>
+            <Link href="/blog" className="text-orange-600 hover:text-orange-700 font-semibold transition-colors">Alle Blogartikel →</Link>
+          </div>
+          {latestPosts.length === 0 ? (
+            <div className="text-center text-gray-600">Noch keine Blogartikel vorhanden.</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {latestPosts.map((p) => (
+                <Link key={p.id} href={`/blog/${p.slug}`} className="group block bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+                  <div className="h-40 bg-gray-100 flex items-center justify-center">
+                    {p.cover_image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.cover_image_url} alt={p.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-5xl">📝</span>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <h3 className="text-lg font-semibold text-gray-900 group-hover:text-orange-700">{p.title}</h3>
+                    {p.excerpt && <p className="text-sm text-gray-600 line-clamp-2 mt-1">{p.excerpt}</p>}
+                    <div className="mt-3 flex items-center gap-3 text-xs text-gray-600">
+                      {p.published_at && <span>{new Date(p.published_at).toLocaleDateString('de-DE')}</span>}
+                      {typeof p.reading_time_minutes === 'number' && <span>⏱️ {p.reading_time_minutes} Min</span>}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

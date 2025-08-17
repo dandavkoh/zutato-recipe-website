@@ -59,6 +59,7 @@ export default function RecipeCarousel({
 	const trackRef = React.useRef<HTMLDivElement | null>(null)
 	const [wrapperWidth, setWrapperWidth] = React.useState(0)
 	const [isAnimating, setIsAnimating] = React.useState(false)
+	const [isWindowActive, setIsWindowActive] = React.useState(true)
 
 	const hasMultiple = recipes.length > 1
 	const useLoop = loop && hasMultiple
@@ -66,10 +67,13 @@ export default function RecipeCarousel({
 	const realCount = recipes.length
 	const [currentIndex, setCurrentIndex] = React.useState(useLoop ? 1 : 0)
 
-	const gapPx = 24
+	// Tighter gap and dynamic sizing to improve small screens
+	const gapPx = 16
 	const clampedPeek = Math.max(0, Math.min(0.45, peekFraction))
-	const peekPx = Math.round(wrapperWidth * clampedPeek)
-	const slideWidth = Math.max(200, wrapperWidth - 2 * peekPx)
+	const basePeek = wrapperWidth < 480 ? Math.max(clampedPeek, 0.06) : clampedPeek
+	const peekPx = Math.round(wrapperWidth * basePeek)
+	const minSlide = wrapperWidth < 480 ? 260 : 200
+	const slideWidth = Math.max(minSlide, wrapperWidth - 2 * peekPx)
 
 	const displayIndex = useLoop ? (currentIndex - 1 + realCount) % realCount : currentIndex
 
@@ -85,25 +89,86 @@ export default function RecipeCarousel({
 		return () => ro.disconnect()
 	}, [])
 
-	React.useEffect(() => {
-		if (!autoplay || !hasMultiple) return
-		const id = window.setInterval(() => {
-			goTo(currentIndex + 1)
-		}, Math.max(1500, autoplayIntervalMs))
-		return () => window.clearInterval(id)
-	}, [autoplay, autoplayIntervalMs, hasMultiple, currentIndex])
-
-	const goTo = (target: number) => {
+	const goTo = React.useCallback((target: number) => {
 		if (!hasMultiple) return
 		setIsAnimating(true)
 		setCurrentIndex(target)
-	}
+	}, [hasMultiple])
 
-	const goToDisplayIndex = (idx: number) => {
+	const goToDisplayIndex = React.useCallback((idx: number) => {
 		if (!hasMultiple) return
 		const target = useLoop ? idx + 1 : idx
 		goTo(target)
-	}
+	}, [hasMultiple, useLoop, goTo])
+
+	// Track if carousel is sufficiently visible in viewport
+	const [isInView, setIsInView] = React.useState(true)
+	React.useEffect(() => {
+		if (!wrapperRef.current) return
+		const io = new IntersectionObserver(
+			(entries) => {
+				for (const entry of entries) {
+					setIsInView(entry.isIntersecting && entry.intersectionRatio >= 0.6)
+				}
+			},
+			{ threshold: [0, 0.25, 0.5, 0.6, 0.75, 1] }
+		)
+		io.observe(wrapperRef.current)
+		return () => io.disconnect()
+	}, [])
+
+	// Detect active user scrolling (briefly true while scrolling)
+	const isUserScrollingRef = React.useRef(false)
+	React.useEffect(() => {
+		let t: any
+		const onScroll = () => {
+			isUserScrollingRef.current = true
+			clearTimeout(t)
+			t = setTimeout(() => {
+				isUserScrollingRef.current = false
+			}, 150)
+		}
+		window.addEventListener('scroll', onScroll, { passive: true })
+		return () => {
+			window.removeEventListener('scroll', onScroll as any)
+			clearTimeout(t)
+		}
+	}, [])
+
+	React.useEffect(() => {
+		if (!autoplay || !hasMultiple || !isWindowActive || !isInView) return
+		const id = window.setInterval(() => {
+			if (isUserScrollingRef.current) return
+			goTo(currentIndex + 1)
+		}, Math.max(1500, autoplayIntervalMs))
+		return () => window.clearInterval(id)
+	}, [autoplay, autoplayIntervalMs, hasMultiple, isWindowActive, isInView, currentIndex, goTo])
+
+	React.useEffect(() => {
+		const handleVisibility = () => {
+			const active = document.visibilityState === 'visible'
+			setIsWindowActive(active)
+			if (active && useLoop) {
+				const lastIndex = slides.length - 1
+				setIsAnimating(false)
+				setCurrentIndex((idx) => {
+					if (idx <= 0) return 1
+					if (idx >= lastIndex) return 1
+					return idx
+				})
+			}
+		}
+		const onFocus = () => setIsWindowActive(true)
+		const onBlur = () => setIsWindowActive(false)
+		document.addEventListener('visibilitychange', handleVisibility)
+		window.addEventListener('focus', onFocus)
+		window.addEventListener('blur', onBlur)
+		return () => {
+			document.removeEventListener('visibilitychange', handleVisibility)
+			window.removeEventListener('focus', onFocus)
+			window.removeEventListener('blur', onBlur)
+		}
+	}, [useLoop, slides.length])
 
 	const handleTransitionEnd = () => {
 		if (!useLoop) {
@@ -129,12 +194,36 @@ export default function RecipeCarousel({
 		return Math.round(peekPx - offsetForIndex)
 	}
 
+	// Touch swipe support for mobile
+	const touchStartXRef = React.useRef<number | null>(null)
+	const touchDeltaXRef = React.useRef(0)
+	const onTouchStart = (e: React.TouchEvent) => {
+		touchStartXRef.current = e.touches[0]?.clientX ?? null
+		touchDeltaXRef.current = 0
+	}
+	const onTouchMove = (e: React.TouchEvent) => {
+		if (touchStartXRef.current == null) return
+		const x = e.touches[0]?.clientX ?? 0
+		touchDeltaXRef.current = x - touchStartXRef.current
+	}
+	const onTouchEnd = () => {
+		const dx = touchDeltaXRef.current
+		touchStartXRef.current = null
+		touchDeltaXRef.current = 0
+		if (Math.abs(dx) < 40) return
+		if (dx > 0) {
+			goTo(currentIndex - 1)
+		} else {
+			goTo(currentIndex + 1)
+		}
+	}
+
 	if (recipes.length === 0) {
 		return <div className="text-center text-gray-600">Diese Woche noch keine Rezepte.</div>
 	}
 
 	return (
-		<div className="relative" ref={wrapperRef}>
+		<div className="relative overflow-hidden" ref={wrapperRef} style={{ overflowAnchor: 'none' as any }}>
 			<div
 				ref={trackRef}
 				className="flex items-stretch"
@@ -142,8 +231,12 @@ export default function RecipeCarousel({
 					gap: `${gapPx}px`,
 					transform: `translateX(${totalOffset(currentIndex)}px)`,
 					transition: isAnimating ? 'transform 400ms ease' : 'none',
+					touchAction: 'pan-y',
 				}}
 				onTransitionEnd={handleTransitionEnd}
+				onTouchStart={onTouchStart}
+				onTouchMove={onTouchMove}
+				onTouchEnd={onTouchEnd}
 			>
 				{slides.map((recipe, idx) => {
 					const totalMinutes = getTotalMinutes(recipe)
@@ -189,7 +282,7 @@ export default function RecipeCarousel({
 					<button
 						type="button"
 						onClick={() => goTo(currentIndex - 1)}
-						className="hidden md:flex items-center justify-center absolute -left-4 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white shadow border hover:bg-gray-50"
+						className="hidden md:flex items-center justify-center absolute left-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white shadow border hover:bg-gray-50 z-10"
 						aria-label="Zurück"
 					>
 						‹
@@ -197,7 +290,7 @@ export default function RecipeCarousel({
 					<button
 						type="button"
 						onClick={() => goTo(currentIndex + 1)}
-						className="hidden md:flex items-center justify-center absolute -right-4 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white shadow border hover:bg-gray-50"
+						className="hidden md:flex items-center justify-center absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white shadow border hover:bg-gray-50 z-10"
 						aria-label="Weiter"
 					>
 						›
