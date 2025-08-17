@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import RecipeRatingSummary from '@/components/RecipeRatingSummary';
+import RecipeCarousel from '@/components/RecipeCarousel';
 import EzoicAd from '@/components/EzoicAd';
 
 type RecipeRow = {
@@ -154,45 +155,7 @@ export default async function HomePage() {
               Alle anzeigen →
             </Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {top10.length === 0 ? (
-              <div className="col-span-full text-center text-gray-600">Diese Woche noch keine Rezepte.</div>
-            ) : (
-              top10.map((recipe) => {
-                const totalMinutes = getTotalMinutes(recipe);
-                const timeText = totalMinutes ? `${totalMinutes} Min` : '–';
-                const rating = { avg: (0), count: 0 };
-                return (
-                  <div key={recipe.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                    <div className="h-48 bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center text-6xl">
-                      {recipe.image_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={recipe.image_url} alt={recipe.name} className="h-full w-full object-cover" />
-                      ) : (
-                        '🍽️'
-                      )}
-                    </div>
-                    <div className="p-6">
-                      <h3 className="font-semibold text-lg text-gray-900 mb-2">{recipe.name}</h3>
-                      <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                        <span>⏱️ {timeText}</span>
-                        <span>📊 {recipe.difficulty.charAt(0).toUpperCase() + recipe.difficulty.slice(1)}</span>
-                        <span>
-                          <RecipeRatingSummary average={avgById[recipe.id]?.avg ?? null} count={avgById[recipe.id]?.count ?? 0} />
-                        </span>
-                      </div>
-                      <Link 
-                        href={`/rezepte/${recipe.id}/${toSlug(recipe.name)}`}
-                        className="block w-full bg-orange-600 hover:bg-orange-700 text-white text-center py-2 rounded-lg font-medium transition-colors"
-                      >
-                        Rezept anzeigen
-                      </Link>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
+          <RecipeCarousel recipes={top10} ratingById={avgById} />
         </div>
       </section>
 
