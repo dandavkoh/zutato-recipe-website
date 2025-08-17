@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import Toast from "@/components/Toast";
 
 type Difficulty = "einfach" | "mittel" | "schwer";
 
@@ -284,8 +285,8 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
           <p className="text-gray-600">Passe dein Rezept an und speichere die Änderungen</p>
         </div>
 
-        {error && <div className="bg-red-50 text-red-800 border border-red-200 rounded p-3 text-sm mb-6">{error}</div>}
-        {success && <div className="bg-green-50 text-green-800 border border-green-200 rounded p-3 text-sm mb-6">{success}</div>}
+        {error && <Toast message={error} type="error" onClose={() => setError(null)} durationMs={2600} />}
+        {success && <Toast message={success} type="success" onClose={() => setSuccess(null)} durationMs={2000} />}
 
         <form onSubmit={onSave} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

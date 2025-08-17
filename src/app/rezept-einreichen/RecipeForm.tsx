@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import FontAwesomeIcon from "@/components/FontAwesomeIcon";
+import Toast from "@/components/Toast";
 
 type Difficulty = "einfach" | "mittel" | "schwer";
 
@@ -366,10 +367,10 @@ export default function RecipeForm() {
   return (
     <form onSubmit={onSubmit} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-8">
       {error && (
-        <div className="bg-red-50 text-red-800 border border-red-200 rounded p-3 text-sm">{error}</div>
+        <Toast message={error} type="error" onClose={() => setError(null)} durationMs={2600} />
       )}
       {success && (
-        <div className="bg-green-50 text-green-800 border border-green-200 rounded p-3 text-sm">{success}</div>
+        <Toast message={success} type="success" onClose={() => setSuccess(null)} durationMs={2000} />
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

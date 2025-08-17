@@ -178,13 +178,13 @@ export default async function AlleRezeptePage({ searchParams }: { searchParams: 
       {/* Header Section */}
       <section className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Alle Rezepte</h1>
               <p className="text-gray-600">Entdecke die neuesten Kreationen unserer Community</p>
             </div>
-            <div className="mt-4 md:mt-0">
-              <Link href="/rezept-einreichen" className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-full font-medium transition-colors">Rezept einreichen</Link>
+            <div className="mt-4 md:mt-0 w-full md:w-auto">
+              <Link href="/rezept-einreichen" className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-full font-medium transition-colors block w-full text-center md:inline-block md:w-auto">Rezept einreichen</Link>
             </div>
           </div>
         </div>

@@ -83,12 +83,12 @@ export default async function MeinKochbuchPage() {
     <div className="min-h-screen bg-gray-50">
       <section className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Mein Kochbuch</h1>
               <p className="text-gray-600">Deine gespeicherten Lieblingsrezepte</p>
             </div>
-            <Link href="/rezept-einreichen" className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-full font-medium transition-colors">
+            <Link href="/rezept-einreichen" className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-full font-medium transition-colors w-full sm:w-auto text-center">
               Rezept einreichen
             </Link>
           </div>
