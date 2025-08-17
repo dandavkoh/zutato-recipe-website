@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
+import RecipeRatingSummary from '@/components/RecipeRatingSummary';
 
 export const metadata = {
   title: 'Meine Rezepte - ZUTATO',
@@ -49,6 +50,29 @@ export default async function MeineRezeptePage() {
     .order('created_at', { ascending: false });
 
   const recipes: RecipeRow[] = (data as RecipeRow[]) || [];
+
+  // Compute rating summary like on Alle-Rezepte
+  const recipeIds = recipes.map((r) => r.id);
+  const ratingSummaryById: Record<string, { average: number | null; count: number }> = {};
+  if (recipeIds.length > 0) {
+    const { data: ratings } = await supabase
+      .from('recipe_ratings')
+      .select('recipe_id, rating')
+      .in('recipe_id', recipeIds)
+      .eq('is_deleted', false);
+    const grouped: Record<string, number[]> = {};
+    for (const row of (ratings as any[]) || []) {
+      const rid = row.recipe_id as string;
+      const rt = row.rating as number;
+      (grouped[rid] ||= []).push(rt);
+    }
+    for (const rid of recipeIds) {
+      const list = grouped[rid] || [];
+      const count = list.length;
+      const avg = count > 0 ? list.reduce((a, b) => a + b, 0) / count : null;
+      ratingSummaryById[rid] = { average: avg, count };
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -102,7 +126,12 @@ export default async function MeineRezeptePage() {
                       <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                         <span>⏱️ {timeText}</span>
                         <span>📊 {r.difficulty.charAt(0).toUpperCase() + r.difficulty.slice(1)}</span>
-                        <span>⭐ 4.8</span>
+                        <span>
+                          <RecipeRatingSummary
+                            average={ratingSummaryById[r.id]?.average ?? null}
+                            count={ratingSummaryById[r.id]?.count ?? 0}
+                          />
+                        </span>
                       </div>
                       <Link
                         href={`/rezepte/${r.id}/${toSlug(r.name)}`}
