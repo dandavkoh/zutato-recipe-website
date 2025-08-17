@@ -127,6 +127,9 @@ export default function Header() {
           <Link href="/blog" className="text-gray-700 hover:text-orange-600 font-medium transition-colors">
             Blog
           </Link>
+          <Link href="/forum" className="text-gray-700 hover:text-orange-600 font-medium transition-colors">
+            Forum
+          </Link>
           {user && (
             <Link href="/meine-rezepte" className="text-gray-700 hover:text-orange-600 font-medium transition-colors">
               Meine Rezepte
@@ -135,6 +138,11 @@ export default function Header() {
           {user && (
             <Link href="/mein-kochbuch" className="text-gray-700 hover:text-orange-600 font-medium transition-colors">
               Mein Kochbuch
+            </Link>
+          )}
+          {user && (
+            <Link href="/inbox" className="text-gray-700 hover:text-orange-600 font-medium transition-colors">
+              Postfach
             </Link>
           )}
           {user && isAdmin && (
@@ -234,6 +242,13 @@ export default function Header() {
                 >
                   Blog
                 </Link>
+                <Link 
+                  href="/forum" 
+                  className="text-gray-700 hover:text-orange-600 font-medium transition-colors py-2"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Forum
+                </Link>
                     {user && (
                       <Link 
                         href="/meine-rezepte" 
@@ -259,6 +274,15 @@ export default function Header() {
                         onClick={() => setIsMenuOpen(false)}
                       >
                         Admin
+                      </Link>
+                    )}
+                    {user && (
+                      <Link 
+                        href="/inbox" 
+                        className="text-gray-700 hover:text-orange-600 font-medium transition-colors py-2"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Postfach
                       </Link>
                     )}
                     {user && (

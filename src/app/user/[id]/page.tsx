@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import RecipeRatingSummary from '@/components/RecipeRatingSummary';
 import FontAwesomeIcon from '@/components/FontAwesomeIcon';
+import SendMessageDialog from '@/components/inbox/SendMessageDialog';
 
 type RouteParams = { id: string };
 
@@ -12,6 +13,7 @@ export const metadata = {
 export default async function PublicProfilePage({ params }: { params: Promise<RouteParams> }) {
   const { id } = await params;
   const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
 
   const { data: profile } = await supabase
     .from('public_user_profile')
@@ -72,7 +74,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<Ro
                 <div className="h-full w-full flex items-center justify-center text-gray-400 text-3xl">👤</div>
               )}
             </div>
-            <div>
+            <div className="flex-1">
               <h1 className="text-2xl font-bold text-gray-900">{nickname || 'Unbekannter Nutzer'}</h1>
               {banner && <p className="text-gray-600 mt-1">{banner}</p>}
               {social && (
@@ -107,6 +109,11 @@ export default async function PublicProfilePage({ params }: { params: Promise<Ro
                       <FontAwesomeIcon icon="youtube" style="brands" />
                     </a>
                   )}
+                </div>
+              )}
+              {auth?.user && auth.user.id !== id && (
+                <div className="mt-3">
+                  <SendMessageDialog recipientId={id} recipientName={nickname || 'Nutzer'} />
                 </div>
               )}
             </div>

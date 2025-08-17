@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
+import AdminCreateForumSection from '@/components/admin/AdminCreateForumSection';
 
 export const metadata = {
   title: 'Adminbereich',
@@ -51,10 +52,10 @@ export default async function AdminPage() {
               <div className="text-xl font-semibold text-gray-900 group-hover:text-orange-700">Blog verwalten</div>
               <div className="mt-2 text-gray-600 text-sm">Beiträge erstellen, bearbeiten und veröffentlichen</div>
             </Link>
-            {/* Placeholder for future tools */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6 text-gray-400">
-              Weitere Admin-Tools folgen…
-            </div>
+            <Link href="/admin/forum" className="group block bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow">
+              <div className="text-xl font-semibold text-gray-900 group-hover:text-orange-700">Forum verwalten</div>
+              <div className="mt-2 text-gray-600 text-sm">Bereiche erstellen, bearbeiten und löschen</div>
+            </Link>
           </div>
         </div>
       </section>
