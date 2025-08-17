@@ -102,6 +102,11 @@ export default async function PublicProfilePage({ params }: { params: Promise<Ro
                       <FontAwesomeIcon icon="pinterest" style="brands" />
                     </a>
                   )}
+                  {social.youtube && (
+                    <a href={social.youtube} target="_blank" rel="nofollow noopener" className="hover:text-orange-600" aria-label="YouTube">
+                      <FontAwesomeIcon icon="youtube" style="brands" />
+                    </a>
+                  )}
                 </div>
               )}
             </div>

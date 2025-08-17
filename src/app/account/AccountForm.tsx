@@ -41,7 +41,7 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
   const [isNicknameLocked, setIsNicknameLocked] = useState(false);
   const [banner, setBanner] = useState<string>('');
   const [avatarUrl, setAvatarUrl] = useState<string>('');
-  const [socialLinks, setSocialLinks] = useState<{ instagram?: string; tiktok?: string; facebook?: string; x?: string; pinterest?: string }>({});
+  const [socialLinks, setSocialLinks] = useState<{ instagram?: string; tiktok?: string; facebook?: string; x?: string; pinterest?: string; youtube?: string }>({});
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -76,6 +76,7 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
           facebook: prof.social_links?.facebook || '',
           x: prof.social_links?.x || '',
           pinterest: prof.social_links?.pinterest || '',
+          youtube: prof.social_links?.youtube || '',
         });
       }
     };
@@ -180,6 +181,7 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
         facebook: socialLinks.facebook ? socialLinks.facebook : null,
         x: socialLinks.x ? socialLinks.x : null,
         pinterest: socialLinks.pinterest ? socialLinks.pinterest : null,
+        youtube: socialLinks.youtube ? socialLinks.youtube : null,
       },
     };
     const res = await UserSettingsApi.updateUserPublicProfile(payload);
@@ -303,6 +305,13 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
                 placeholder="Pinterest URL"
                 value={socialLinks.pinterest || ''}
                 onChange={(e) => setSocialLinks((s) => ({ ...s, pinterest: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
+              />
+              <input
+                type="url"
+                placeholder="YouTube Kanal URL"
+                value={socialLinks.youtube || ''}
+                onChange={(e) => setSocialLinks((s) => ({ ...s, youtube: e.target.value }))}
                 className="w-full border border-gray-300 rounded-lg p-2 text-sm"
               />
             </div>

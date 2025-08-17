@@ -20,6 +20,7 @@ export interface UserPublicProfileResponse {
     facebook?: string | null;
     x?: string | null;
     pinterest?: string | null;
+    youtube?: string | null;
     [key: string]: string | null | undefined;
   } | null;
 }
@@ -87,6 +88,7 @@ export class UserSettingsApi {
       facebook?: string | null;
       x?: string | null;
       pinterest?: string | null;
+      youtube?: string | null;
       [key: string]: string | null | undefined;
     } | null;
   }): Promise<UserPublicProfileResponse> {
