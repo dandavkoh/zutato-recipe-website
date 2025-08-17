@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
+import ShareButton from '@/components/ShareButton';
 
 type RouteParams = { slug: string };
 
@@ -41,7 +42,7 @@ export default async function BlogPostPage({ params }: { params: Promise<RoutePa
       <section className="bg-white border-b">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <h1 className="text-3xl font-bold text-gray-900">{post.title}</h1>
-          <div className="mt-2 text-gray-600 text-sm flex gap-4">
+          <div className="mt-2 text-gray-600 text-sm flex gap-4 items-center flex-wrap">
             {post.published_at && <span>{new Date(post.published_at).toLocaleDateString('de-DE')}</span>}
             {typeof post.reading_time_minutes === 'number' && <span>⏱️ {post.reading_time_minutes} Min</span>}
           </div>
@@ -59,6 +60,9 @@ export default async function BlogPostPage({ params }: { params: Promise<RoutePa
           <article className="prose prose-orange max-w-none">
             <div className="whitespace-pre-wrap text-gray-900 leading-7">{post.content}</div>
           </article>
+          <div className="mt-6 flex justify-center">
+            <ShareButton title={post.title} text={post.meta_description || post.title} label="Artikel teilen" />
+          </div>
           <div className="mt-10">
             <BlogCommentsSection postId={post.id} currentUserId={currentUserId} />
           </div>

@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import ShareButton from '@/components/ShareButton';
 import RateRecipeButton from '@/components/RateRecipeButton';
 
 type Difficulty = 'einfach' | 'mittel' | 'schwer';
@@ -198,7 +199,7 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
             <div className="md:col-span-2">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{r.name}</h1>
               {r.description && <p className="text-gray-600 mb-4">{r.description}</p>}
-              <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+              <div className="flex flex-wrap gap-4 text-sm text-gray-600 items-center">
                 <span>
                   👤 {r.created_by && authorNickname ? (
                     <Link href={`/user/${r.created_by}`} className="text-orange-700 hover:underline">{authorNickname}</Link>
@@ -284,6 +285,9 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
           <div className="md:col-span-2">
             <div className="mt-8">
               <CommentsSection recipeId={id} currentUserId={user ? user.id : null} />
+            </div>
+            <div className="mt-6 flex justify-center">
+              <ShareButton title={r.name} text={r.description || r.name} label="Rezept teilen" />
             </div>
           </div>
         </div>
