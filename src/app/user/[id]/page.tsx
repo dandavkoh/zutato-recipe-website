@@ -61,6 +61,51 @@ export default async function PublicProfilePage({ params }: { params: Promise<Ro
 
   const toSlug = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
 
+  type Platform = 'instagram' | 'tiktok' | 'facebook' | 'x' | 'pinterest' | 'youtube';
+  const normalizeSocialLink = (platform: Platform, value: string): string => {
+    const input = (value || '').trim();
+    if (!input) return '#';
+    // If already absolute (http/https), return as-is
+    if (/^https?:\/\//i.test(input)) return input;
+    // If starts with @handle, build platform-specific URL
+    if (input.startsWith('@')) {
+      const handle = input.slice(1);
+      switch (platform) {
+        case 'instagram':
+          return `https://www.instagram.com/${handle}`;
+        case 'tiktok':
+          return `https://www.tiktok.com/@${handle}`;
+        case 'facebook':
+          return `https://www.facebook.com/${handle}`;
+        case 'x':
+          return `https://x.com/${handle}`;
+        case 'pinterest':
+          return `https://www.pinterest.com/${handle}/`;
+        case 'youtube':
+          return `https://www.youtube.com/@${handle}`;
+      }
+    }
+    // If looks like a domain/path, prefix https://
+    if (input.startsWith('www.') || input.includes('.')) {
+      return `https://${input.replace(/^\/+/, '')}`;
+    }
+    // Fallback: treat as username for the platform
+    switch (platform) {
+      case 'instagram':
+        return `https://www.instagram.com/${input}`;
+      case 'tiktok':
+        return `https://www.tiktok.com/@${input}`;
+      case 'facebook':
+        return `https://www.facebook.com/${input}`;
+      case 'x':
+        return `https://x.com/${input}`;
+      case 'pinterest':
+        return `https://www.pinterest.com/${input}/`;
+      case 'youtube':
+        return `https://www.youtube.com/@${input}`;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <section className="bg-white border-b">
@@ -80,32 +125,32 @@ export default async function PublicProfilePage({ params }: { params: Promise<Ro
               {social && (
                 <div className="flex items-center gap-3 mt-2 text-gray-700">
                   {social.instagram && (
-                    <a href={social.instagram} target="_blank" rel="nofollow noopener" className="hover:text-orange-600" aria-label="Instagram">
+                    <a href={normalizeSocialLink('instagram', social.instagram)} target="_blank" rel="nofollow noopener noreferrer" className="hover:text-orange-600" aria-label="Instagram">
                       <FontAwesomeIcon icon="instagram" style="brands" />
                     </a>
                   )}
                   {social.tiktok && (
-                    <a href={social.tiktok} target="_blank" rel="nofollow noopener" className="hover:text-orange-600" aria-label="TikTok">
+                    <a href={normalizeSocialLink('tiktok', social.tiktok)} target="_blank" rel="nofollow noopener noreferrer" className="hover:text-orange-600" aria-label="TikTok">
                       <FontAwesomeIcon icon="tiktok" style="brands" />
                     </a>
                   )}
                   {social.facebook && (
-                    <a href={social.facebook} target="_blank" rel="nofollow noopener" className="hover:text-orange-600" aria-label="Facebook">
+                    <a href={normalizeSocialLink('facebook', social.facebook)} target="_blank" rel="nofollow noopener noreferrer" className="hover:text-orange-600" aria-label="Facebook">
                       <FontAwesomeIcon icon="facebook" style="brands" />
                     </a>
                   )}
                   {social.x && (
-                    <a href={social.x} target="_blank" rel="nofollow noopener" className="hover:text-orange-600" aria-label="X">
+                    <a href={normalizeSocialLink('x', social.x)} target="_blank" rel="nofollow noopener noreferrer" className="hover:text-orange-600" aria-label="X">
                       <FontAwesomeIcon icon="x-twitter" style="brands" />
                     </a>
                   )}
                   {social.pinterest && (
-                    <a href={social.pinterest} target="_blank" rel="nofollow noopener" className="hover:text-orange-600" aria-label="Pinterest">
+                    <a href={normalizeSocialLink('pinterest', social.pinterest)} target="_blank" rel="nofollow noopener noreferrer" className="hover:text-orange-600" aria-label="Pinterest">
                       <FontAwesomeIcon icon="pinterest" style="brands" />
                     </a>
                   )}
                   {social.youtube && (
-                    <a href={social.youtube} target="_blank" rel="nofollow noopener" className="hover:text-orange-600" aria-label="YouTube">
+                    <a href={normalizeSocialLink('youtube', social.youtube)} target="_blank" rel="nofollow noopener noreferrer" className="hover:text-orange-600" aria-label="YouTube">
                       <FontAwesomeIcon icon="youtube" style="brands" />
                     </a>
                   )}
