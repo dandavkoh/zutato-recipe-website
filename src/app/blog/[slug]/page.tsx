@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
 import ShareButton from '@/components/ShareButton';
+import AdminBlogPostActions from '@/components/AdminBlogPostActions';
 
 type RouteParams = { slug: string };
 
@@ -35,6 +36,12 @@ export default async function BlogPostPage({ params }: { params: Promise<RoutePa
 
   const { data: auth } = await supabase.auth.getUser();
   const currentUserId = auth?.user?.id ?? null;
+  // Admin check
+  let isAdmin = false;
+  try {
+    const { data: rpcVal } = await supabase.rpc('current_user_is_admin');
+    isAdmin = Boolean(rpcVal);
+  } catch {}
   const { default: BlogCommentsSection } = await import('@/components/BlogCommentsSection');
 
   return (
@@ -63,6 +70,11 @@ export default async function BlogPostPage({ params }: { params: Promise<RoutePa
           <div className="mt-6 flex justify-center">
             <ShareButton title={post.title} text={post.meta_description || post.title} label="Artikel teilen" />
           </div>
+          {isAdmin && (
+            <div className="mt-4">
+              <AdminBlogPostActions postId={post.id} />
+            </div>
+          )}
           <div className="mt-10">
             <BlogCommentsSection postId={post.id} currentUserId={currentUserId} />
           </div>

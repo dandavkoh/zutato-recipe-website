@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import ShareButton from '@/components/ShareButton';
 import RateRecipeButton from '@/components/RateRecipeButton';
+import AdminRecipeActions from '@/components/AdminRecipeActions';
 import IngredientsWithPortionScaler from '@/components/IngredientsWithPortionScaler';
 
 type Difficulty = 'einfach' | 'mittel' | 'schwer';
@@ -176,6 +177,12 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  // Admin check
+  let isAdmin = false;
+  try {
+    const { data: rpcVal } = await supabase.rpc('current_user_is_admin');
+    isAdmin = Boolean(rpcVal);
+  } catch {}
   let userHasRated = false;
   let inCookbook = false;
   if (user) {
@@ -225,6 +232,11 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
                   <RecipeRatingSummary average={ratingAverage} count={ratingCount} />
                 </span>
               </div>
+              {isAdmin && (
+                <div className="mt-3">
+                  <AdminRecipeActions recipeId={id} editHref={`/rezepte/${id}/${slugify(r.name)}/bearbeiten`} />
+                </div>
+              )}
             </div>
             <div className="md:col-span-1">
               <div className="w-full h-48 md:h-40 bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg overflow-hidden flex items-center justify-center">

@@ -2,6 +2,7 @@ import React from 'react';
 import { createClient } from '@/utils/supabase/server';
 import NewBlogCommentClient from '@/components/NewBlogCommentClient';
 import EditBlogCommentClient from '@/components/EditBlogCommentClient';
+import AdminCommentActions from '@/components/AdminCommentActions';
 import Link from 'next/link';
 
 type Comment = {
@@ -34,6 +35,13 @@ export default async function BlogCommentsSection({ postId, currentUserId }: { p
     nicknameByUserId = Object.fromEntries(rows.filter(r => Boolean(r.nickname)).map(r => [r.user_id, r.nickname as string]));
   }
 
+  // Admin check
+  let isAdmin = false;
+  try {
+    const { data: rpcVal } = await supabase.rpc('current_user_is_admin');
+    isAdmin = Boolean(rpcVal);
+  } catch {}
+
   return (
     <div className="bg-white border rounded-xl p-4">
       <h3 className="text-lg font-semibold text-gray-900 mb-3">Kommentare</h3>
@@ -58,9 +66,16 @@ export default async function BlogCommentsSection({ postId, currentUserId }: { p
                 {new Date(c.created_at).toLocaleString('de-DE')}
                 {currentUserId === c.user_id && ' · Dein Kommentar'}
               </div>
-              {currentUserId === c.user_id && (
+              {(currentUserId === c.user_id || isAdmin) && (
                 <div className="mt-2">
-                  <EditBlogCommentClient commentId={c.id} postId={postId} initialText={c.comment} />
+                  {(currentUserId === c.user_id || isAdmin) && (
+                    <EditBlogCommentClient commentId={c.id} postId={postId} initialText={c.comment} />
+                  )}
+                  {isAdmin && (
+                    <div className="mt-2">
+                      <AdminCommentActions kind="blog" parentId={postId} commentId={c.id} />
+                    </div>
+                  )}
                 </div>
               )}
             </li>

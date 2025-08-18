@@ -83,11 +83,37 @@ export async function PUT(request: Request, _context: Params) {
       return NextResponse.json({ error: 'Nicht authentifiziert' }, { status: 401 });
     }
 
-    // Update restricted by RLS policy (only owner can update)
-    const { error: updErr } = await supabase
+    // Allow admins to update any comment per RLS; fallback: if not owner, require admin
+    let { error: updErr } = await supabase
       .from('recipe_comments')
       .update({ comment: text })
       .eq('id', commentId);
+    if (updErr) {
+      // Try with admin guard to provide clearer 403 if needed
+      let isAdmin = false;
+      try {
+        const { data: rpcVal } = await supabase.rpc('current_user_is_admin');
+        isAdmin = Boolean(rpcVal);
+      } catch {
+        const { data: settings } = await supabase
+          .from('user_settings')
+          .select('is_admin')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        isAdmin = Boolean((settings as any)?.is_admin);
+      }
+      if (!isAdmin) {
+        return NextResponse.json({ error: updErr.message }, { status: 400 });
+      }
+      // If admin, retry update (RLS should already allow it per migration)
+      const retry = await supabase
+        .from('recipe_comments')
+        .update({ comment: text })
+        .eq('id', commentId);
+      if (retry.error) {
+        return NextResponse.json({ error: retry.error.message }, { status: 400 });
+      }
+    }
     if (updErr) {
       return NextResponse.json({ error: updErr.message }, { status: 400 });
     }
@@ -116,13 +142,34 @@ export async function DELETE(request: Request, _context: Params) {
       return NextResponse.json({ error: 'Nicht authentifiziert' }, { status: 401 });
     }
 
-    // Soft delete via is_deleted flag; RLS ensures only owner can update
-    const { error: delErr } = await supabase
+    // Soft delete via is_deleted flag; allow admin per RLS. If blocked, check admin explictly.
+    let { error: delErr } = await supabase
       .from('recipe_comments')
       .update({ is_deleted: true })
       .eq('id', commentId);
     if (delErr) {
-      return NextResponse.json({ error: delErr.message }, { status: 400 });
+      let isAdmin = false;
+      try {
+        const { data: rpcVal } = await supabase.rpc('current_user_is_admin');
+        isAdmin = Boolean(rpcVal);
+      } catch {
+        const { data: settings } = await supabase
+          .from('user_settings')
+          .select('is_admin')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        isAdmin = Boolean((settings as any)?.is_admin);
+      }
+      if (!isAdmin) {
+        return NextResponse.json({ error: delErr.message }, { status: 400 });
+      }
+      const retry = await supabase
+        .from('recipe_comments')
+        .update({ is_deleted: true })
+        .eq('id', commentId);
+      if (retry.error) {
+        return NextResponse.json({ error: retry.error.message }, { status: 400 });
+      }
     }
 
     return NextResponse.json({ success: true }, { status: 200 });

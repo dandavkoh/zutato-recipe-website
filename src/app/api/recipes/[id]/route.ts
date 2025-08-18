@@ -46,7 +46,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       return NextResponse.json({ error: "Nicht authentifiziert" }, { status: 401 });
     }
 
-    // Ensure user owns the recipe
+    // Ensure user owns the recipe or is admin
     const { data: recipeRow, error: fetchErr } = await supabase
       .from("recipes")
       .select("id, created_by")
@@ -56,7 +56,21 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       return NextResponse.json({ error: fetchErr?.message || "Rezept existiert nicht" }, { status: 404 });
     }
     if (recipeRow.created_by !== user.id) {
-      return NextResponse.json({ error: "Keine Berechtigung" }, { status: 403 });
+      let isAdmin = false;
+      try {
+        const { data: rpcVal } = await supabase.rpc('current_user_is_admin');
+        isAdmin = Boolean(rpcVal);
+      } catch {
+        const { data: settings } = await supabase
+          .from('user_settings')
+          .select('is_admin')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        isAdmin = Boolean((settings as any)?.is_admin);
+      }
+      if (!isAdmin) {
+        return NextResponse.json({ error: "Keine Berechtigung" }, { status: 403 });
+      }
     }
 
     // 1) Update recipe metadata
@@ -168,6 +182,52 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     return NextResponse.json({ id: recipeId }, { status: 200 });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "Unbekannter Fehler" }, { status: 500 });
+  }
+}
+
+
+export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
+  try {
+    const params = await context.params;
+    const recipeId = params.id;
+
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Nicht authentifiziert' }, { status: 401 });
+    }
+
+    // Admin-only soft delete to align with RLS in migration
+    let isAdmin = false;
+    try {
+      const { data: rpcVal } = await supabase.rpc('current_user_is_admin');
+      isAdmin = Boolean(rpcVal);
+    } catch {
+      const { data: settings } = await supabase
+        .from('user_settings')
+        .select('is_admin')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      isAdmin = Boolean((settings as any)?.is_admin);
+    }
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Keine Berechtigung' }, { status: 403 });
+    }
+
+    const { error: delErr } = await supabase
+      .from('recipes')
+      .update({ is_deleted: true })
+      .eq('id', recipeId);
+    if (delErr) {
+      return NextResponse.json({ error: delErr.message }, { status: 400 });
+    }
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || 'Unbekannter Fehler' }, { status: 500 });
   }
 }
 
