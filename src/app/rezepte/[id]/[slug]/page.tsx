@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import ShareButton from '@/components/ShareButton';
 import RateRecipeButton from '@/components/RateRecipeButton';
+import IngredientsWithPortionScaler from '@/components/IngredientsWithPortionScaler';
 
 type Difficulty = 'einfach' | 'mittel' | 'schwer';
 
@@ -61,10 +62,7 @@ function formatTotalMinutes(w: number | null, c: number | null, r: number | null
   return total > 0 ? `${total} Min` : null;
 }
 
-function formatQuantity(qty: number): string {
-  if (Number.isInteger(qty)) return String(qty);
-  return qty.toString();
-}
+// formatQuantity removed; quantities are formatted in client scaler component
 
 type RouteParams = { id: string; slug: string };
 
@@ -153,6 +151,18 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
     return aKey - bKey;
   });
 
+  // Prepare minimal ingredient groups for client scaler component
+  const initialIngredientGroups = grouped.map((g) => ({
+    name: g.name,
+    items: g.items.map((i) => ({
+      id: i.id,
+      quantity: i.quantity,
+      unit_name: i.unit_name,
+      unit_short_name: i.unit_short_name,
+      ingredient_display_name: i.ingredient_display_name,
+    })),
+  }));
+
   // Fetch rating summary server-side and whether user has rated (for gating UI)
   const { data: ratingRows } = await supabase
     .from('recipe_ratings')
@@ -208,7 +218,7 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
                   )}
                 </span>
                 {r.category_name && <span>🏷️ {r.category_name}</span>}
-                <span>🍽️ {r.portions} Portionen</span>
+                {/* Portionenanzeige entfernt, stattdessen unten Skala */}
                 <span>📊 {difficultyLabel}</span>
                 {totalTime && <span>⏱️ {totalTime}</span>}
                 <span>
@@ -252,24 +262,7 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 gap-10">
           <div>
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Zutaten</h2>
-            <div className="space-y-6">
-              {grouped.map((group, idx) => (
-                <div key={idx}>
-                  {group.name && (
-                    <h3 className="text-sm font-medium text-gray-700 mb-2">{group.name}</h3>
-                  )}
-                  <ul className="space-y-2">
-                    {group.items.map((ing) => (
-                      <li key={ing.id} className="flex items-start justify-between">
-                        <span className="text-gray-900">
-                          {formatQuantity(ing.quantity)} {ing.unit_short_name || ing.unit_name || ''} {ing.ingredient_display_name}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
+            <IngredientsWithPortionScaler initialPortions={r.portions} initialGroups={initialIngredientGroups} />
           </div>
           <div>
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Zubereitung</h2>
