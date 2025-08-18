@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import RecipeRatingSummary from '@/components/RecipeRatingSummary';
+import DurationFilter from '@/components/DurationFilter';
 
 export const metadata = {
   title: 'Alle Rezepte - KochMeister',
@@ -28,10 +29,15 @@ function capitalize(word: string) {
   return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
+function toNum(v: unknown): number {
+  const n = Number(v ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
 function getTotalMinutes(r: RecipeRow): number | null {
-  const w = r.working_time_minutes ?? 0;
-  const c = r.cooking_time_minutes ?? 0;
-  const rest = r.resting_time_minutes ?? 0;
+  const w = toNum(r.working_time_minutes);
+  const c = toNum(r.cooking_time_minutes);
+  const rest = toNum(r.resting_time_minutes);
   const sum = w + c + rest;
   return sum > 0 ? sum : null;
 }
@@ -57,6 +63,21 @@ export default async function AlleRezeptePage({ searchParams }: { searchParams: 
   const cat = Array.isArray(qp.cat) ? qp.cat[0] : qp.cat || '';
   const diff = Array.isArray(qp.diff) ? qp.diff[0] : qp.diff || '';
   const sort = (Array.isArray(qp.sort) ? qp.sort[0] : qp.sort || 'newest') as 'newest' | 'rating' | 'work';
+  const maxTotalRaw = Array.isArray(qp.max) ? qp.max[0] : qp.max || '';
+  type Key = '15' | '30' | '60' | '120' | 'gt120' | 'all' | '';
+  const maxKey: Key = (maxTotalRaw as Key) || '';
+  const maxConfig = (() => {
+    switch (maxKey) {
+      case '15': return { type: 'lte' as const, minutes: 15 };
+      case '30': return { type: 'lte' as const, minutes: 30 };
+      case '60': return { type: 'lte' as const, minutes: 60 };
+      case '120': return { type: 'lte' as const, minutes: 120 };
+      case 'gt120': return { type: 'gt' as const, minutes: 120 };
+      case 'all':
+      case '':
+      default: return { type: 'all' as const };
+    }
+  })();
 
   const pageSize = 10;
   const pageNum = Math.max(1, parseInt(Array.isArray(pageRaw) ? pageRaw[0] || '1' : pageRaw || '1'));
@@ -76,16 +97,26 @@ export default async function AlleRezeptePage({ searchParams }: { searchParams: 
   let hasNext = false;
 
   if (sort === 'newest') {
-    let query = supabase
+    let base = supabase
       .from('recipes_with_details')
-      .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, category_name, creator_email, creator_name, created_by')
-      .order('created_at', { ascending: false });
-    if (cat) query = query.eq('category_id', cat);
-    if (diff) query = query.eq('difficulty', diff);
-    const { data } = await query.range(from, to);
-    const fetched: RecipeRow[] = (data as RecipeRow[]) || [];
-    hasNext = fetched.length > pageSize;
-    recipes = hasNext ? fetched.slice(0, pageSize) : fetched;
+      .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, category_name, creator_email, creator_name, created_by');
+    if (cat) base = base.eq('category_id', cat);
+    if (diff) base = base.eq('difficulty', diff);
+    const { data: allRows } = await base.order('created_at', { ascending: false }).limit(300);
+    let allRecipes: RecipeRow[] = (allRows as RecipeRow[]) || [];
+    if (maxConfig.type !== 'all') {
+      allRecipes = allRecipes.filter((r) => {
+        const sum = toNum(r.working_time_minutes) + toNum(r.cooking_time_minutes) + toNum(r.resting_time_minutes);
+        if (sum <= 0) return false; // exclude unknown duration when filtering
+        if (maxConfig.type === 'lte') return sum <= maxConfig.minutes;
+        if (maxConfig.type === 'gt') return sum > maxConfig.minutes;
+        return true;
+      });
+    }
+    const start = (pageNum - 1) * pageSize;
+    const end = start + pageSize;
+    hasNext = allRecipes.length > end;
+    recipes = allRecipes.slice(start, end);
   } else {
     let base = supabase
       .from('recipes_with_details')
@@ -93,7 +124,16 @@ export default async function AlleRezeptePage({ searchParams }: { searchParams: 
     if (cat) base = base.eq('category_id', cat);
     if (diff) base = base.eq('difficulty', diff);
     const { data: allRows } = await base.order('created_at', { ascending: false }).limit(300);
-    const allRecipes: RecipeRow[] = (allRows as RecipeRow[]) || [];
+    let allRecipes: RecipeRow[] = (allRows as RecipeRow[]) || [];
+    if (maxConfig.type !== 'all') {
+      allRecipes = allRecipes.filter((r) => {
+        const sum = toNum(r.working_time_minutes) + toNum(r.cooking_time_minutes) + toNum(r.resting_time_minutes);
+        if (sum <= 0) return false;
+        if (maxConfig.type === 'lte') return sum <= maxConfig.minutes;
+        if (maxConfig.type === 'gt') return sum > maxConfig.minutes;
+        return true;
+      });
+    }
 
     if (sort === 'work') {
       const getWork = (r: RecipeRow) => (r.working_time_minutes == null ? Infinity : r.working_time_minutes);
@@ -215,6 +255,8 @@ export default async function AlleRezeptePage({ searchParams }: { searchParams: 
               <option value="mittel">Mittel</option>
               <option value="schwer">Schwer</option>
             </select>
+            {/* Total duration filter */}
+            <DurationFilter initialKey={(maxKey && maxKey !== 'all' ? maxKey : 'all') as any} />
             <button type="submit" className="px-5 py-2 rounded-lg bg-orange-600 text-white hover:bg-orange-700">Filtern</button>
           </form>
         </div>
