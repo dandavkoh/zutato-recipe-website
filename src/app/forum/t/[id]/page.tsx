@@ -13,7 +13,7 @@ type RouteParams = { id: string };
 
 export const runtime = 'nodejs'
 
-export default async function ThreadPage({ params, searchParams }: { params: Promise<RouteParams>; searchParams?: Promise<{ page?: string }> }) {
+export default async function ThreadPage({ params, searchParams }: { params: Promise<RouteParams>; searchParams?: Promise<{ page?: string; nav?: string }> }) {
   const { id } = await params;
   const q = searchParams ? await searchParams : undefined
   const supabase = await createClient();
@@ -64,18 +64,21 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
   const postsTotal = postsCount || 0
   const postsTotalPages = Math.max(1, Math.ceil(postsTotal / postsPageSize))
   const lastPostId = postsList.length > 0 ? postsList[postsList.length - 1].id as string : null
-  // Increment views count (best-effort). Use service role if available to bypass RLS.
-  try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    const nextViews = Number((thread as any).views_count || 0) + 1
-    if (supabaseUrl && serviceKey) {
-      const admin = createServiceClient(supabaseUrl, serviceKey)
-      await admin.from('forum_threads').update({ views_count: nextViews }).eq('id', id)
-    } else {
-      await supabase.from('forum_threads').update({ views_count: nextViews }).eq('id', id)
-    }
-  } catch {}
+  // Increment views only on visit, not when paging through posts via our pagination links (nav=1).
+  const isPaginationNav = (q?.nav === '1')
+  if (!isPaginationNav) {
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      const nextViews = Number((thread as any).views_count || 0) + 1
+      if (supabaseUrl && serviceKey) {
+        const admin = createServiceClient(supabaseUrl, serviceKey)
+        await admin.from('forum_threads').update({ views_count: nextViews }).eq('id', id)
+      } else {
+        await supabase.from('forum_threads').update({ views_count: nextViews }).eq('id', id)
+      }
+    } catch {}
+  }
   // Collect involved user IDs (thread author + post authors)
   const involvedUserIds: string[] = Array.from(new Set([
     (thread as any).created_by as string,
@@ -194,8 +197,8 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
           <div className="mt-6 flex items-center justify-between text-sm">
             <div className="text-gray-600">Seite {postsCurrentPage} von {postsTotalPages}</div>
             <div className="flex items-center gap-2">
-              <Link href={`/forum/t/${id}?page=${Math.max(1, postsCurrentPage - 1)}`} className={`px-3 py-1.5 rounded-lg border ${postsCurrentPage <= 1 ? 'pointer-events-none opacity-50 border-gray-300 text-gray-400' : 'border-orange-600 text-orange-700 hover:bg-orange-50'}`}>Zurück</Link>
-              <Link href={`/forum/t/${id}?page=${Math.min(postsTotalPages, postsCurrentPage + 1)}`} className={`px-3 py-1.5 rounded-lg border ${postsCurrentPage >= postsTotalPages ? 'pointer-events-none opacity-50 border-gray-300 text-gray-400' : 'border-orange-600 text-orange-700 hover:bg-orange-50'}`}>Weiter</Link>
+              <Link href={`/forum/t/${id}?page=${Math.max(1, postsCurrentPage - 1)}&nav=1`} className={`px-3 py-1.5 rounded-lg border ${postsCurrentPage <= 1 ? 'pointer-events-none opacity-50 border-gray-300 text-gray-400' : 'border-orange-600 text-orange-700 hover:bg-orange-50'}`}>Zurück</Link>
+              <Link href={`/forum/t/${id}?page=${Math.min(postsTotalPages, postsCurrentPage + 1)}&nav=1`} className={`px-3 py-1.5 rounded-lg border ${postsCurrentPage >= postsTotalPages ? 'pointer-events-none opacity-50 border-gray-300 text-gray-400' : 'border-orange-600 text-orange-700 hover:bg-orange-50'}`}>Weiter</Link>
             </div>
           </div>
         </div>
