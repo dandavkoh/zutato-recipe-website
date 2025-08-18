@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import RecipeRatingSummary from '@/components/RecipeRatingSummary';
 import DurationFilter from '@/components/DurationFilter';
+import IngredientFilter from '@/components/IngredientFilter';
 
 export const metadata = {
   title: 'Alle Rezepte - KochMeister',
@@ -64,6 +65,8 @@ export default async function AlleRezeptePage({ searchParams }: { searchParams: 
   const diff = Array.isArray(qp.diff) ? qp.diff[0] : qp.diff || '';
   const sort = (Array.isArray(qp.sort) ? qp.sort[0] : qp.sort || 'newest') as 'newest' | 'rating' | 'work';
   const maxTotalRaw = Array.isArray(qp.max) ? qp.max[0] : qp.max || '';
+  const ingRaw = Array.isArray(qp.ing) ? qp.ing[0] : qp.ing || '';
+  const allowedTokens = parseIngredientTokens(ingRaw);
   type Key = '15' | '30' | '60' | '120' | 'gt120' | 'all' | '';
   const maxKey: Key = (maxTotalRaw as Key) || '';
   const maxConfig = (() => {
@@ -104,6 +107,29 @@ export default async function AlleRezeptePage({ searchParams }: { searchParams: 
     if (diff) base = base.eq('difficulty', diff);
     const { data: allRows } = await base.order('created_at', { ascending: false }).limit(300);
     let allRecipes: RecipeRow[] = (allRows as RecipeRow[]) || [];
+    if (allowedTokens.length > 0) {
+      // Constrain by allowed ingredients client-side for now by fetching ingredients per recipe (batched)
+      const ids = allRecipes.map((r) => r.id);
+      if (ids.length > 0) {
+        const { data: ingRows } = await supabase
+          .from('recipe_ingredients_with_details')
+          .select('recipe_id, product_id, product_group_id')
+          .in('recipe_id', ids);
+        const byRecipe: Record<string, Array<{ product_id: string | null; product_group_id: string | null }>> = {};
+        for (const row of (ingRows as any[]) || []) {
+          (byRecipe[row.recipe_id] ||= []).push({ product_id: row.product_id ?? null, product_group_id: row.product_group_id ?? null });
+        }
+        const allowed = new Set(allowedTokens);
+        allRecipes = allRecipes.filter((r) => {
+          const items = byRecipe[r.id] || [];
+          // A recipe is valid if every ingredient maps to an allowed token
+          return items.every((it) => {
+            const token = it.product_id ? (`p:${it.product_id}` as const) : it.product_group_id ? (`g:${it.product_group_id}` as const) : null;
+            return token ? allowed.has(token) : false;
+          });
+        });
+      }
+    }
     if (maxConfig.type !== 'all') {
       allRecipes = allRecipes.filter((r) => {
         const sum = toNum(r.working_time_minutes) + toNum(r.cooking_time_minutes) + toNum(r.resting_time_minutes);
@@ -213,6 +239,14 @@ export default async function AlleRezeptePage({ searchParams }: { searchParams: 
   }
   const toSlug = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
 
+  function parseIngredientTokens(s: string): Array<`p:${string}` | `g:${string}`> {
+    if (!s) return [];
+    return s
+      .split(',')
+      .map((t) => t.trim())
+      .filter((t) => /^([pg]):[A-Za-z0-9-]+$/.test(t)) as Array<`p:${string}` | `g:${string}`>;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header Section */}
@@ -257,6 +291,8 @@ export default async function AlleRezeptePage({ searchParams }: { searchParams: 
             </select>
             {/* Total duration filter */}
             <DurationFilter initialKey={(maxKey && maxKey !== 'all' ? maxKey : 'all') as any} />
+            {/* Ingredient filter */}
+            <IngredientFilter initialTokens={ingRaw} />
             <button type="submit" className="px-5 py-2 rounded-lg bg-orange-600 text-white hover:bg-orange-700">Filtern</button>
           </form>
         </div>
