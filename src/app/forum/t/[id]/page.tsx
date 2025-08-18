@@ -20,7 +20,7 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
 
   const { data: thread } = await supabase
     .from('forum_threads')
-    .select('id, title, body, is_closed, is_archived, is_deleted, posts_count, views_count, created_by')
+    .select('id, title, body, is_closed, is_archived, is_deleted, posts_count, views_count, created_by, section_id')
     .eq('id', id)
     .eq('is_deleted', false)
     .maybeSingle();
@@ -59,6 +59,17 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
     .eq('is_deleted', false)
     .order('created_at', { ascending: true })
     .range(pFrom, pTo);
+  // Load section info for breadcrumb
+  let sectionSlug: string | null = null
+  let sectionTitle: string | null = null
+  if ((thread as any).section_id) {
+    const { data: sec } = await supabase
+      .from('forum_sections')
+      .select('slug, title')
+      .eq('id', (thread as any).section_id)
+      .maybeSingle()
+    if (sec) { sectionSlug = (sec as any).slug as string; sectionTitle = (sec as any).title as string }
+  }
 
   const postsList = (posts as any[] | null) || [];
   const postsTotal = postsCount || 0
@@ -111,7 +122,20 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
       <section className="bg-white border-b">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-start justify-between gap-4">
-            <h1 className="text-2xl font-bold text-gray-900">{(thread as any).title}</h1>
+            <div className="flex-1">
+              <nav className="text-sm text-gray-600 mb-2 flex items-center gap-2">
+                <Link href="/forum" className="hover:text-orange-700">Forum</Link>
+                <span className="text-gray-400">›</span>
+                {sectionSlug ? (
+                  <Link href={`/forum/${sectionSlug}`} className="hover:text-orange-700">{sectionTitle || 'Bereich'}</Link>
+                ) : (
+                  <span className="text-gray-900">Bereich</span>
+                )}
+                <span className="text-gray-400">›</span>
+                <span className="text-gray-900 truncate">{(thread as any).title}</span>
+              </nav>
+              <h1 className="text-2xl font-bold text-gray-900">{(thread as any).title}</h1>
+            </div>
             <div className="flex items-center gap-2">
               {auth?.user && (
                 <FollowThreadButton threadId={id} initiallyFollowing={initiallyFollowing} />

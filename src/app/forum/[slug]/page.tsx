@@ -73,6 +73,11 @@ export default async function ForumSectionPage({ params, searchParams }: { param
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-start justify-between gap-4">
             <div>
+              <nav className="text-sm text-gray-600 mb-2 flex items-center gap-2">
+                <Link href="/forum" className="hover:text-orange-700">Forum</Link>
+                <span className="text-gray-400">›</span>
+                <span className="text-gray-900">{(section as any).title}</span>
+              </nav>
               <h1 className="text-2xl font-bold text-gray-900">{(section as any).title}</h1>
               {(section as any).description && <p className="text-gray-600 mt-1">{(section as any).description}</p>}
               <div className="mt-3 flex items-center gap-2 text-sm">
