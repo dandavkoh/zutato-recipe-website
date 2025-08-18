@@ -145,7 +145,7 @@ export default function IngredientFilter({ initialTokens }: { initialTokens: str
         const { data } = await supabase.rpc("search_products_and_groups", { term, limit_fts: 10, limit_fuzzy: 5 });
         const res = (data as any[] | null) || [];
         const mapped: ProductOrGroup[] = res.map((r: any) => {
-          const kind = (r.type === "group" ? "group" : "product") as const;
+          const kind: "product" | "group" = r.type === "group" ? "group" : "product";
           const id = String(r.id);
           const label = String(r.title ?? r.label ?? r.name ?? id);
           return { kind, id, label };

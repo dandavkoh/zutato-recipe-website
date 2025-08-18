@@ -46,7 +46,7 @@ export default function DurationFilter({ initialKey }: { initialKey: Key }) {
       const width = Math.min(384, vw - margin * 2);
       const vh = window.innerHeight;
       const panelHeight = panelRef.current?.getBoundingClientRect().height ?? 0;
-      let top = Math.max(minTop, Math.min(vh / 2 - (panelHeight || 0) / 2, vh - (panelHeight || 0) - margin));
+      const top = Math.max(minTop, Math.min(vh / 2 - (panelHeight || 0) / 2, vh - (panelHeight || 0) - margin));
       const left = (vw - width) / 2;
       setPos({ left, top, width, centered: true });
       return;
