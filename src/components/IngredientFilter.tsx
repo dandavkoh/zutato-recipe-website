@@ -223,6 +223,9 @@ export default function IngredientFilter({ initialTokens }: { initialTokens: str
                   ))}
                 </ul>
               )}
+              {!loading && query.trim().length >= 2 && results.length === 0 && (
+                <div className="mt-2 text-sm text-gray-500">Keine Ergebnisse</div>
+              )}
             </div>
 
             {draft.length > 0 && (
