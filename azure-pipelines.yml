@@ -16,8 +16,8 @@ steps:
 - checkout: self
   clean: true
 - script: |
-    git config --global user.name "azure-pipeline"
-    git config --global user.email "pipeline@azure.com"
+    git config --global user.name "dandavkoh"
+    git config --global user.email "daniel.kohsyk@web.de"
 
     # Spiegelndes Klonen des lokal vorhandenen Repos
     git clone --mirror . repo.git
