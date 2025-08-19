@@ -29,6 +29,14 @@ export const metadata: Metadata = {
     type: "website",
     locale: "de_DE",
     siteName: "ZUTATO",
+    images: [
+      {
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'ZUTATO – Die beste Rezept-Community',
+      },
+    ],
   },
 };
 

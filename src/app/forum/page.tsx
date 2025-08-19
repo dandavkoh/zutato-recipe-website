@@ -1,9 +1,26 @@
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
+import type { Metadata } from 'next';
 
-export const metadata = {
-  title: 'Forum',
-  description: 'Diskussionen nach Bereichen',
+export const metadata: Metadata = {
+  title: 'Forum – ZUTATO',
+  description: 'Diskussionen, Tipps und Hilfe – unser Community-Forum.',
+  alternates: { canonical: '/forum' },
+  openGraph: {
+    title: 'Forum – ZUTATO',
+    description: 'Diskussionen, Tipps und Hilfe – unser Community-Forum.',
+    url: '/forum',
+    images: [
+      { url: '/forum/opengraph-image', width: 1200, height: 630, alt: 'ZUTATO Forum' },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Forum – ZUTATO',
+    description: 'Diskussionen, Tipps und Hilfe – unser Community-Forum.',
+    images: ['/forum/opengraph-image'],
+    creator: '@zutato',
+  },
 };
 
 type Section = {

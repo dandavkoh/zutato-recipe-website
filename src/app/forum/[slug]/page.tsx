@@ -1,11 +1,41 @@
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
+import type { Metadata } from 'next';
 
 type RouteParams = { slug: string };
 
-export async function generateMetadata({ params }: { params: Promise<RouteParams> }) {
+export async function generateMetadata({ params }: { params: Promise<RouteParams> }): Promise<Metadata> {
   const { slug } = await params;
-  return { title: `Forum – ${slug}` };
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('forum_sections')
+    .select('title, description')
+    .eq('slug', slug)
+    .maybeSingle();
+  const row: any = data;
+  const title = row?.title ? `Forum – ${row.title}` : `Forum – ${slug}`;
+  const description = row?.description || 'Diskussionen im Bereich';
+  const url = `/forum/${slug}`;
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title,
+      description,
+      url,
+      images: [
+        { url: `${url}/opengraph-image`, width: 1200, height: 630, alt: title },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [`${url}/opengraph-image`],
+      creator: '@zutato',
+    },
+  };
 }
 
 type Thread = {

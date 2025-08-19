@@ -2,6 +2,8 @@ import React from 'react';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { createClient } from '@/utils/supabase/server';
 import Link from 'next/link';
+import type { Metadata } from 'next';
+import Script from 'next/script';
 import FollowThreadButton from '@/components/forum/FollowThreadButton';
 import AdminThreadActions from '@/components/forum/AdminThreadActions';
 // import MarkReadButton from '@/components/forum/MarkReadButton';
@@ -15,6 +17,37 @@ import ReportPostDialog from '@/components/forum/ReportPostDialog';
 export const runtime = 'nodejs'
 
 type RouteParams = { id: string };
+
+export async function generateMetadata({ params }: { params: Promise<RouteParams> }): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('forum_threads')
+    .select('title, is_deleted')
+    .eq('id', id)
+    .maybeSingle();
+  const row: any = data;
+  const title = row?.title ? `Thread – ${row.title}` : 'Thread';
+  const url = `/forum/t/${id}`;
+  return {
+    title,
+    description: 'Diskussion im Forum',
+    alternates: { canonical: url },
+    openGraph: {
+      title,
+      description: 'Diskussion im Forum',
+      url,
+      images: [{ url: `${url}/opengraph-image`, width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description: 'Diskussion im Forum',
+      images: [`${url}/opengraph-image`],
+      creator: '@zutato',
+    },
+  };
+}
 
 export default async function ThreadPage({ params, searchParams }: { params: Promise<RouteParams>; searchParams?: Promise<{ page?: string; nav?: string }> }) {
   const { id } = await params;
@@ -123,8 +156,30 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
   const { default: AdminPostActions } = await import('@/components/forum/AdminPostActions')
   const { default: AdminThreadEditActions } = await import('@/components/forum/AdminThreadEditActions')
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const absoluteUrl = `${siteUrl}/forum/t/${id}`;
+
   return (
     <div className="min-h-screen bg-gray-50">
+      <Script id="discussion-ld-json" type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'DiscussionForumPosting',
+            mainEntityOfPage: { '@type': 'WebPage', '@id': absoluteUrl },
+            headline: (thread as any).title,
+            datePublished: (thread as any).created_at,
+            dateModified: (postsList.length > 0 ? postsList[postsList.length - 1].created_at : (thread as any).created_at),
+            author: undefined,
+            publisher: { '@type': 'Organization', name: 'ZUTATO' },
+            interactionStatistic: {
+              '@type': 'InteractionCounter',
+              interactionType: { '@type': 'http://schema.org/CommentAction' },
+              userInteractionCount: postsTotal,
+            },
+          }),
+        }}
+      />
       <section className="bg-white border-b">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-start justify-between gap-4">

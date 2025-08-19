@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
+import type { Metadata } from 'next';
 
 type PublicPost = {
   id: string;
@@ -11,9 +12,25 @@ type PublicPost = {
   reading_time_minutes: number | null;
 };
 
-export const metadata = {
-  title: 'Blog',
-  description: 'Neueste Artikel aus unserem Blog',
+export const metadata: Metadata = {
+  title: 'Blog – ZUTATO',
+  description: 'Neueste Artikel aus unserem Blog: Neuigkeiten, Guides und Inspiration.',
+  alternates: { canonical: '/blog' },
+  openGraph: {
+    title: 'Blog – ZUTATO',
+    description: 'Neuigkeiten, Guides und Inspiration.',
+    url: '/blog',
+    images: [
+      { url: '/blog/opengraph-image', width: 1200, height: 630, alt: 'ZUTATO Blog' },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Blog – ZUTATO',
+    description: 'Neuigkeiten, Guides und Inspiration.',
+    images: ['/blog/opengraph-image'],
+    creator: '@zutato',
+  },
 };
 
 export default async function BlogListPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {

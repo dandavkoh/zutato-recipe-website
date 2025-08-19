@@ -1,23 +1,48 @@
 import { notFound } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
+import type { Metadata } from 'next';
+import Script from 'next/script';
 import ShareButton from '@/components/ShareButton';
 import AdminBlogPostActions from '@/components/AdminBlogPostActions';
 
 type RouteParams = { slug: string };
 
-export async function generateMetadata({ params }: { params: Promise<RouteParams> }) {
+export async function generateMetadata({ params }: { params: Promise<RouteParams> }): Promise<Metadata> {
   const { slug } = await params;
   const supabase = await createClient();
   const { data } = await supabase
     .from('blog_posts')
-    .select('title, meta_title, meta_description, status, published_at, is_deleted')
+    .select('title, meta_title, meta_description, status, published_at, is_deleted, cover_image_url')
     .eq('slug', slug)
     .maybeSingle();
   const row: any = data;
   if (!row) return { title: 'Blog', description: 'Artikel' };
   const title = row.meta_title || row.title || 'Blog';
   const description = row.meta_description || 'Artikel';
-  return { title, description };
+  const imageUrl: string | null = row.cover_image_url || null;
+  const url = `/blog/${slug}`;
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: 'article',
+      title,
+      description,
+      url,
+      images: [
+        { url: `${url}/opengraph-image`, width: 1200, height: 630, alt: title },
+        ...(imageUrl ? [{ url: imageUrl, alt: title }] : []),
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [`${url}/opengraph-image`, ...(imageUrl ? [imageUrl] : [])],
+      creator: '@zutato',
+    },
+  };
 }
 
 export default async function BlogPostPage({ params, searchParams }: { params: Promise<RouteParams>; searchParams?: Promise<{ commentsPage?: string }> }) {
@@ -46,8 +71,27 @@ export default async function BlogPostPage({ params, searchParams }: { params: P
   const { default: BlogCommentsSection } = await import('@/components/BlogCommentsSection');
   const commentsPage = Math.max(1, Number((q?.commentsPage as string) || '1') || 1);
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const absoluteUrl = `${siteUrl}/blog/${slug}`;
+
   return (
     <div className="min-h-screen bg-gray-50">
+      <Script id="article-ld-json" type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Article',
+            mainEntityOfPage: { '@type': 'WebPage', '@id': absoluteUrl },
+            headline: post.title,
+            image: post.cover_image_url ? [post.cover_image_url] : undefined,
+            datePublished: post.published_at || undefined,
+            dateModified: post.published_at || undefined,
+            author: undefined,
+            publisher: { '@type': 'Organization', name: 'ZUTATO' },
+            description: (post.meta_description || post.title) || undefined,
+          }),
+        }}
+      />
       <section className="bg-white border-b">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <h1 className="text-3xl font-bold text-gray-900">{post.title}</h1>

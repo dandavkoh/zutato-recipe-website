@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { createClient } from '@/utils/supabase/server';
 import RecipeRatingSummary from '@/components/RecipeRatingSummary';
 import RecipeCarousel from '@/components/RecipeCarousel';

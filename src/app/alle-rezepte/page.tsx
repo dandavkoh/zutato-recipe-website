@@ -1,12 +1,36 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { createClient } from '@/utils/supabase/server';
 import RecipeRatingSummary from '@/components/RecipeRatingSummary';
 import DurationFilter from '@/components/DurationFilter';
 import IngredientFilter from '@/components/IngredientFilter';
 
-export const metadata = {
-  title: 'Alle Rezepte - KochMeister',
+export const metadata: Metadata = {
+  title: 'Alle Rezepte - ZUTATO',
   description: 'Entdecke alle Rezepte unserer Community. Filtere nach Kategorie, Schwierigkeit und sortiere nach Neueste, Bewertung oder Zeit.',
+  alternates: {
+    canonical: '/alle-rezepte',
+  },
+  openGraph: {
+    title: 'Alle Rezepte - ZUTATO',
+    description: 'Entdecke alle Rezepte unserer Community. Filtere nach Kategorie, Schwierigkeit und sortiere nach Neueste, Bewertung oder Zeit.',
+    url: '/alle-rezepte',
+    images: [
+      {
+        url: '/alle-rezepte/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'Alle Rezepte',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Alle Rezepte - ZUTATO',
+    description: 'Entdecke alle Rezepte unserer Community. Filtere nach Kategorie, Schwierigkeit und sortiere nach Neueste, Bewertung oder Zeit.',
+    images: ['/alle-rezepte/opengraph-image'],
+    creator: '@zutato',
+  },
 };
 
 type RecipeRow = {
