@@ -18,6 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
   title: "ZUTATO - Die beste Rezept-Community",
   description: "Entdecke die besten Rezepte von Hobbyköchen und Profis. Teile deine Lieblingsrezepte und lerne neue Koch-Techniken.",
   keywords: "Rezepte, Kochen, Koch-Community, Koch-Tipps, Küche, Essen",

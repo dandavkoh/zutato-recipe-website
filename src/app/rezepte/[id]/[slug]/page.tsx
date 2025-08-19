@@ -1,5 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
+import Script from 'next/script';
 import Link from 'next/link';
 import ShareButton from '@/components/ShareButton';
 import RateRecipeButton from '@/components/RateRecipeButton';
@@ -68,12 +70,12 @@ function formatTotalMinutes(w: number | null, c: number | null, r: number | null
 
 type RouteParams = { id: string; slug: string };
 
-export async function generateMetadata(props: { params: Promise<RouteParams> }) {
+export async function generateMetadata(props: { params: Promise<RouteParams> }): Promise<Metadata> {
   const supabase = await createClient();
-  const { id } = await props.params;
+  const { id, slug } = await props.params;
   const { data } = await supabase
     .from('recipes_with_details')
-    .select('name, description')
+    .select('name, description, image_url, created_by, creator_name, creator_email')
     .eq('id', id)
     .maybeSingle();
 
@@ -81,9 +83,38 @@ export async function generateMetadata(props: { params: Promise<RouteParams> }) 
 
   const name = (data as any).name as string;
   const description = ((data as any).description as string | null) || 'Rezeptdetails';
+  const imageUrl = ((data as any).image_url as string | null) || null;
+
+  // Der vollständige kanonische Pfad inkl. Slug aus der Route
+  const url = `/rezepte/${id}/${slug}`;
+
   return {
     title: `${name} - Rezept`,
     description,
+    alternates: {
+      canonical: url,
+    },
+    openGraph: {
+      type: 'article',
+      title: `${name} - Rezept`,
+      description,
+      url,
+      images: imageUrl
+        ? [
+            {
+              url: imageUrl,
+              alt: name,
+            },
+          ]
+        : undefined,
+    },
+    twitter: {
+      card: imageUrl ? 'summary_large_image' : 'summary',
+      title: `${name} - Rezept` as string,
+      description,
+      images: imageUrl ? [imageUrl] : undefined,
+      creator: '@zutato',
+    },
   };
 }
 
@@ -210,9 +241,65 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
   const { default: CookbookToggleButton } = await import('@/components/CookbookToggleButton');
   const { default: CommentsSection } = await import('@/components/CommentsSection');
   const commentsPage = Math.max(1, Number((q?.commentsPage as string) || '1') || 1);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const pagePath = `/rezepte/${id}/${slug}`;
+  const absoluteUrl = `${siteUrl}${pagePath}`;
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Structured Data for Google (Recipe JSON-LD) */}
+      <Script id="recipe-ld-json" type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify((() => {
+            const toIsoDuration = (mins: number | null) => (mins && mins > 0 ? `PT${mins}M` : undefined);
+            const ensureAbsolute = (u: string) => (u.startsWith('http://') || u.startsWith('https://') ? u : `${siteUrl}${u.startsWith('/') ? '' : '/'}${u}`);
+            const image = r.image_url ? [ensureAbsolute(r.image_url)] : undefined;
+            const recipeIngredient = ingRows.map((i) => {
+              const quantity = i.quantity;
+              const unit = i.unit_short_name || i.unit_name || '';
+              return `${quantity}${unit ? ` ${unit}` : ''} ${i.ingredient_display_name}`.trim();
+            });
+            const recipeInstructions = stepRows.map((s) => ({
+              '@type': 'HowToStep',
+              text: s.instruction,
+            }));
+            const aggregateRating = ratingAverage && ratingCount
+              ? {
+                  '@type': 'AggregateRating',
+                  ratingValue: Number(ratingAverage.toFixed(2)),
+                  ratingCount: ratingCount,
+                  bestRating: 5,
+                  worstRating: 1,
+                }
+              : undefined;
+            return {
+              '@context': 'https://schema.org',
+              '@type': 'Recipe',
+              mainEntityOfPage: {
+                '@type': 'WebPage',
+                '@id': absoluteUrl,
+              },
+              url: absoluteUrl,
+              name: r.name,
+              description: r.description || undefined,
+              image,
+              author: r.created_by || r.creator_name || r.creator_email ? {
+                '@type': 'Person',
+                name: (r.created_by && authorNickname) || r.creator_name || r.creator_email || 'Unbekannt',
+              } : undefined,
+              datePublished: r.created_at,
+              recipeCategory: r.category_name || undefined,
+              recipeYield: r.portions ? `${r.portions} Portionen` : undefined,
+              prepTime: toIsoDuration(r.working_time_minutes),
+              cookTime: toIsoDuration(r.cooking_time_minutes),
+              totalTime: toIsoDuration((r.working_time_minutes ?? 0) + (r.cooking_time_minutes ?? 0) + (r.resting_time_minutes ?? 0)),
+              recipeIngredient,
+              recipeInstructions,
+              aggregateRating,
+            };
+          })()),
+        }}
+      />
       <section className="bg-white border-b">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
