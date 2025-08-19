@@ -149,7 +149,7 @@ export default async function AdminReportsPage({ searchParams }: { searchParams?
   const blogPostIds = Array.from(new Set(Object.values(blogPostIdByBlogCommentId))) as string[]
   const reporterIds = Array.from(new Set(reports.map(r => r.reported_by).filter(Boolean))) as string[]
   let recipeNameById: Record<string, string> = {}
-  let reporterNameById: Record<string, string> = {}
+  const reporterNameById: Record<string, string> = {}
   const profileNameById: Record<string, string> = {}
   const blogSlugById: Record<string, string> = {}
   const blogTitleById: Record<string, string> = {}
