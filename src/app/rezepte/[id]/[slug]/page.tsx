@@ -99,20 +99,23 @@ export async function generateMetadata(props: { params: Promise<RouteParams> }):
       title: `${name} - Rezept`,
       description,
       url,
-      images: imageUrl
-        ? [
-            {
-              url: imageUrl,
-              alt: name,
-            },
-          ]
-        : undefined,
+      images: [
+        {
+          // Prefer our dynamic OG image route which includes title, rating, etc.
+          url: `${url}/opengraph-image`,
+          alt: name,
+          width: 1200,
+          height: 630,
+        },
+        // Fallback to the recipe image if available
+        ...(imageUrl ? [{ url: imageUrl, alt: name }] : []),
+      ],
     },
     twitter: {
       card: imageUrl ? 'summary_large_image' : 'summary',
       title: `${name} - Rezept` as string,
       description,
-      images: imageUrl ? [imageUrl] : undefined,
+      images: [`${url}/opengraph-image`, ...(imageUrl ? [imageUrl] : [])],
       creator: '@zutato',
     },
   };
