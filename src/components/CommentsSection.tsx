@@ -4,6 +4,7 @@ import NewCommentClient from '@/components/NewCommentClient';
 import EditCommentClient from '@/components/EditCommentClient';
 import AdminCommentActions from '@/components/AdminCommentActions';
 import Link from 'next/link';
+import ReportRecipeCommentDialog from '@/components/ReportRecipeCommentDialog';
 
 type Comment = {
   id: string;
@@ -13,15 +14,21 @@ type Comment = {
   updated_at: string;
 };
 
-export default async function CommentsSection({ recipeId, currentUserId }: { recipeId: string; currentUserId: string | null }) {
+export default async function CommentsSection({ recipeId, currentUserId, slug, page = 1 }: { recipeId: string; currentUserId: string | null; slug: string; page?: number }) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const pageSize = 10;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  const { data, error, count } = await supabase
     .from('recipe_comments')
-    .select('id, user_id, comment, created_at, updated_at')
+    .select('id, user_id, comment, created_at, updated_at', { count: 'exact' })
     .eq('recipe_id', recipeId)
     .eq('is_deleted', false)
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true })
+    .range(from, to);
   const comments: Comment[] = (data as any[]) || [];
+  const total = count || 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   // Fetch public nicknames for commenters
   const userIds = Array.from(new Set(comments.map((c) => c.user_id)));
@@ -51,6 +58,7 @@ export default async function CommentsSection({ recipeId, currentUserId }: { rec
       {comments.length === 0 ? (
         <div className="text-sm text-gray-500">Keine Kommentare vorhanden.</div>
       ) : (
+        <>
         <ul className="divide-y divide-gray-200">
           {comments.map((c) => (
             <li key={c.id} className="py-3">
@@ -66,21 +74,34 @@ export default async function CommentsSection({ recipeId, currentUserId }: { rec
                 {new Date(c.created_at).toLocaleString('de-DE')}
                 {currentUserId === c.user_id && ' · Dein Kommentar'}
               </div>
-              {(currentUserId === c.user_id || isAdmin) && (
-                <div className="mt-2">
-                  {(currentUserId === c.user_id || isAdmin) && (
+              <div className="mt-2">
+                {(currentUserId === c.user_id || isAdmin) && (
+                  <div className="w-full">
                     <EditCommentClient commentId={c.id} recipeId={recipeId} initialText={c.comment} />
-                  )}
-                  {isAdmin && (
-                    <div className="mt-2">
-                      <AdminCommentActions kind="recipe" parentId={recipeId} commentId={c.id} />
-                    </div>
-                  )}
-                </div>
-              )}
+                    {isAdmin && (
+                      <div className="mt-2">
+                        <AdminCommentActions kind="recipe" parentId={recipeId} commentId={c.id} />
+                      </div>
+                    )}
+                  </div>
+                )}
+                {currentUserId && !isAdmin && (
+                  <div className="mt-2 flex justify-end">
+                    <ReportRecipeCommentDialog recipeId={recipeId} commentId={c.id} />
+                  </div>
+                )}
+              </div>
             </li>
           ))}
         </ul>
+        {totalPages > 1 && (
+          <div className="mt-4 flex items-center justify-between text-sm">
+            <Link href={`/rezepte/${recipeId}/${slug}?commentsPage=${Math.max(1, page - 1)}`} className={`px-3 py-1.5 rounded-lg border ${page <= 1 ? 'pointer-events-none opacity-50 border-gray-300 text-gray-400' : 'border-orange-600 text-orange-700 hover:bg-orange-50'}`}>Zurück</Link>
+            <div className="text-gray-600">Seite {page} von {totalPages}</div>
+            <Link href={`/rezepte/${recipeId}/${slug}?commentsPage=${Math.min(totalPages, page + 1)}`} className={`px-3 py-1.5 rounded-lg border ${page >= totalPages ? 'pointer-events-none opacity-50 border-gray-300 text-gray-400' : 'border-orange-600 text-orange-700 hover:bg-orange-50'}`}>Weiter</Link>
+          </div>
+        )}
+        </>
       )}
     </div>
   );

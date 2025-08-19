@@ -8,6 +8,9 @@ import AdminThreadActions from '@/components/forum/AdminThreadActions';
 import OwnerPostActions from '@/components/forum/OwnerPostActions';
 import OwnerThreadActions from '@/components/forum/OwnerThreadActions';
 import AutoMarkRead from '@/components/forum/AutoMarkRead';
+import NewPostEditor from '@/components/forum/NewPostEditor';
+import ReportThreadDialog from '@/components/forum/ReportThreadDialog';
+import ReportPostDialog from '@/components/forum/ReportPostDialog';
 
 type RouteParams = { id: string };
 
@@ -140,9 +143,7 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
               {auth?.user && (
                 <FollowThreadButton threadId={id} initiallyFollowing={initiallyFollowing} />
               )}
-              {auth?.user && !((thread as any).is_closed || (thread as any).is_archived) && (
-                <Link href={`/forum/t/${id}/reply`} className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm">Antworten</Link>
-              )}
+              {/* Antworten-Link entfernt – Inline-Editor am Seitenende */}
               {isAdmin && (
                 <AdminThreadActions threadId={id} isClosed={(thread as any).is_closed} isArchived={(thread as any).is_archived} />
               )}
@@ -172,6 +173,12 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
                 })()}
               </div>
               <div className="whitespace-pre-wrap">{(thread as any).body}</div>
+            </div>
+          )}
+          {/* Thread melden: au dferhalb der Border, rechtsb fcndig */}
+          {auth?.user && !isAdmin && (
+            <div className="mt-2 flex justify-end">
+              <ReportThreadDialog threadId={id} />
             </div>
           )}
           {/* Owner Thread Actions nur für Ersteller */}
@@ -212,6 +219,11 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
                   {(isAdmin || (auth?.user && auth.user.id === (p.user_id as string))) && (
                     <OwnerPostActions postId={p.id as string} initialContent={p.content as string} />
                   )}
+                  {auth?.user && !isAdmin && (
+                    <div className="mt-2 flex justify-end">
+                      <ReportPostDialog postId={p.id as string} />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -225,6 +237,9 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
               <Link href={`/forum/t/${id}?page=${Math.min(postsTotalPages, postsCurrentPage + 1)}&nav=1`} className={`px-3 py-1.5 rounded-lg border ${postsCurrentPage >= postsTotalPages ? 'pointer-events-none opacity-50 border-gray-300 text-gray-400' : 'border-orange-600 text-orange-700 hover:bg-orange-50'}`}>Weiter</Link>
             </div>
           </div>
+          {auth?.user && (
+            <NewPostEditor threadId={id} disabled={(thread as any).is_closed || (thread as any).is_archived} />
+          )}
         </div>
       </section>
     </div>

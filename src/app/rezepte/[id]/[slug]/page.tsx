@@ -5,6 +5,7 @@ import ShareButton from '@/components/ShareButton';
 import RateRecipeButton from '@/components/RateRecipeButton';
 import AdminRecipeActions from '@/components/AdminRecipeActions';
 import IngredientsWithPortionScaler from '@/components/IngredientsWithPortionScaler';
+import ReportRecipeDialog from '@/components/ReportRecipeDialog';
 
 type Difficulty = 'einfach' | 'mittel' | 'schwer';
 
@@ -86,9 +87,10 @@ export async function generateMetadata(props: { params: Promise<RouteParams> }) 
   };
 }
 
-export default async function RecipeDetailPage(props: { params: Promise<RouteParams> }) {
+export default async function RecipeDetailPage(props: { params: Promise<RouteParams>; searchParams?: Promise<{ commentsPage?: string }> }) {
   const supabase = await createClient();
-  const { id } = await props.params;
+  const { id, slug } = await props.params;
+  const q = props.searchParams ? await props.searchParams : undefined;
 
   const { data: recipe, error: recipeError } = await supabase
     .from('recipes_with_details')
@@ -207,6 +209,7 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
   const { default: RateRecipeButton } = await import('@/components/RateRecipeButton');
   const { default: CookbookToggleButton } = await import('@/components/CookbookToggleButton');
   const { default: CommentsSection } = await import('@/components/CommentsSection');
+  const commentsPage = Math.max(1, Number((q?.commentsPage as string) || '1') || 1);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -288,8 +291,15 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
             </ol>
           </div>
           <div className="md:col-span-2">
+            {user && !isAdmin && (
+              <div className="mb-4">
+                <div className="flex justify-end">
+                  <ReportRecipeDialog recipeId={id} />
+                </div>
+              </div>
+            )}
             <div className="mt-8">
-              <CommentsSection recipeId={id} currentUserId={user ? user.id : null} />
+              <CommentsSection recipeId={id} currentUserId={user ? user.id : null} slug={slug} page={commentsPage} />
             </div>
             <div className="mt-6 flex justify-center">
               <ShareButton title={r.name} text={r.description || r.name} label="Rezept teilen" />

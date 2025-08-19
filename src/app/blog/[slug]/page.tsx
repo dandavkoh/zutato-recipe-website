@@ -20,8 +20,9 @@ export async function generateMetadata({ params }: { params: Promise<RouteParams
   return { title, description };
 }
 
-export default async function BlogPostPage({ params }: { params: Promise<RouteParams> }) {
+export default async function BlogPostPage({ params, searchParams }: { params: Promise<RouteParams>; searchParams?: Promise<{ commentsPage?: string }> }) {
   const { slug } = await params;
+  const q = searchParams ? await searchParams : undefined;
   const supabase = await createClient();
   const { data } = await supabase
     .from('blog_posts')
@@ -43,6 +44,7 @@ export default async function BlogPostPage({ params }: { params: Promise<RoutePa
     isAdmin = Boolean(rpcVal);
   } catch {}
   const { default: BlogCommentsSection } = await import('@/components/BlogCommentsSection');
+  const commentsPage = Math.max(1, Number((q?.commentsPage as string) || '1') || 1);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -76,7 +78,7 @@ export default async function BlogPostPage({ params }: { params: Promise<RoutePa
             </div>
           )}
           <div className="mt-10">
-            <BlogCommentsSection postId={post.id} currentUserId={currentUserId} />
+            <BlogCommentsSection postId={post.id} slug={slug} currentUserId={currentUserId} page={commentsPage} />
           </div>
         </div>
       </section>

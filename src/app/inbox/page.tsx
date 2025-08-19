@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import MessageActions from '@/components/inbox/MessageActions'
 import ReplyMessageDialog from '@/components/inbox/ReplyMessageDialog'
+import ReportMessageDialog from '@/components/inbox/ReportMessageDialog'
 
 export const metadata = { title: 'Postfach' }
 
@@ -44,11 +45,14 @@ export default async function InboxPage() {
                     </div>
                     <div className="text-xs text-gray-500">{new Date(m.created_at).toLocaleString('de-DE')}</div>
                   </div>
-                  <div className="mt-3 flex items-center gap-2">
+                  <div className="mt-3 flex items-center justify-between gap-2">
                     <MessageActions messageId={m.id} readAt={m.read_at} />
-                    {!m.thread_id && (
-                      <ReplyMessageDialog recipientId={m.sender_id as string} originalSubject={m.subject as string} />
-                    )}
+                    <div className="flex items-center gap-2">
+                      {!m.thread_id && (
+                        <ReplyMessageDialog recipientId={m.sender_id as string} originalSubject={m.subject as string} />
+                      )}
+                      <ReportMessageDialog messageId={m.id as string} />
+                    </div>
                   </div>
                 </div>
               ))}
