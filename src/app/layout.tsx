@@ -28,6 +28,7 @@ export const metadata: Metadata = {
     description: "Entdecke die besten Rezepte von Hobbyköchen und Profis.",
     type: "website",
     locale: "de_DE",
+    siteName: "ZUTATO",
   },
 };
 
