@@ -63,6 +63,10 @@ export default function NicknameGuard() {
       setError('Bitte gib einen Accountnamen ein.');
       return;
     }
+    if (!/^[a-zA-Z0-9_\-.]+$/.test(value)) {
+      setError('Nur Buchstaben, Zahlen, Unterstrich, Punkt oder Bindestrich erlaubt (keine Leerzeichen).');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {

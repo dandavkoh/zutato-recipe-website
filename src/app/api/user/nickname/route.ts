@@ -43,6 +43,9 @@ export async function POST(request: Request) {
     if (!nickname) {
       return NextResponse.json({ error: 'Accountname darf nicht leer sein' }, { status: 400 });
     }
+    if (!/^[a-zA-Z0-9_\-.]+$/.test(nickname)) {
+      return NextResponse.json({ error: 'Nur Buchstaben, Zahlen, Unterstrich, Punkt oder Bindestrich erlaubt (keine Leerzeichen)' }, { status: 400 });
+    }
 
     const { error } = await supabase
       .from('public_user_profile')

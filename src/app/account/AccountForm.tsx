@@ -127,7 +127,7 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
     const v = value.trim();
     if (!v) return 'Pflichtfeld';
     if (v.length < 3) return 'Mindestens 3 Zeichen';
-    if (!/^[a-zA-Z0-9_\-.]+$/.test(v)) return 'Nur Buchstaben, Zahlen, Unterstrich, Punkt oder Bindestrich erlaubt';
+    if (!/^[a-zA-Z0-9_\-.]+$/.test(v)) return 'Nur Buchstaben, Zahlen, Unterstrich, Punkt oder Bindestrich erlaubt (keine Leerzeichen)';
     return '';
   };
 
