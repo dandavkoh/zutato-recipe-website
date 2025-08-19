@@ -33,53 +33,55 @@ export default async function OpengraphImage({ params }: { params: Promise<Route
 
   const title = (recipe?.name || 'Rezept').slice(0, 80);
   const desc = (recipe?.description || '').slice(0, 140);
-  const bg = recipe?.image_url || '';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const ensureAbsolute = (u: string) => (u.startsWith('http://') || u.startsWith('https://') ? u : `${siteUrl}${u.startsWith('/') ? '' : '/'}${u}`);
+  const bg = recipe?.image_url ? ensureAbsolute(recipe.image_url) : '';
   const totalMinutes = (recipe?.working_time_minutes ?? 0) + (recipe?.cooking_time_minutes ?? 0) + (recipe?.resting_time_minutes ?? 0);
   const duration = totalMinutes > 0 ? `${totalMinutes} Min` : undefined;
 
+  const lines: string[] = [];
+  lines.push('ZUTATO');
+  lines.push(title);
+  const metaParts: string[] = [];
+  if (recipe?.category_name) metaParts.push(`🏷️ ${recipe.category_name}`);
+  if (duration) metaParts.push(`⏱️ ${duration}`);
+  if (ratingAverage != null) metaParts.push(`⭐ ${ratingAverage.toFixed(1)}${ratingCount > 0 ? ` (${ratingCount})` : ''}`);
+  if (metaParts.length) lines.push(metaParts.join('   '));
+  if (desc) lines.push(desc);
+
+  const containerStyle: Record<string, any> = {
+    width: size.width,
+    height: size.height,
+    fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto',
+    backgroundColor: '#0f172a',
+    color: '#ffffff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 48,
+  };
+  if (bg) {
+    containerStyle.backgroundImage = `linear-gradient(120deg, rgba(2,6,23,0.70), rgba(2,6,23,0.35)), url(${bg})`;
+    containerStyle.backgroundSize = 'cover';
+    containerStyle.backgroundPosition = 'center';
+  }
+
   return new ImageResponse(
     (
-      <div
-        style={{
-          width: size.width,
-          height: size.height,
-          display: 'flex',
-          position: 'relative',
-          fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto',
-          backgroundColor: '#0f172a',
-          color: '#ffffff',
-        }}
-      >
-        {bg ? (
-          <img
-            src={bg}
-            alt=""
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.55) blur(0px)' }}
-          />
-        ) : null}
+      <div style={containerStyle}>
         <div
           style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'linear-gradient(120deg, rgba(2,6,23,0.85), rgba(2,6,23,0.35))',
+            whiteSpace: 'pre-wrap',
+            fontSize: 40,
+            lineHeight: 1.3,
+            fontWeight: 800,
+            width: '100%',
+            color: '#ffffff',
+            textShadow:
+              '0 0 2px rgba(0,0,0,0.95), 0 1px 0 rgba(0,0,0,0.95), 1px 0 0 rgba(0,0,0,0.95), 0 -1px 0 rgba(0,0,0,0.95), -1px 0 0 rgba(0,0,0,0.95), 1px 1px 0 rgba(0,0,0,0.95), -1px 1px 0 rgba(0,0,0,0.95), 1px -1px 0 rgba(0,0,0,0.95), -1px -1px 0 rgba(0,0,0,0.95), 0 2px 6px rgba(0,0,0,0.7)',
           }}
-        />
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 48, width: '100%', height: '100%' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#fb923c' }}>
-            <div style={{ fontSize: 28, fontWeight: 800 }}>ZUTATO</div>
-            <div style={{ fontSize: 16, opacity: 0.9 }}>Rezepte</div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ fontSize: 54, fontWeight: 800, lineHeight: 1.1 }}>{title}</div>
-            {desc ? <div style={{ fontSize: 22, opacity: 0.9 }}>{desc}</div> : null}
-            <div style={{ display: 'flex', gap: 24, marginTop: 8, fontSize: 22 }}>
-              {recipe?.category_name ? <div>🏷️ {recipe.category_name}</div> : null}
-              {duration ? <div>⏱️ {duration}</div> : null}
-              {ratingAverage != null ? (
-                <div>⭐ {ratingAverage.toFixed(1)}{ratingCount > 0 ? ` (${ratingCount})` : ''}</div>
-              ) : null}
-            </div>
-          </div>
+        >
+          {lines.join('\n')}
         </div>
       </div>
     ),
