@@ -16,13 +16,23 @@ export const metadata = {
   description: 'Neueste Artikel aus unserem Blog',
 };
 
-export default async function BlogListPage() {
+export default async function BlogListPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const supabase = await createClient();
-  const { data } = await supabase
+
+  const q = await searchParams;
+  const pageSize = 10;
+  const pageNum = Math.max(1, parseInt(q?.page || '1'));
+  const from = (pageNum - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, count } = await supabase
     .from('public_blog_posts')
-    .select('id, slug, title, excerpt, cover_image_url, published_at, reading_time_minutes')
-    .order('published_at', { ascending: false, nullsFirst: false });
+    .select('id, slug, title, excerpt, cover_image_url, published_at, reading_time_minutes', { count: 'exact' })
+    .order('published_at', { ascending: false, nullsFirst: false })
+    .range(from, to);
   const posts: PublicPost[] = (data as PublicPost[]) || [];
+  const total = count || 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -63,6 +73,15 @@ export default async function BlogListPage() {
               ))}
             </div>
           )}
+          {/* Pagination */}
+          <div className="flex items-center justify-center gap-4 mt-10">
+            {pageNum > 1 && (
+              <Link href={`/blog?page=${pageNum - 1}`} className="bg-white hover:bg-gray-50 text-orange-600 border-2 border-orange-600 px-6 py-2 rounded-full font-medium transition-colors">Zurück</Link>
+            )}
+            {pageNum < totalPages && (
+              <Link href={`/blog?page=${pageNum + 1}`} className="bg-white hover:bg-gray-50 text-orange-600 border-2 border-orange-600 px-6 py-2 rounded-full font-medium transition-colors">Weitere Artikel laden</Link>
+            )}
+          </div>
         </div>
       </section>
     </div>
