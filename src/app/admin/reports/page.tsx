@@ -211,11 +211,12 @@ export default async function AdminReportsPage({ searchParams }: { searchParams?
           ) : (
             <div className="bg-white border border-gray-200 rounded-xl">
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[1100px] text-sm">
+                <table className="w-full min-w-[1200px] text-sm">
                   <thead className="bg-gray-50 border-b">
                     <tr>
                       <th className="text-left px-4 py-3 text-gray-600 font-semibold">Datum</th>
                       <th className="text-left px-4 py-3 text-gray-600 font-semibold">Ziel</th>
+                      <th className="text-left px-4 py-3 text-gray-600 font-semibold">Typ</th>
                       <th className="text-left px-4 py-3 text-gray-600 font-semibold">Gemeldet von</th>
                       <th className="text-left px-4 py-3 text-gray-600 font-semibold">Grund</th>
                       <th className="text-left px-4 py-3 text-gray-600 font-semibold">Details</th>
@@ -238,7 +239,7 @@ export default async function AdminReportsPage({ searchParams }: { searchParams?
                               const recId = recipeIdByRecipeCommentId[r.recipe_comment_id as string]
                               const name = recipeNameById[recId]
                               return recId ? (
-                                <Link href={`/rezepte/${recId}/${slugify(name || 'rezept')}`} className="text-orange-700 hover:underline">{(name || 'Rezept')} (Kommentar)</Link>
+                                <Link href={`/rezepte/${recId}/${slugify(name || 'rezept')}`} className="text-orange-700 hover:underline">{(name || 'Rezept')}</Link>
                               ) : (<span>-</span>)
                             })()
                           ) : r.blog_comment_id ? (
@@ -247,7 +248,7 @@ export default async function AdminReportsPage({ searchParams }: { searchParams?
                               const slug = blogSlugById[postId]
                               const title = blogTitleById[postId]
                               return slug ? (
-                                <Link href={`/blog/${slug}`} className="text-orange-700 hover:underline">{(title || 'Artikel')} (Kommentar)</Link>
+                                <Link href={`/blog/${slug}`} className="text-orange-700 hover:underline">{(title || 'Artikel')}</Link>
                               ) : (<span>-</span>)
                             })()
                           ) : r.forum_thread_id ? (
@@ -262,22 +263,7 @@ export default async function AdminReportsPage({ searchParams }: { searchParams?
                               const thrId = postThreadIdByPostId[r.forum_post_id as string]
                               const title = threadTitleById[thrId]
                               return thrId ? (
-                                <Link href={`/forum/t/${thrId}`} className="text-orange-700 hover:underline">{(title || 'Thread')} (Beitrag)</Link>
-                              ) : (<span>-</span>)
-                            })()
-                          ) : r.forum_thread_id ? (
-                            (() => {
-                              const title = threadTitleById[r.forum_thread_id as string]
-                              return (
-                                <Link href={`/forum/t/${r.forum_thread_id}`} className="text-orange-700 hover:underline">{(title || 'Thread')}</Link>
-                              )
-                            })()
-                          ) : r.forum_post_id ? (
-                            (() => {
-                              const thrId = postThreadIdByPostId[r.forum_post_id as string]
-                              const title = threadTitleById[thrId]
-                              return thrId ? (
-                                <Link href={`/forum/t/${thrId}`} className="text-orange-700 hover:underline">{(title || 'Thread')} (Beitrag)</Link>
+                                <Link href={`/forum/t/${thrId}`} className="text-orange-700 hover:underline">{(title || 'Thread')}</Link>
                               ) : (<span>-</span>)
                             })()
                           ) : r.user_message_id ? (
@@ -285,6 +271,9 @@ export default async function AdminReportsPage({ searchParams }: { searchParams?
                           ) : (
                             '-'
                           )}
+                        </td>
+                        <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                          {r.recipe_id ? 'Rezept' : r.recipe_comment_id ? 'Rezept-Kommentar' : r.blog_comment_id ? 'Blog-Kommentar' : r.forum_thread_id ? 'Forum-Thread' : r.forum_post_id ? 'Forumbeitrag' : r.user_message_id ? 'Nachricht' : '-'}
                         </td>
                         <td className="px-4 py-3 text-gray-700">
                           <Link href={`/user/${r.reported_by}`} className="text-gray-700 hover:underline">
