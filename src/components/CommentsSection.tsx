@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server';
 import NewCommentClient from '@/components/NewCommentClient';
 import EditCommentClient from '@/components/EditCommentClient';
 import AdminCommentActions from '@/components/AdminCommentActions';
+import AdminEditRecipeCommentClient from '@/components/AdminEditRecipeCommentClient';
 import Link from 'next/link';
 import ReportRecipeCommentDialog from '@/components/ReportRecipeCommentDialog';
 
@@ -70,26 +71,30 @@ export default async function CommentsSection({ recipeId, currentUserId, slug, p
                 )}
               </div>
               <div className="text-sm text-gray-900 whitespace-pre-wrap">{c.comment}</div>
-              <div className="text-xs text-gray-500 mt-1">
-                {new Date(c.created_at).toLocaleString('de-DE')}
-                {currentUserId === c.user_id && ' · Dein Kommentar'}
+              <div className="text-xs text-gray-500 mt-1 flex items-center">
+                <span>
+                  {new Date(c.created_at).toLocaleString('de-DE')}
+                  {currentUserId === c.user_id && ' · Dein Kommentar'}
+                </span>
+                {currentUserId && !isAdmin && (
+                  <span className="ml-auto">
+                    <ReportRecipeCommentDialog recipeId={recipeId} commentId={c.id} />
+                  </span>
+                )}
               </div>
               <div className="mt-2">
-                {(currentUserId === c.user_id || isAdmin) && (
+                {currentUserId === c.user_id && (
                   <div className="w-full">
                     <EditCommentClient commentId={c.id} recipeId={recipeId} initialText={c.comment} />
-                    {isAdmin && (
-                      <div className="mt-2">
-                        <AdminCommentActions kind="recipe" parentId={recipeId} commentId={c.id} />
-                      </div>
-                    )}
                   </div>
                 )}
-                {currentUserId && !isAdmin && (
-                  <div className="mt-2 flex justify-end">
-                    <ReportRecipeCommentDialog recipeId={recipeId} commentId={c.id} />
+                {isAdmin && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <AdminEditRecipeCommentClient commentId={c.id} recipeId={recipeId} initialText={c.comment} />
+                    <AdminCommentActions kind="recipe" parentId={recipeId} commentId={c.id} />
                   </div>
                 )}
+                {/* Melden-Link ist in der Zeile mit Datum/Uhrzeit eingeblendet */}
               </div>
             </li>
           ))}

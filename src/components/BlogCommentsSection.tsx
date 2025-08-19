@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server';
 import NewBlogCommentClient from '@/components/NewBlogCommentClient';
 import EditBlogCommentClient from '@/components/EditBlogCommentClient';
 import AdminCommentActions from '@/components/AdminCommentActions';
+import AdminEditBlogCommentClient from '@/components/AdminEditBlogCommentClient';
 import ReportBlogCommentDialog from '@/components/ReportBlogCommentDialog';
 import Link from 'next/link';
 
@@ -70,26 +71,30 @@ export default async function BlogCommentsSection({ postId, slug, currentUserId,
                 )}
               </div>
               <div className="text-sm text-gray-900 whitespace-pre-wrap">{c.comment}</div>
-              <div className="text-xs text-gray-500 mt-1">
-                {new Date(c.created_at).toLocaleString('de-DE')}
-                {currentUserId === c.user_id && ' · Dein Kommentar'}
+              <div className="text-xs text-gray-500 mt-1 flex items-center">
+                <span>
+                  {new Date(c.created_at).toLocaleString('de-DE')}
+                  {currentUserId === c.user_id && ' · Dein Kommentar'}
+                </span>
+                {currentUserId && !isAdmin && (
+                  <span className="ml-auto">
+                    <ReportBlogCommentDialog postId={postId} commentId={c.id} />
+                  </span>
+                )}
               </div>
               <div className="mt-2">
-                {(currentUserId === c.user_id || isAdmin) && (
+                {currentUserId === c.user_id && (
                   <div className="w-full">
                     <EditBlogCommentClient commentId={c.id} postId={postId} initialText={c.comment} />
-                    {isAdmin && (
-                      <div className="mt-2">
-                        <AdminCommentActions kind="blog" parentId={postId} commentId={c.id} />
-                      </div>
-                    )}
                   </div>
                 )}
-                {currentUserId && !isAdmin && (
-                  <div className="mt-2 flex justify-end">
-                    <ReportBlogCommentDialog postId={postId} commentId={c.id} />
+                {isAdmin && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <AdminEditBlogCommentClient commentId={c.id} postId={postId} initialText={c.comment} />
+                    <AdminCommentActions kind="blog" parentId={postId} commentId={c.id} />
                   </div>
                 )}
+                {/* Melden ist in der Zeile mit dem Datum eingeblendet */}
               </div>
             </li>
           ))}

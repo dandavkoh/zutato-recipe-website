@@ -50,8 +50,8 @@ export default function OwnerPostActions({ postId, initialContent }: { postId: s
     <div className="mt-2">
       {!editing ? (
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => setEditing(true)} className="text-xs px-3 py-1.5 rounded-lg border border-orange-600 text-orange-700 hover:bg-orange-50">Bearbeiten</button>
-          <button type="button" onClick={softDelete} className="text-xs px-3 py-1.5 rounded-lg border border-red-600 text-red-700 hover:bg-red-50">Ausblenden</button>
+          <button type="button" onClick={() => setEditing(true)} className="text-sm text-gray-600 hover:text-gray-900 underline">Bearbeiten</button>
+          <button type="button" onClick={softDelete} className="text-sm text-gray-600 hover:text-gray-900 underline">Ausblenden</button>
         </div>
       ) : (
         <div className="space-y-2">

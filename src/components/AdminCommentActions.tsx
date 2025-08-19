@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import FontAwesomeIcon from '@/components/FontAwesomeIcon'
 
 export default function AdminCommentActions({ kind, parentId, commentId, onChanged }: { kind: 'recipe' | 'blog'; parentId: string; commentId: string; onChanged?: () => void }) {
   const [loading, setLoading] = React.useState(false)
@@ -29,7 +30,12 @@ export default function AdminCommentActions({ kind, parentId, commentId, onChang
 
   return (
     <div className="flex items-center gap-2">
-      <button type="button" onClick={softDelete} disabled={loading} className="text-xs px-3 py-1.5 rounded-lg border border-red-600 text-red-700 hover:bg-red-50 disabled:opacity-60">Ausblenden</button>
+      <button type="button" onClick={softDelete} disabled={loading} className="text-xs px-3 py-1.5 rounded-lg border border-red-600 text-red-700 hover:bg-red-50 disabled:opacity-60">
+        <span className="inline-flex items-center gap-1">
+          <FontAwesomeIcon icon="user-crown" size="sm" style="solid" />
+          Ausblenden
+        </span>
+      </button>
       {error && <span className="text-xs text-red-600">{error}</span>}
     </div>
   )

@@ -2,6 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
+import FontAwesomeIcon from '@/components/FontAwesomeIcon'
 
 export default function AdminRecipeActions({ recipeId, editHref }: { recipeId: string; editHref: string }) {
   const [loading, setLoading] = React.useState(false)
@@ -25,8 +26,18 @@ export default function AdminRecipeActions({ recipeId, editHref }: { recipeId: s
 
   return (
     <div className="flex items-center gap-2">
-      <Link href={editHref} className="text-xs px-3 py-1.5 rounded-lg border border-orange-600 text-orange-700 hover:bg-orange-50">Bearbeiten</Link>
-      <button type="button" onClick={softDelete} disabled={loading} className="text-xs px-3 py-1.5 rounded-lg border border-red-600 text-red-700 hover:bg-red-50 disabled:opacity-60">Ausblenden</button>
+      <Link href={editHref} className="text-xs px-3 py-1.5 rounded-lg border border-orange-600 text-orange-700 hover:bg-orange-50">
+        <span className="inline-flex items-center gap-1">
+          <FontAwesomeIcon icon="user-crown" size="sm" style="solid" />
+          Bearbeiten
+        </span>
+      </Link>
+      <button type="button" onClick={softDelete} disabled={loading} className="text-xs px-3 py-1.5 rounded-lg border border-red-600 text-red-700 hover:bg-red-50 disabled:opacity-60">
+        <span className="inline-flex items-center gap-1">
+          <FontAwesomeIcon icon="user-crown" size="sm" style="solid" />
+          Ausblenden
+        </span>
+      </button>
       {error && <span className="text-xs text-red-600">{error}</span>}
     </div>
   )

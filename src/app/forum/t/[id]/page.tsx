@@ -23,7 +23,7 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
 
   const { data: thread } = await supabase
     .from('forum_threads')
-    .select('id, title, body, is_closed, is_archived, is_deleted, posts_count, views_count, created_by, section_id')
+    .select('id, title, body, is_closed, is_archived, is_deleted, posts_count, views_count, created_by, section_id, created_at')
     .eq('id', id)
     .eq('is_deleted', false)
     .maybeSingle();
@@ -153,32 +153,30 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
           {(thread as any).is_archived && <div className="mt-2 ml-2 text-xs inline-block px-2 py-1 rounded bg-gray-100 text-gray-600">archiv</div>}
           {(thread as any).body && (
             <div className="mt-4 p-4 border border-gray-200 rounded-xl bg-white text-gray-900">
-              <div className="flex items-center gap-3 mb-3">
-                {(() => {
-                  const profile = profileByUserId[(thread as any).created_by as string] || { nickname: null, avatar_url: null }
-                  const name = profile.nickname || 'Unbekannt'
-                  const avatar = profile.avatar_url
-                  return (
-                    <>
-                      {avatar ? (
-                        <img src={avatar} alt={name} className="h-8 w-8 rounded-full object-cover border" />
-                      ) : (
-                        <div className="h-8 w-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs border">
-                          {(name || '?').slice(0, 1).toUpperCase()}
-                        </div>
-                      )}
-                      <Link href={`/user/${(thread as any).created_by}`} className="text-sm text-gray-700 hover:underline">{name}</Link>
-                    </>
-                  )
-                })()}
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-3">
+                  {(() => {
+                    const profile = profileByUserId[(thread as any).created_by as string] || { nickname: null, avatar_url: null }
+                    const name = profile.nickname || 'Unbekannt'
+                    const avatar = profile.avatar_url
+                    return (
+                      <>
+                        {avatar ? (
+                          <img src={avatar} alt={name} className="h-8 w-8 rounded-full object-cover border" />
+                        ) : (
+                          <div className="h-8 w-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs border">
+                            {(name || '?').slice(0, 1).toUpperCase()}
+                          </div>
+                        )}
+                        <Link href={`/user/${(thread as any).created_by}`} className="text-sm text-gray-700 hover:underline">{name}</Link>
+                        <span className="text-xs text-gray-500">{new Date((thread as any).created_at).toLocaleString('de-DE')}</span>
+                      </>
+                    )
+                  })()}
+                </div>
+                {auth?.user && !isAdmin && <ReportThreadDialog threadId={id} />}
               </div>
               <div className="whitespace-pre-wrap">{(thread as any).body}</div>
-            </div>
-          )}
-          {/* Thread melden: au dferhalb der Border, rechtsb fcndig */}
-          {auth?.user && !isAdmin && (
-            <div className="mt-2 flex justify-end">
-              <ReportThreadDialog threadId={id} />
             </div>
           )}
           {/* Owner Thread Actions nur für Ersteller */}
@@ -195,34 +193,34 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
             <div className="space-y-4">
               {postsList.map((p) => (
                 <div key={p.id} className="bg-white border border-gray-200 rounded-xl p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    {(() => {
-                      const profile = profileByUserId[p.user_id as string] || { nickname: null, avatar_url: null }
-                      const name = profile.nickname || 'Unbekannt'
-                      const avatar = profile.avatar_url
-                      return (
-                        <>
-                          {avatar ? (
-                            <img src={avatar} alt={name} className="h-8 w-8 rounded-full object-cover border" />
-                          ) : (
-                            <div className="h-8 w-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs border">
-                              {(name || '?').slice(0, 1).toUpperCase()}
-                            </div>
-                          )}
-                          <Link href={`/user/${p.user_id}`} className="text-sm text-gray-700 hover:underline">{name}</Link>
-                          <span className="text-xs text-gray-500">{new Date(p.created_at).toLocaleString('de-DE')}</span>
-                        </>
-                      )
-                    })()}
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-3">
+                      {(() => {
+                        const profile = profileByUserId[p.user_id as string] || { nickname: null, avatar_url: null }
+                        const name = profile.nickname || 'Unbekannt'
+                        const avatar = profile.avatar_url
+                        return (
+                          <>
+                            {avatar ? (
+                              <img src={avatar} alt={name} className="h-8 w-8 rounded-full object-cover border" />
+                            ) : (
+                              <div className="h-8 w-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs border">
+                                {(name || '?').slice(0, 1).toUpperCase()}
+                              </div>
+                            )}
+                            <Link href={`/user/${p.user_id}`} className="text-sm text-gray-700 hover:underline">{name}</Link>
+                            <span className="text-xs text-gray-500">{new Date(p.created_at).toLocaleString('de-DE')}</span>
+                          </>
+                        )
+                      })()}
+                    </div>
+                    {auth?.user && !isAdmin && (
+                      <ReportPostDialog postId={p.id as string} />
+                    )}
                   </div>
                   <div className="text-gray-900 whitespace-pre-wrap">{p.content}</div>
                   {(isAdmin || (auth?.user && auth.user.id === (p.user_id as string))) && (
                     <OwnerPostActions postId={p.id as string} initialContent={p.content as string} />
-                  )}
-                  {auth?.user && !isAdmin && (
-                    <div className="mt-2 flex justify-end">
-                      <ReportPostDialog postId={p.id as string} />
-                    </div>
                   )}
                 </div>
               ))}

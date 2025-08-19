@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import FontAwesomeIcon from '@/components/FontAwesomeIcon'
 import { useRouter } from 'next/navigation'
 import Toast from '@/components/Toast'
 
@@ -34,8 +35,18 @@ export default function AdminThreadActions({ threadId, isClosed, isArchived }: {
 
   return (
     <div className="flex items-center gap-2">
-      <button type="button" onClick={() => toggle('is_closed')} disabled={loading} className={`text-xs px-3 py-1.5 rounded-lg border ${closed ? 'border-orange-600 text-orange-700 bg-orange-50' : 'border-orange-600 text-orange-700 hover:bg-orange-50'} disabled:opacity-60`}>{closed ? 'Öffnen' : 'Schließen'}</button>
-      <button type="button" onClick={() => toggle('is_archived')} disabled={loading} className={`text-xs px-3 py-1.5 rounded-lg border ${archived ? 'border-orange-600 text-orange-700 bg-orange-50' : 'border-orange-600 text-orange-700 hover:bg-orange-50'} disabled:opacity-60`}>{archived ? 'Entarchivieren' : 'Archivieren'}</button>
+      <button type="button" onClick={() => toggle('is_closed')} disabled={loading} className={`text-xs px-3 py-1.5 rounded-lg border ${closed ? 'border-orange-600 text-orange-700 bg-orange-50' : 'border-orange-600 text-orange-700 hover:bg-orange-50'} disabled:opacity-60`}>
+        <span className="inline-flex items-center gap-1">
+          <FontAwesomeIcon icon="user-crown" size="sm" style="solid" />
+          {closed ? 'Öffnen' : 'Schließen'}
+        </span>
+      </button>
+      <button type="button" onClick={() => toggle('is_archived')} disabled={loading} className={`text-xs px-3 py-1.5 rounded-lg border ${archived ? 'border-orange-600 text-orange-700 bg-orange-50' : 'border-orange-600 text-orange-700 hover:bg-orange-50'} disabled:opacity-60`}>
+        <span className="inline-flex items-center gap-1">
+          <FontAwesomeIcon icon="user-crown" size="sm" style="solid" />
+          {archived ? 'Entarchivieren' : 'Archivieren'}
+        </span>
+      </button>
       {toast && <Toast message={toast} type="info" onClose={() => setToast(null)} durationMs={1400} />}
     </div>
   )
