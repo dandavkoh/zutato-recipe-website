@@ -84,7 +84,7 @@ export async function PUT(request: Request, _context: Params) {
     }
 
     // Allow admins to update any comment per RLS; fallback: if not owner, require admin
-    let { error: updErr } = await supabase
+    const { error: updErr } = await supabase
       .from('blog_comments')
       .update({ comment: text })
       .eq('id', commentId);
@@ -138,7 +138,7 @@ export async function DELETE(request: Request, _context: Params) {
     }
 
     // Soft delete via is_deleted flag; allow admin per RLS. If blocked, check admin explicitly.
-    let { error: delErr } = await supabase
+    const { error: delErr } = await supabase
       .from('blog_comments')
       .update({ is_deleted: true })
       .eq('id', commentId);

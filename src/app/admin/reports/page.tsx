@@ -81,8 +81,8 @@ export default async function AdminReportsPage({ searchParams }: { searchParams?
   const forumPostIds = reports.map(r => r.forum_post_id).filter(Boolean) as string[]
   const userMessageIds = reports.map(r => r.user_message_id).filter(Boolean) as string[]
   // Load comment targets to resolve their parents
-  let recipeIdByRecipeCommentId: Record<string, string> = {}
-  let recipeCommentTextById: Record<string, string> = {}
+  const recipeIdByRecipeCommentId: Record<string, string> = {}
+  const recipeCommentTextById: Record<string, string> = {}
   if (recipeCommentIds.length > 0) {
     const { data: rcx } = await supabase
       .from('recipe_comments')
@@ -93,8 +93,8 @@ export default async function AdminReportsPage({ searchParams }: { searchParams?
       recipeCommentTextById[row.id as string] = (row.comment as string) || ''
     }
   }
-  let blogPostIdByBlogCommentId: Record<string, string> = {}
-  let blogCommentTextById: Record<string, string> = {}
+  const blogPostIdByBlogCommentId: Record<string, string> = {}
+  const blogCommentTextById: Record<string, string> = {}
   if (blogCommentIds.length > 0) {
     const { data: bcx } = await supabase
       .from('blog_comments')
@@ -113,8 +113,8 @@ export default async function AdminReportsPage({ searchParams }: { searchParams?
       .in('id', forumThreadIds)
     threadTitleById = Object.fromEntries(((ftx as any[]) || []).map(t => [t.id as string, (t.title as string) || 'Thread']))
   }
-  let postThreadIdByPostId: Record<string, string> = {}
-  let postContentById: Record<string, string> = {}
+  const postThreadIdByPostId: Record<string, string> = {}
+  const postContentById: Record<string, string> = {}
   if (forumPostIds.length > 0) {
     const { data: fpx } = await supabase
       .from('forum_posts')
@@ -125,8 +125,8 @@ export default async function AdminReportsPage({ searchParams }: { searchParams?
       postContentById[row.id as string] = (row.content as string) || ''
     }
   }
-  let messageSubjectById: Record<string, string> = {}
-  let messageBodyById: Record<string, string> = {}
+  const messageSubjectById: Record<string, string> = {}
+  const messageBodyById: Record<string, string> = {}
   if (userMessageIds.length > 0) {
     const { data: umx } = await supabase
       .from('user_messages')
@@ -146,8 +146,8 @@ export default async function AdminReportsPage({ searchParams }: { searchParams?
   const reporterIds = Array.from(new Set(reports.map(r => r.reported_by).filter(Boolean))) as string[]
   let recipeNameById: Record<string, string> = {}
   let reporterNameById: Record<string, string> = {}
-  let blogSlugById: Record<string, string> = {}
-  let blogTitleById: Record<string, string> = {}
+  const blogSlugById: Record<string, string> = {}
+  const blogTitleById: Record<string, string> = {}
   if (recipeIds.length > 0) {
     const { data: rx } = await supabase.from('recipes_with_details').select('id, name').in('id', recipeIds)
     recipeNameById = Object.fromEntries(((rx as any[]) || []).map(r => [r.id as string, r.name as string]))
