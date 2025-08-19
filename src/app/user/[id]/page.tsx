@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server';
 import RecipeRatingSummary from '@/components/RecipeRatingSummary';
 import FontAwesomeIcon from '@/components/FontAwesomeIcon';
 import SendMessageDialog from '@/components/inbox/SendMessageDialog';
+import ReportUserDialog from '@/components/ReportUserDialog';
 
 type RouteParams = { id: string };
 
@@ -157,8 +158,11 @@ export default async function PublicProfilePage({ params }: { params: Promise<Ro
                 </div>
               )}
               {auth?.user && auth.user.id !== id && (
-                <div className="mt-3">
+                <div className="mt-3 flex items-center gap-4">
                   <SendMessageDialog recipientId={id} recipientName={nickname || 'Nutzer'} />
+                  <div className="ml-auto">
+                    <ReportUserDialog userId={id} />
+                  </div>
                 </div>
               )}
             </div>

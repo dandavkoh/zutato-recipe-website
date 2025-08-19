@@ -17,6 +17,7 @@ type ReportRow = {
   forum_thread_id?: string | null
   forum_post_id?: string | null
   user_message_id?: string | null
+  profile_user_id?: string | null
   resolution_notes: string | null
 }
 
@@ -36,14 +37,14 @@ export default async function AdminReportsPage({ searchParams }: { searchParams?
   // Parse filters
   const q = searchParams ? await searchParams : undefined
   const statusFilter = (q?.status as string) || ''
-  const typeFilter = (q?.type as string) || '' // recipe|recipe_comment|blog_comment|forum_thread|forum_post|user_message
+  const typeFilter = (q?.type as string) || '' // recipe|recipe_comment|blog_comment|forum_thread|forum_post|user_message|user_profile
   const fromFilter = (q?.from as string) || ''
   const toFilter = (q?.to as string) || ''
 
   // Load reports (first pass: all, client filters by type; status/date filters server-side)
   let query = supabase
     .from('content_reports')
-    .select('id, created_at, status, reason, details, reported_by, recipe_id, recipe_comment_id, blog_comment_id, forum_thread_id, forum_post_id, user_message_id, resolution_notes')
+    .select('id, created_at, status, reason, details, reported_by, recipe_id, recipe_comment_id, blog_comment_id, forum_thread_id, forum_post_id, user_message_id, profile_user_id, resolution_notes')
     .order('created_at', { ascending: false })
   if (statusFilter) {
     query = query.eq('status', statusFilter)
@@ -63,13 +64,15 @@ export default async function AdminReportsPage({ searchParams }: { searchParams?
     const isForumThread = !!r.forum_thread_id
     const isForumPost = !!r.forum_post_id
     const isUserMessage = !!r.user_message_id
-    if (!typeFilter) return isRecipe || isRecipeComment || isBlogComment || isForumThread || isForumPost || isUserMessage
+    const isUserProfile = !!r.profile_user_id
+    if (!typeFilter) return isRecipe || isRecipeComment || isBlogComment || isForumThread || isForumPost || isUserMessage || isUserProfile
     if (typeFilter === 'recipe') return isRecipe
     if (typeFilter === 'recipe_comment') return isRecipeComment
     if (typeFilter === 'blog_comment') return isBlogComment
     if (typeFilter === 'forum_thread') return isForumThread
     if (typeFilter === 'forum_post') return isForumPost
     if (typeFilter === 'user_message') return isUserMessage
+    if (typeFilter === 'user_profile') return isUserProfile
     return false
   })
 
@@ -80,6 +83,7 @@ export default async function AdminReportsPage({ searchParams }: { searchParams?
   const forumThreadIds = reports.map(r => r.forum_thread_id).filter(Boolean) as string[]
   const forumPostIds = reports.map(r => r.forum_post_id).filter(Boolean) as string[]
   const userMessageIds = reports.map(r => r.user_message_id).filter(Boolean) as string[]
+  const profileUserIds = reports.map(r => r.profile_user_id).filter(Boolean) as string[]
   // Load comment targets to resolve their parents
   const recipeIdByRecipeCommentId: Record<string, string> = {}
   const recipeCommentTextById: Record<string, string> = {}
@@ -146,15 +150,25 @@ export default async function AdminReportsPage({ searchParams }: { searchParams?
   const reporterIds = Array.from(new Set(reports.map(r => r.reported_by).filter(Boolean))) as string[]
   let recipeNameById: Record<string, string> = {}
   let reporterNameById: Record<string, string> = {}
+  const profileNameById: Record<string, string> = {}
   const blogSlugById: Record<string, string> = {}
   const blogTitleById: Record<string, string> = {}
   if (recipeIds.length > 0) {
     const { data: rx } = await supabase.from('recipes_with_details').select('id, name').in('id', recipeIds)
     recipeNameById = Object.fromEntries(((rx as any[]) || []).map(r => [r.id as string, r.name as string]))
   }
-  if (reporterIds.length > 0) {
-    const { data: px } = await supabase.from('public_user_profile').select('user_id, nickname').in('user_id', reporterIds)
-    reporterNameById = Object.fromEntries(((px as any[]) || []).map(p => [p.user_id as string, (p.nickname as string) || 'Nutzer']))
+  const userIdsToFetch = Array.from(new Set([...
+    reporterIds,
+    ...profileUserIds,
+  ])) as string[]
+  if (userIdsToFetch.length > 0) {
+    const { data: px } = await supabase.from('public_user_profile').select('user_id, nickname').in('user_id', userIdsToFetch)
+    for (const row of ((px as any[]) || [])) {
+      const uid = row.user_id as string
+      const name = (row.nickname as string) || 'Nutzer'
+      reporterNameById[uid] = name
+      profileNameById[uid] = name
+    }
   }
   if (blogPostIds.length > 0) {
     const { data: bpx } = await supabase.from('blog_posts').select('id, slug, title').in('id', blogPostIds)
@@ -199,6 +213,7 @@ export default async function AdminReportsPage({ searchParams }: { searchParams?
               <option value="forum_thread">Forum-Thread</option>
               <option value="forum_post">Forum-Beitrag</option>
               <option value="user_message">Nachricht</option>
+              <option value="user_profile">Profil</option>
             </select>
             <input type="date" name="from" defaultValue={fromFilter} className="text-sm border rounded px-2 py-2" />
             <input type="date" name="to" defaultValue={toFilter} className="text-sm border rounded px-2 py-2" />
@@ -268,12 +283,14 @@ export default async function AdminReportsPage({ searchParams }: { searchParams?
                             })()
                           ) : r.user_message_id ? (
                             <span className="text-gray-900">Nachricht</span>
+                          ) : r.profile_user_id ? (
+                            <Link href={`/user/${r.profile_user_id}`} className="text-orange-700 hover:underline">{profileNameById[r.profile_user_id] || 'Profil'}</Link>
                           ) : (
                             '-'
                           )}
                         </td>
                         <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
-                          {r.recipe_id ? 'Rezept' : r.recipe_comment_id ? 'Rezept-Kommentar' : r.blog_comment_id ? 'Blog-Kommentar' : r.forum_thread_id ? 'Forum-Thread' : r.forum_post_id ? 'Forumbeitrag' : r.user_message_id ? 'Nachricht' : '-'}
+                          {r.recipe_id ? 'Rezept' : r.recipe_comment_id ? 'Rezept-Kommentar' : r.blog_comment_id ? 'Blog-Kommentar' : r.forum_thread_id ? 'Forum-Thread' : r.forum_post_id ? 'Forumbeitrag' : r.user_message_id ? 'Nachricht' : r.profile_user_id ? 'Profil' : '-'}
                         </td>
                         <td className="px-4 py-3 text-gray-700">
                           <Link href={`/user/${r.reported_by}`} className="text-gray-700 hover:underline">
