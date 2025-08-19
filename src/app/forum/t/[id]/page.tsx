@@ -12,9 +12,9 @@ import NewPostEditor from '@/components/forum/NewPostEditor';
 import ReportThreadDialog from '@/components/forum/ReportThreadDialog';
 import ReportPostDialog from '@/components/forum/ReportPostDialog';
 
-type RouteParams = { id: string };
-
 export const runtime = 'nodejs'
+
+type RouteParams = { id: string };
 
 export default async function ThreadPage({ params, searchParams }: { params: Promise<RouteParams>; searchParams?: Promise<{ page?: string; nav?: string }> }) {
   const { id } = await params;
@@ -120,6 +120,9 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
       })
   }
 
+  const { default: AdminPostActions } = await import('@/components/forum/AdminPostActions')
+  const { default: AdminThreadEditActions } = await import('@/components/forum/AdminThreadEditActions')
+
   return (
     <div className="min-h-screen bg-gray-50">
       <section className="bg-white border-b">
@@ -143,7 +146,7 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
               {auth?.user && (
                 <FollowThreadButton threadId={id} initiallyFollowing={initiallyFollowing} />
               )}
-              {/* Antworten-Link entfernt – Inline-Editor am Seitenende */}
+              {/* Header: Admin Close/Archive */}
               {isAdmin && (
                 <AdminThreadActions threadId={id} isClosed={(thread as any).is_closed} isArchived={(thread as any).is_archived} />
               )}
@@ -180,8 +183,14 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
             </div>
           )}
           {/* Owner Thread Actions nur für Ersteller */}
-          {(isAdmin || (auth?.user && auth.user.id === (thread as any).created_by)) && (
+          {(auth?.user && auth.user.id === (thread as any).created_by) && (
             <OwnerThreadActions threadId={id} initialTitle={(thread as any).title} initialBody={(thread as any).body || null} />
+          )}
+          {isAdmin && (
+            <div className="mt-2">
+              {/* Footer: Admin Edit/Hide */}
+              <AdminThreadEditActions threadId={id} initialTitle={(thread as any).title} initialBody={(thread as any).body || ''} />
+            </div>
           )}
         </div>
       </section>
@@ -219,8 +228,13 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
                     )}
                   </div>
                   <div className="text-gray-900 whitespace-pre-wrap">{p.content}</div>
-                  {(isAdmin || (auth?.user && auth.user.id === (p.user_id as string))) && (
+                  {(auth?.user && auth.user.id === (p.user_id as string)) && (
                     <OwnerPostActions postId={p.id as string} initialContent={p.content as string} />
+                  )}
+                  {isAdmin && (
+                    <div className="mt-2">
+                      <AdminPostActions postId={p.id as string} initialContent={p.content as string} />
+                    </div>
                   )}
                 </div>
               ))}
