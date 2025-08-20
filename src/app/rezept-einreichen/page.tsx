@@ -2,7 +2,7 @@ import { requireAuth } from '@/utils/serverAuthUtils';
 import RecipeForm from './RecipeForm';
 
 export default async function RezeptEinreichenPage() {
-  const user = await requireAuth();
+  const user = await requireAuth('/rezept-einreichen');
 
   // Nur wenn User angemeldet, die Seite rendern
   return (

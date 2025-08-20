@@ -24,12 +24,14 @@ export async function getCurrentUser() {
 }
 
 // Server-side function to require authentication
-export async function requireAuth() {
+// Optionally provide a path to return to after successful login
+export async function requireAuth(returnTo?: string) {
   const user = await getCurrentUser();
   
   if (!user) {
-    redirect('/login');
+    const safeReturnTo = returnTo && returnTo.startsWith('/') ? returnTo : '/';
+    redirect(`/login?redirect=${encodeURIComponent(safeReturnTo)}`);
   }
   
   return user;
-} 
+}

@@ -8,7 +8,7 @@ export const metadata = {
 };
 
 export default async function AccountPage() {
-  const user = await requireAuth();
+  const user = await requireAuth('/account');
 
   return (
     <div className="min-h-screen bg-gray-50">

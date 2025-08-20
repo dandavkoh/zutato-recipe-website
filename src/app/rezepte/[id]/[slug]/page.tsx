@@ -348,13 +348,13 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
                     <RateRecipeButton recipeId={id} />
                   )
                 ) : (
-                  <Link href="/login" className="text-sm text-orange-600 hover:underline">Jetzt anmelden um zu bewerten</Link>
+                  <Link href={`/login?redirect=${encodeURIComponent(`/rezepte/${id}/${slug}`)}`} className="text-sm text-orange-600 hover:underline">Jetzt anmelden um zu bewerten</Link>
                 )}
                 <div>
                   {user ? (
                     <CookbookToggleButton recipeId={id} initialInCookbook={inCookbook} />
                   ) : (
-                    <Link href="/login" className="text-sm text-orange-600 hover:underline">Zum Kochbuch hinzufügen (Anmeldung erforderlich)</Link>
+                    <Link href={`/login?redirect=${encodeURIComponent(`/rezepte/${id}/${slug}`)}`} className="text-sm text-orange-600 hover:underline">Zum Kochbuch hinzufügen (Anmeldung erforderlich)</Link>
                   )}
                 </div>
               </div>

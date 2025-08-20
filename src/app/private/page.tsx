@@ -1,7 +1,7 @@
 import { requireAuth } from '@/utils/serverAuthUtils';
 
 export default async function PrivatePage() {
-  const user = await requireAuth();
+  const user = await requireAuth('/private');
 
   return (
     <div className="container mx-auto px-4 py-8">
