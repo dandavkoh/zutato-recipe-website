@@ -113,18 +113,15 @@ export default async function BlogCommentsSection({ postId, slug, currentUserId,
                   />
                 </span>
               </div>
+              {isAdmin && (
+                <div className="mt-2 flex items-center gap-2">
+                  <AdminEditBlogCommentClient commentId={c.id} postId={postId} initialText={c.comment} />
+                  <AdminCommentActions kind="blog" parentId={postId} commentId={c.id} />
+                </div>
+              )}
               {/* Replies level 1 */}
               <RepliesList kind="blog_comment" parentId={c.id} level={1} currentUserId={currentUserId} initialLimit={5} postId={postId} />
               {currentUserId && <ReplyToggle kind="blog_comment" parentId={c.id} />}
-              <div className="mt-2">
-                {isAdmin && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <AdminEditBlogCommentClient commentId={c.id} postId={postId} initialText={c.comment} />
-                    <AdminCommentActions kind="blog" parentId={postId} commentId={c.id} />
-                  </div>
-                )}
-                {/* Melden ist in der Zeile mit dem Datum eingeblendet */}
-              </div>
             </li>
           ))}
         </ul>

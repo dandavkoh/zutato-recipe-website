@@ -114,18 +114,15 @@ export default async function CommentsSection({ recipeId, currentUserId, slug, p
                   />
                 </span>
               </div>
+              {isAdmin && (
+                <div className="mt-2 flex items-center gap-2">
+                  <AdminEditRecipeCommentClient commentId={c.id} recipeId={recipeId} initialText={c.comment} />
+                  <AdminCommentActions kind="recipe" parentId={recipeId} commentId={c.id} />
+                </div>
+              )}
               {/* Replies level 1 */}
               <RepliesList kind="recipe_comment" parentId={c.id} level={1} currentUserId={currentUserId} initialLimit={5} recipeId={recipeId} />
               {currentUserId && <ReplyToggle kind="recipe_comment" parentId={c.id} />}
-              <div className="mt-2">
-                {isAdmin && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <AdminEditRecipeCommentClient commentId={c.id} recipeId={recipeId} initialText={c.comment} />
-                    <AdminCommentActions kind="recipe" parentId={recipeId} commentId={c.id} />
-                  </div>
-                )}
-                {/* Melden-Link ist in der Zeile mit Datum/Uhrzeit eingeblendet */}
-              </div>
             </li>
           ))}
         </ul>

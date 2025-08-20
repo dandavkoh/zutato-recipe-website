@@ -2,6 +2,9 @@ import { createClient } from '@/utils/supabase/server';
 import ReplyToggle from '@/components/ReplyToggle';
 import EditBlogCommentClient from '@/components/EditBlogCommentClient';
 import EditCommentClient from '@/components/EditCommentClient';
+import AdminCommentActions from '@/components/AdminCommentActions';
+import AdminEditBlogCommentClient from '@/components/AdminEditBlogCommentClient';
+import AdminEditRecipeCommentClient from '@/components/AdminEditRecipeCommentClient';
 import ReportBlogCommentDialog from '@/components/ReportBlogCommentDialog';
 import ReportRecipeCommentDialog from '@/components/ReportRecipeCommentDialog';
 import LoadMoreRepliesClient from '@/components/LoadMoreRepliesClient';
@@ -129,6 +132,12 @@ export default async function RepliesList({
   }
 
   const canNest = level < 4;
+  // Admin check
+  let isAdmin = false;
+  try {
+    const { data: rpcVal } = await supabase.rpc('current_user_is_admin');
+    isAdmin = Boolean(rpcVal);
+  } catch {}
 
   return (
     <div className="mt-2 ml-6 border-l pl-4">
@@ -175,6 +184,21 @@ export default async function RepliesList({
                   small
                 />
               </div>
+              {isAdmin && (
+                <div className="mt-2 flex items-center gap-2">
+                  {kind === 'blog_comment' && postId ? (
+                    <AdminEditBlogCommentClient commentId={r.id} postId={postId} initialText={(r as any).comment || ''} />
+                  ) : null}
+                  {kind === 'recipe_comment' && recipeId ? (
+                    <AdminEditRecipeCommentClient commentId={r.id} recipeId={recipeId} initialText={(r as any).comment || ''} />
+                  ) : null}
+                  <AdminCommentActions
+                    kind={kind === 'blog_comment' ? 'blog' : 'recipe'}
+                    parentId={kind === 'blog_comment' ? (postId as string) : (recipeId as string)}
+                    commentId={r.id}
+                  />
+                </div>
+              )}
               {canNest && (
                 <ReplyToggle kind={kind} parentId={r.id} threadId={threadId} />
               )}
