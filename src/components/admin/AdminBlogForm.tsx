@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { createClient } from '@/utils/supabase/client';
 
 export type AdminBlogFormPost = {
   id?: string;
@@ -29,6 +30,14 @@ function toStatus(val: string): 'draft' | 'published' | 'scheduled' | 'archived'
 export default function AdminBlogForm({ mode, post }: { mode: 'create' | 'edit'; post?: AdminBlogFormPost }) {
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [file, setFile] = React.useState<File | null>(null);
+  const [uploading, setUploading] = React.useState(false);
+
+  function fileNameFromSlug(slug: string, f: File): string {
+    const ext = f.name.includes('.') ? f.name.split('.').pop() || 'jpg' : 'jpg';
+    const ts = Date.now();
+    return `blog-covers/${slug}-${ts}.${ext}`;
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -41,9 +50,30 @@ export default function AdminBlogForm({ mode, post }: { mode: 'create' | 'edit';
       const slug = slugify(fieldVal(form, 'slug') || title);
       const content = fieldVal(form, 'content');
       const excerpt = fieldVal(form, 'excerpt');
-      const cover = fieldVal(form, 'cover');
+      let cover = fieldVal(form, 'cover');
       const status = toStatus(fieldVal(form, 'status'));
       const language = fieldVal(form, 'language') || 'de';
+
+      // optional upload to Supabase Storage public bucket
+      if (file) {
+        setUploading(true);
+        const supabase = createClient();
+        const path = fileNameFromSlug(slug, file);
+        const { data: up, error: upErr } = await supabase.storage.from('public-bucket').upload(path, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+        if (upErr) {
+          throw new Error(`Upload fehlgeschlagen: ${upErr.message}`);
+        }
+        const { data: pub } = supabase.storage.from('public-bucket').getPublicUrl(up!.path);
+        cover = pub.publicUrl;
+        setUploading(false);
+      }
+
+      if (!cover) {
+        throw new Error('Cover-Bild fehlt: URL eintragen oder Datei auswählen.');
+      }
 
       if (mode === 'create') {
         const res = await fetch('/api/admin/blog', {
@@ -99,8 +129,42 @@ export default function AdminBlogForm({ mode, post }: { mode: 'create' | 'edit';
         <input name="slug" type="text" className="mt-1 w-full border rounded-md px-3 py-2" defaultValue={post?.slug || ''} />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700">Cover Bild URL</label>
-        <input name="cover" type="text" required className="mt-1 w-full border rounded-md px-3 py-2" defaultValue={post?.cover_image_url || ''} />
+        <label className="block text-sm font-medium text-gray-700">Cover Bild</label>
+        <div className="mt-1 grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+          <div>
+            <input
+              name="cover"
+              type="text"
+              placeholder="https://…"
+              className="w-full border rounded-md px-3 py-2"
+              defaultValue={post?.cover_image_url || ''}
+            />
+            <p className="text-xs text-gray-500 mt-1">Alternativ: direkte Bild-URL einfügen</p>
+          </div>
+          <div>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)}
+              className="block w-full text-sm text-gray-700"
+            />
+            <p className="text-xs text-gray-500 mt-1">Oder Datei auswählen (Upload in public Bucket)</p>
+          </div>
+        </div>
+        {(file || post?.cover_image_url) && (
+          <div className="mt-3">
+            <div className="text-xs text-gray-600 mb-1">Vorschau</div>
+            <div className="h-32 bg-gray-100 rounded overflow-hidden flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={file ? URL.createObjectURL(file) : (post?.cover_image_url || '')}
+                alt="Cover Preview"
+                className="h-full w-full object-cover"
+              />
+            </div>
+          </div>
+        )}
+        {uploading && <div className="text-xs text-gray-600 mt-1">Lade Bild hoch…</div>}
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700">Kurzbeschreibung (Excerpt)</label>
