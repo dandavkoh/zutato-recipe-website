@@ -96,7 +96,13 @@ export default async function BlogCommentsSection({ postId, slug, currentUserId,
                   </span>
                 )}
               </div>
-              <EditBlogCommentClient commentId={c.id} postId={postId} initialText={c.comment} />
+              <div className="text-sm text-gray-900 whitespace-pre-wrap">
+                {currentUserId === c.user_id ? (
+                  <EditBlogCommentClient commentId={c.id} postId={postId} initialText={c.comment} />
+                ) : (
+                  <>{c.comment}</>
+                )}
+              </div>
               <div className="text-xs text-gray-500 mt-1 flex items-center">
                 <span>
                   {new Date(c.created_at).toLocaleString('de-DE')}

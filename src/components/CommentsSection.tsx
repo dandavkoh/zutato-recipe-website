@@ -96,8 +96,13 @@ export default async function CommentsSection({ recipeId, currentUserId, slug, p
                   </span>
                 )}
               </div>
-              {/* Inline edit replaces the comment text via EditCommentClient */}
-              <EditCommentClient commentId={c.id} recipeId={recipeId} initialText={c.comment} />
+              <div className="text-sm text-gray-900 whitespace-pre-wrap">
+                {currentUserId === c.user_id ? (
+                  <EditCommentClient commentId={c.id} recipeId={recipeId} initialText={c.comment} />
+                ) : (
+                  <>{c.comment}</>
+                )}
+              </div>
               <div className="text-xs text-gray-500 mt-1 flex items-center">
                 <span>
                   {new Date(c.created_at).toLocaleString('de-DE')}
