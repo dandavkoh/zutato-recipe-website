@@ -43,9 +43,9 @@ type RecipeRow = {
   resting_time_minutes: number | null;
   image_url: string | null;
   created_at: string;
-  category_name: string | null;
-  creator_email: string | null;
-  creator_name: string | null;
+  category_name?: string | null;
+  creator_email?: string | null;
+  creator_name?: string | null;
   created_by: string | null;
 };
 
@@ -85,7 +85,8 @@ function formatRelativeTime(dateStr: string): string {
 export default async function AlleRezeptePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const qp = await searchParams;
   const pageRaw = qp.page;
-  const cat = Array.isArray(qp.cat) ? qp.cat[0] : qp.cat || '';
+  let cat = Array.isArray(qp.cat) ? qp.cat[0] : qp.cat || '';
+  if (cat === 'undefined' || cat === 'null') cat = '';
   const diff = Array.isArray(qp.diff) ? qp.diff[0] : qp.diff || '';
   const sort = (Array.isArray(qp.sort) ? qp.sort[0] : qp.sort || 'newest') as 'newest' | 'rating' | 'work';
   const maxTotalRaw = Array.isArray(qp.max) ? qp.max[0] : qp.max || '';
@@ -123,11 +124,35 @@ export default async function AlleRezeptePage({ searchParams }: { searchParams: 
   let recipes: RecipeRow[] = [];
   let hasNext = false;
 
-  if (sort === 'newest') {
+  // If a single category filter is provided, map it to recipe IDs via recipe_categories_map (many-to-many)
+  let idsForCategory: string[] | null = null;
+  if (cat) {
+    const { data: mapRows } = await supabase
+      .from('recipe_categories_map')
+      .select('recipe_id')
+      .eq('category_id', cat)
+      .limit(2000);
+    const mapped = new Set<string>(((mapRows as any[]) || []).map((r) => r.recipe_id as string));
+    // Legacy fallback for older rows that may still have recipes.category_id set
+    const { data: legacyRows } = await supabase
+      .from('recipes')
+      .select('id')
+      .eq('category_id', cat)
+      .limit(2000);
+    for (const r of ((legacyRows as any[]) || [])) mapped.add(r.id as string);
+    idsForCategory = Array.from(mapped);
+  }
+
+  const catFilterEmpty = Boolean(cat) && ((idsForCategory || []).length === 0);
+
+  if (catFilterEmpty) {
+    recipes = [];
+    hasNext = false;
+  } else if (sort === 'newest') {
     let base = supabase
       .from('recipes_with_details')
-      .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, category_name, creator_email, creator_name, created_by');
-    if (cat) base = base.eq('category_id', cat);
+      .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, created_by');
+    if (cat) base = base.in('id', idsForCategory as string[]);
     if (diff) base = base.eq('difficulty', diff);
     const { data: allRows } = await base.order('created_at', { ascending: false }).limit(300);
     let allRecipes: RecipeRow[] = (allRows as RecipeRow[]) || [];
@@ -167,11 +192,11 @@ export default async function AlleRezeptePage({ searchParams }: { searchParams: 
     const end = start + pageSize;
     hasNext = allRecipes.length > end;
     recipes = allRecipes.slice(start, end);
-  } else {
+  } else if (!catFilterEmpty) {
     let base = supabase
       .from('recipes_with_details')
-      .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, category_name, creator_email, creator_name, created_by');
-    if (cat) base = base.eq('category_id', cat);
+      .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, created_by');
+    if (cat) base = base.in('id', idsForCategory as string[]);
     if (diff) base = base.eq('difficulty', diff);
     const { data: allRows } = await base.order('created_at', { ascending: false }).limit(300);
     let allRecipes: RecipeRow[] = (allRows as RecipeRow[]) || [];

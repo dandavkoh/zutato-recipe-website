@@ -8,7 +8,7 @@ interface UpdateRecipeRequestBody {
   description?: string;
   portions: number;
   difficulty: Difficulty;
-  category_id: string | null;
+  category_ids: string[];
   working_time_minutes?: number | null;
   cooking_time_minutes?: number | null;
   resting_time_minutes?: number | null;
@@ -79,7 +79,6 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       description: body.description ?? null,
       portions: body.portions,
       difficulty: body.difficulty,
-      category_id: body.category_id,
       working_time_minutes: body.working_time_minutes ?? null,
       cooking_time_minutes: body.cooking_time_minutes ?? null,
       resting_time_minutes: body.resting_time_minutes ?? null,
@@ -93,6 +92,21 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       .eq("id", recipeId);
     if (updErr) {
       return NextResponse.json({ error: updErr.message }, { status: 400 });
+    }
+
+    // 1b) Replace category mappings
+    const uniqueCategoryIds = Array.from(new Set((body.category_ids || []).filter(Boolean)));
+    const { error: delMapErr } = await supabase.from('recipe_categories_map').delete().eq('recipe_id', recipeId);
+    if (delMapErr) {
+      return NextResponse.json({ error: delMapErr.message }, { status: 400 });
+    }
+    if (uniqueCategoryIds.length > 0) {
+      const { error: insMapErr } = await supabase
+        .from('recipe_categories_map')
+        .insert(uniqueCategoryIds.map((cid) => ({ recipe_id: recipeId, category_id: cid, created_by: user.id })));
+      if (insMapErr) {
+        return NextResponse.json({ error: insMapErr.message }, { status: 400 });
+      }
     }
 
     // 2) Clear existing children (ingredients -> steps -> sections) to re-create from payload
