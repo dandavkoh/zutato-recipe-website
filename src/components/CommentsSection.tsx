@@ -6,6 +6,7 @@ import AdminCommentActions from '@/components/AdminCommentActions';
 import AdminEditRecipeCommentClient from '@/components/AdminEditRecipeCommentClient';
 import Link from 'next/link';
 import ReportRecipeCommentDialog from '@/components/ReportRecipeCommentDialog';
+import VoteButton from '@/components/VoteButton';
 
 type Comment = {
   id: string;
@@ -30,6 +31,22 @@ export default async function CommentsSection({ recipeId, currentUserId, slug, p
   const comments: Comment[] = (data as any[]) || [];
   const total = count || 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  // Vote counts and current user vote for recipe comments
+  const commentIds = comments.map((c) => c.id);
+  const voteCountByCommentId: Record<string, number> = {};
+  const userVotedSet = new Set<string>();
+  if (commentIds.length > 0) {
+    const { data: voteRows } = await supabase
+      .from('recipe_comment_votes')
+      .select('comment_id, user_id')
+      .in('comment_id', commentIds);
+    for (const row of (voteRows as any[]) || []) {
+      const cid = row.comment_id as string;
+      voteCountByCommentId[cid] = (voteCountByCommentId[cid] || 0) + 1;
+      if (row.user_id && currentUserId && row.user_id === currentUserId) userVotedSet.add(cid);
+    }
+  }
 
   // Fetch public nicknames for commenters
   const userIds = Array.from(new Set(comments.map((c) => c.user_id)));
@@ -81,6 +98,16 @@ export default async function CommentsSection({ recipeId, currentUserId, slug, p
                     <ReportRecipeCommentDialog recipeId={recipeId} commentId={c.id} />
                   </span>
                 )}
+                <span className="ml-3">
+                  <VoteButton
+                    kind="recipe_comment"
+                    targetId={c.id}
+                    initialCount={voteCountByCommentId[c.id] || 0}
+                    initiallyVoted={userVotedSet.has(c.id)}
+                    enabled={Boolean(currentUserId)}
+                    small
+                  />
+                </span>
               </div>
               <div className="mt-2">
                 {currentUserId === c.user_id && (

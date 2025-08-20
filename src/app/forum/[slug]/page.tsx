@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import type { Metadata } from 'next';
+import VoteButton from '@/components/VoteButton';
 
 type RouteParams = { slug: string };
 
@@ -81,6 +82,23 @@ export default async function ForumSectionPage({ params, searchParams }: { param
   const list = (threads as Thread[] | null) || [];
   const total = threadsCount || 0
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  // Load votes for thread list
+  const threadIds = list.map((t) => t.id);
+  const threadVoteCount: Record<string, number> = {};
+  const userVotedThread = new Set<string>();
+  if (threadIds.length > 0) {
+    const { data: votes } = await supabase
+      .from('forum_thread_votes')
+      .select('thread_id, user_id')
+      .in('thread_id', threadIds);
+    const { data: auth2 } = await supabase.auth.getUser();
+    const uid = auth2?.user?.id;
+    for (const row of (votes as any[]) || []) {
+      const tid = row.thread_id as string;
+      threadVoteCount[tid] = (threadVoteCount[tid] || 0) + 1;
+      if (uid && row.user_id === uid) userVotedThread.add(tid);
+    }
+  }
   // Single view; list already filtered by is_archived
   // Fetch read states for current user
   const { data: auth } = await supabase.auth.getUser();
@@ -143,6 +161,16 @@ export default async function ForumSectionPage({ params, searchParams }: { param
                               <span>Beiträge: {t.posts_count}</span>
                               <span>·</span>
                               <span>Aufrufe: {t.views_count}</span>
+                              <span className="ml-2">
+                                <VoteButton
+                                  kind="forum_thread"
+                                  targetId={t.id}
+                                  initialCount={threadVoteCount[t.id] || 0}
+                                  initiallyVoted={userVotedThread.has(t.id)}
+                                  enabled={isLoggedIn}
+                                  small
+                                />
+                              </span>
                               {isLoggedIn && (() => {
                                 const lastReadAtIso = readMap[t.id]
                                 const isUnread = !lastReadAtIso || (t.last_posted_at ? new Date(t.last_posted_at) > new Date(lastReadAtIso) : false)

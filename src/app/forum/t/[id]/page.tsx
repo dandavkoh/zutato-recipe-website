@@ -13,6 +13,7 @@ import AutoMarkRead from '@/components/forum/AutoMarkRead';
 import NewPostEditor from '@/components/forum/NewPostEditor';
 import ReportThreadDialog from '@/components/forum/ReportThreadDialog';
 import ReportPostDialog from '@/components/forum/ReportPostDialog';
+import VoteButton from '@/components/VoteButton';
 
 export const runtime = 'nodejs'
 
@@ -109,6 +110,33 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
 
   const postsList = (posts as any[] | null) || [];
   const postsTotal = postsCount || 0
+  // Votes: thread + posts
+  let threadVoteCount = 0;
+  let threadVotedByUser = false;
+  {
+    const { data: vt } = await supabase
+      .from('forum_thread_votes')
+      .select('thread_id, user_id')
+      .eq('thread_id', id);
+    const uid = auth?.user?.id;
+    threadVoteCount = ((vt as any[]) || []).length;
+    threadVotedByUser = Boolean(((vt as any[]) || []).find((r) => uid && r.user_id === uid));
+  }
+  const postVoteCount: Record<string, number> = {};
+  const postVotedByUser = new Set<string>();
+  if (postsList.length > 0) {
+    const ids = postsList.map((p) => p.id as string);
+    const { data: vp } = await supabase
+      .from('forum_post_votes')
+      .select('post_id, user_id')
+      .in('post_id', ids);
+    const uid = auth?.user?.id;
+    for (const row of (vp as any[]) || []) {
+      const pid = row.post_id as string;
+      postVoteCount[pid] = (postVoteCount[pid] || 0) + 1;
+      if (uid && row.user_id === uid) postVotedByUser.add(pid);
+    }
+  }
   const postsTotalPages = Math.max(1, Math.ceil(postsTotal / postsPageSize))
   const lastPostId = postsList.length > 0 ? postsList[postsList.length - 1].id as string : null
   // Increment views only on visit, not when paging through posts via our pagination links (nav=1).
@@ -196,6 +224,15 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
                 <span className="text-gray-900 truncate">{(thread as any).title}</span>
               </nav>
               <h1 className="text-2xl font-bold text-gray-900">{(thread as any).title}</h1>
+              <div className="mt-2">
+                <VoteButton
+                  kind="forum_thread"
+                  targetId={id}
+                  initialCount={threadVoteCount}
+                  initiallyVoted={threadVotedByUser}
+                  enabled={Boolean(auth?.user)}
+                />
+              </div>
             </div>
             <div className="flex items-center gap-2">
               {auth?.user && (
@@ -283,6 +320,16 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
                     )}
                   </div>
                   <div className="text-gray-900 whitespace-pre-wrap">{p.content}</div>
+                  <div className="mt-2">
+                    <VoteButton
+                      kind="forum_post"
+                      targetId={p.id as string}
+                      initialCount={postVoteCount[p.id as string] || 0}
+                      initiallyVoted={postVotedByUser.has(p.id as string)}
+                      enabled={Boolean(auth?.user)}
+                      small
+                    />
+                  </div>
                   {(auth?.user && auth.user.id === (p.user_id as string)) && (
                     <OwnerPostActions postId={p.id as string} initialContent={p.content as string} />
                   )}
