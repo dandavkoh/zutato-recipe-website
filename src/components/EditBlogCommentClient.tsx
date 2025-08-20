@@ -37,15 +37,20 @@ export default function EditBlogCommentClient({ commentId, postId, initialText }
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div>
       {!editing ? (
-        <button
-          type="button"
-          onClick={() => setEditing(true)}
-          className="text-sm text-gray-600 hover:text-gray-900 underline"
-        >
-          Bearbeiten
-        </button>
+        <div>
+          <div className="text-sm text-gray-900 whitespace-pre-wrap">{initialText}</div>
+          <div className="mt-1">
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="text-sm text-gray-600 hover:text-gray-900 underline"
+            >
+              Bearbeiten
+            </button>
+          </div>
+        </div>
       ) : (
         <div className="w-full">
           <textarea

@@ -14,6 +14,7 @@ import NewPostEditor from '@/components/forum/NewPostEditor';
 import ReportThreadDialog from '@/components/forum/ReportThreadDialog';
 import ReportPostDialog from '@/components/forum/ReportPostDialog';
 import VoteButton from '@/components/VoteButton';
+/* Replies UI intentionally not imported for forum (Antworten entfernt) */
 
 export const runtime = 'nodejs'
 
@@ -224,15 +225,6 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
                 <span className="text-gray-900 truncate">{(thread as any).title}</span>
               </nav>
               <h1 className="text-2xl font-bold text-gray-900">{(thread as any).title}</h1>
-              <div className="mt-2">
-                <VoteButton
-                  kind="forum_thread"
-                  targetId={id}
-                  initialCount={threadVoteCount}
-                  initiallyVoted={threadVotedByUser}
-                  enabled={Boolean(auth?.user)}
-                />
-              </div>
             </div>
             <div className="flex items-center gap-2">
               {auth?.user && (
@@ -271,7 +263,18 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
                 </div>
                 {auth?.user && !isAdmin && <ReportThreadDialog threadId={id} />}
               </div>
+              {/* Inline owner edit for thread title/body available below */}
               <div className="whitespace-pre-wrap">{(thread as any).body}</div>
+              <div className="mt-2">
+                <VoteButton
+                  kind="forum_thread"
+                  targetId={id}
+                  initialCount={threadVoteCount}
+                  initiallyVoted={threadVotedByUser}
+                  enabled={Boolean(auth?.user)}
+                />
+              </div>
+              {/* Replies (level 1) to thread body as the first post, modelled as posts with parent_post_id=null, so we render replies to each post below */}
             </div>
           )}
           {/* Owner Thread Actions nur für Ersteller */}
@@ -319,7 +322,14 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
                       <ReportPostDialog postId={p.id as string} />
                     )}
                   </div>
-                  <div className="text-gray-900 whitespace-pre-wrap">{p.content}</div>
+                  <div className="text-gray-900 whitespace-pre-wrap">
+                    {(auth?.user && auth.user.id === (p.user_id as string)) ? (
+                      <OwnerPostActions postId={p.id as string} initialContent={p.content as string} renderInline />
+                    ) : (
+                      <>{p.content}</>
+                    )}
+                  </div>
+                  {/* Antworten-Funktion im Forum entfernt */}
                   <div className="mt-2">
                     <VoteButton
                       kind="forum_post"
@@ -330,9 +340,7 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
                       small
                     />
                   </div>
-                  {(auth?.user && auth.user.id === (p.user_id as string)) && (
-                    <OwnerPostActions postId={p.id as string} initialContent={p.content as string} />
-                  )}
+                  {/* Untere Bearbeiten/Ausblenden-Buttons entfernt – Inline-Variante oben bleibt */}
                   {isAdmin && (
                     <div className="mt-2">
                       <AdminPostActions postId={p.id as string} initialContent={p.content as string} />

@@ -7,6 +7,8 @@ import AdminEditRecipeCommentClient from '@/components/AdminEditRecipeCommentCli
 import Link from 'next/link';
 import ReportRecipeCommentDialog from '@/components/ReportRecipeCommentDialog';
 import VoteButton from '@/components/VoteButton';
+import RepliesList from '@/components/RepliesList';
+import ReplyToggle from '@/components/ReplyToggle';
 
 type Comment = {
   id: string;
@@ -80,24 +82,27 @@ export default async function CommentsSection({ recipeId, currentUserId, slug, p
         <ul className="divide-y divide-gray-200">
           {comments.map((c) => (
             <li key={c.id} className="py-3">
-              <div className="text-sm font-medium text-gray-800 mb-1">
-                {nicknameByUserId[c.user_id] ? (
-                  <Link href={`/user/${c.user_id}`} className="text-orange-700 hover:underline">{nicknameByUserId[c.user_id]}</Link>
-                ) : (
-                  'Unbekannt'
+              <div className="text-sm font-medium text-gray-800 mb-1 flex items-center justify-between">
+                <div>
+                  {nicknameByUserId[c.user_id] ? (
+                    <Link href={`/user/${c.user_id}`} className="text-orange-700 hover:underline">{nicknameByUserId[c.user_id]}</Link>
+                  ) : (
+                    'Unbekannt'
+                  )}
+                </div>
+                {currentUserId && !isAdmin && (
+                  <span>
+                    <ReportRecipeCommentDialog recipeId={recipeId} commentId={c.id} />
+                  </span>
                 )}
               </div>
-              <div className="text-sm text-gray-900 whitespace-pre-wrap">{c.comment}</div>
+              {/* Inline edit replaces the comment text via EditCommentClient */}
+              <EditCommentClient commentId={c.id} recipeId={recipeId} initialText={c.comment} />
               <div className="text-xs text-gray-500 mt-1 flex items-center">
                 <span>
                   {new Date(c.created_at).toLocaleString('de-DE')}
                   {currentUserId === c.user_id && ' · Dein Kommentar'}
                 </span>
-                {currentUserId && !isAdmin && (
-                  <span className="ml-auto">
-                    <ReportRecipeCommentDialog recipeId={recipeId} commentId={c.id} />
-                  </span>
-                )}
                 <span className="ml-3">
                   <VoteButton
                     kind="recipe_comment"
@@ -109,12 +114,10 @@ export default async function CommentsSection({ recipeId, currentUserId, slug, p
                   />
                 </span>
               </div>
+              {/* Replies level 1 */}
+              <RepliesList kind="recipe_comment" parentId={c.id} level={1} currentUserId={currentUserId} initialLimit={5} recipeId={recipeId} />
+              {currentUserId && <ReplyToggle kind="recipe_comment" parentId={c.id} />}
               <div className="mt-2">
-                {currentUserId === c.user_id && (
-                  <div className="w-full">
-                    <EditCommentClient commentId={c.id} recipeId={recipeId} initialText={c.comment} />
-                  </div>
-                )}
                 {isAdmin && (
                   <div className="mt-2 flex items-center gap-2">
                     <AdminEditRecipeCommentClient commentId={c.id} recipeId={recipeId} initialText={c.comment} />
