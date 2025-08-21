@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server';
 import RecipeRatingSummary from '@/components/RecipeRatingSummary';
 import DurationFilter from '@/components/DurationFilter';
 import IngredientFilter from '@/components/IngredientFilter';
+import CategoryFilter from '@/components/CategoryFilter';
 
 export const metadata: Metadata = {
   title: 'Alle Rezepte - ZUTATO',
@@ -87,6 +88,11 @@ export default async function AlleRezeptePage({ searchParams }: { searchParams: 
   const pageRaw = qp.page;
   let cat = Array.isArray(qp.cat) ? qp.cat[0] : qp.cat || '';
   if (cat === 'undefined' || cat === 'null') cat = '';
+  const catsRaw = Array.isArray(qp.cats) ? qp.cats[0] : qp.cats || '';
+  const selectedCatIds = Array.from(new Set([
+    ...((catsRaw ? catsRaw.split(',').map((s) => s.trim()).filter(Boolean) : []) as string[]),
+    ...(cat ? [cat] : []),
+  ]));
   const diff = Array.isArray(qp.diff) ? qp.diff[0] : qp.diff || '';
   const sort = (Array.isArray(qp.sort) ? qp.sort[0] : qp.sort || 'newest') as 'newest' | 'rating' | 'work';
   const maxTotalRaw = Array.isArray(qp.max) ? qp.max[0] : qp.max || '';
@@ -114,36 +120,29 @@ export default async function AlleRezeptePage({ searchParams }: { searchParams: 
 
   const supabase = await createClient();
 
-  type Category = { id: string; name: string };
-  const { data: categoriesRows } = await supabase
-    .from('recipe_categories')
-    .select('id, name, sort_order')
-    .order('sort_order', { ascending: true });
-  const categories: Category[] = (categoriesRows as Category[] | null) || [];
-
   let recipes: RecipeRow[] = [];
   let hasNext = false;
 
-  // If a single category filter is provided, map it to recipe IDs via recipe_categories_map (many-to-many)
-  let idsForCategory: string[] | null = null;
-  if (cat) {
+  // Map selected categories to recipe IDs via recipe_categories_map (many-to-many)
+  let idsForSelectedCategories: string[] | null = null;
+  if (selectedCatIds.length > 0) {
     const { data: mapRows } = await supabase
       .from('recipe_categories_map')
-      .select('recipe_id')
-      .eq('category_id', cat)
-      .limit(2000);
+      .select('recipe_id, category_id')
+      .in('category_id', selectedCatIds)
+      .limit(5000);
     const mapped = new Set<string>(((mapRows as any[]) || []).map((r) => r.recipe_id as string));
     // Legacy fallback for older rows that may still have recipes.category_id set
     const { data: legacyRows } = await supabase
       .from('recipes')
-      .select('id')
-      .eq('category_id', cat)
-      .limit(2000);
+      .select('id, category_id')
+      .in('category_id', selectedCatIds)
+      .limit(5000);
     for (const r of ((legacyRows as any[]) || [])) mapped.add(r.id as string);
-    idsForCategory = Array.from(mapped);
+    idsForSelectedCategories = Array.from(mapped);
   }
 
-  const catFilterEmpty = Boolean(cat) && ((idsForCategory || []).length === 0);
+  const catFilterEmpty = selectedCatIds.length > 0 && ((idsForSelectedCategories || []).length === 0);
 
   if (catFilterEmpty) {
     recipes = [];
@@ -152,7 +151,7 @@ export default async function AlleRezeptePage({ searchParams }: { searchParams: 
     let base = supabase
       .from('recipes_with_details')
       .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, created_by');
-    if (cat) base = base.in('id', idsForCategory as string[]);
+    if (selectedCatIds.length > 0) base = base.in('id', idsForSelectedCategories as string[]);
     if (diff) base = base.eq('difficulty', diff);
     const { data: allRows } = await base.order('created_at', { ascending: false }).limit(300);
     let allRecipes: RecipeRow[] = (allRows as RecipeRow[]) || [];
@@ -196,7 +195,7 @@ export default async function AlleRezeptePage({ searchParams }: { searchParams: 
     let base = supabase
       .from('recipes_with_details')
       .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, created_by');
-    if (cat) base = base.in('id', idsForCategory as string[]);
+    if (selectedCatIds.length > 0) base = base.in('id', idsForSelectedCategories as string[]);
     if (diff) base = base.eq('difficulty', diff);
     const { data: allRows } = await base.order('created_at', { ascending: false }).limit(300);
     let allRecipes: RecipeRow[] = (allRows as RecipeRow[]) || [];
@@ -324,13 +323,8 @@ export default async function AlleRezeptePage({ searchParams }: { searchParams: 
               <option value="newest">Neueste zuerst</option>
               <option value="work">Arbeitszeit</option>
             </select>
-            {/* Categories */}
-            <select name="cat" defaultValue={cat} className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
-              <option value="">Alle Kategorien</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+            {/* Categories (multi-select with groups/tree) */}
+            <CategoryFilter initialSelectedIds={selectedCatIds} />
             {/* Difficulty */}
             <select name="diff" defaultValue={diff} className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
               <option value="">Alle Schwierigkeiten</option>
