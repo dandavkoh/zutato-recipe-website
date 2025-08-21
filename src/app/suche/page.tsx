@@ -19,7 +19,6 @@ type RecipeRow = {
   resting_time_minutes: number | null;
   image_url: string | null;
   created_at: string;
-  category_name: string | null;
   created_by: string | null;
 };
 
@@ -52,12 +51,20 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
   if (ids.length > 0) {
     const { data } = await supabase
       .from('recipes_with_details')
-      .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, category_name, created_by')
+      .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, created_by')
       .in('id', ids);
     recipes = (data as RecipeRow[]) || [];
     // Keep the same order by rank coming from RPC
     const orderIndex = new Map(ids.map((id, idx) => [id, idx] as const));
     recipes.sort((a, b) => (orderIndex.get(a.id)! - orderIndex.get(b.id)!));
+  } else if (term) {
+    // Fallback: simple ILIKE search on name if RPC returns no results
+    const { data } = await supabase
+      .from('recipes_with_details')
+      .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, created_by')
+      .ilike('name', `%${term}%`)
+      .limit(50);
+    recipes = (data as RecipeRow[]) || [];
   }
 
   // Rating summary for result list
@@ -133,7 +140,6 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
                         <p className="text-sm text-gray-600 line-clamp-2 mt-1">{r.description}</p>
                       )}
                       <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-600">
-                        {r.category_name && <span>🏷️ {r.category_name}</span>}
                         <span>📊 {r.difficulty}</span>
                         {totalTime && <span>⏱️ {totalTime}</span>}
                         <span>⭐ {rating.average ? rating.average.toFixed(1) : '–'} ({rating.count})</span>

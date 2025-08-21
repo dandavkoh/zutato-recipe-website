@@ -17,7 +17,6 @@ type RecipeDetails = {
   description: string | null;
   portions: number;
   difficulty: Difficulty;
-  category_name: string | null;
   image_url: string | null;
   working_time_minutes: number | null;
   cooking_time_minutes: number | null;
@@ -129,7 +128,7 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
   const { data: recipe, error: recipeError } = await supabase
     .from('recipes_with_details')
     .select(
-      'id, name, description, portions, difficulty, category_name, image_url, working_time_minutes, cooking_time_minutes, resting_time_minutes, created_at, creator_name, creator_email, created_by'
+      'id, name, description, portions, difficulty, image_url, working_time_minutes, cooking_time_minutes, resting_time_minutes, created_at, creator_name, creator_email, created_by'
     )
     .eq('id', id)
     .maybeSingle();
@@ -291,7 +290,7 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
                 name: (r.created_by && authorNickname) || r.creator_name || r.creator_email || 'Unbekannt',
               } : undefined,
               datePublished: r.created_at,
-              recipeCategory: r.category_name || undefined,
+              // recipeCategory omitted due to many-to-many categories
               recipeYield: r.portions ? `${r.portions} Portionen` : undefined,
               prepTime: toIsoDuration(r.working_time_minutes),
               cookTime: toIsoDuration(r.cooking_time_minutes),
@@ -317,7 +316,7 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
                     author
                   )}
                 </span>
-                {r.category_name && <span>🏷️ {r.category_name}</span>}
+                {/* Kategorien-Label entfernt (Many-to-Many) */}
                 {/* Portionenanzeige entfernt, stattdessen unten Skala */}
                 <span>📊 {difficultyLabel}</span>
                 {totalTime && <span>⏱️ {totalTime}</span>}
