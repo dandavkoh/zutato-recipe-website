@@ -28,6 +28,7 @@ export default async function BlogCommentsSection({ postId, slug, currentUserId,
     .select('id, user_id, comment, created_at, updated_at', { count: 'exact' })
     .eq('post_id', postId)
     .eq('is_deleted', false)
+    .is('parent_comment_id', null)
     .order('created_at', { ascending: true })
     .range(from, to);
   const comments: Comment[] = (data as any[]) || [];
