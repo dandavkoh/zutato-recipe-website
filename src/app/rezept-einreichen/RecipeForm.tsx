@@ -99,6 +99,8 @@ export default function RecipeForm() {
   const [allCategories, setAllCategories] = useState<RecipeCategory[]>([]);
   const [selectedCategoryIdsByGroup, setSelectedCategoryIdsByGroup] = useState<Record<string, string[]>>({});
   const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState<Record<string, boolean>>({});
+  const [expandedByGroup, setExpandedByGroup] = useState<Record<string, Record<string, boolean>>>({});
+  const dropdownRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
 
   // form fields
   const [name, setName] = useState("");
@@ -163,6 +165,28 @@ export default function RecipeForm() {
     };
     loadBasics();
   }, [supabase]);
+
+  // Close any open category dropdown when clicking outside
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      const target = e.target as Node | null;
+      if (!target) return;
+      const openGroups = Object.entries(isGroupDropdownOpen).filter(([, v]) => v).map(([k]) => k);
+      if (openGroups.length === 0) return;
+      const next: Record<string, boolean> = { ...isGroupDropdownOpen };
+      for (const gid of openGroups) {
+        const container = dropdownRefs.current[gid];
+        if (container && !container.contains(target)) {
+          next[gid] = false;
+        }
+      }
+      if (JSON.stringify(next) !== JSON.stringify(isGroupDropdownOpen)) {
+        setIsGroupDropdownOpen(next);
+      }
+    }
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [isGroupDropdownOpen]);
 
   function flattenCategoriesForGroup(groupId: string): Array<{ id: string; name: string; depth: number }> {
     const cats = allCategories.filter((c) => c.group_id === groupId);
@@ -800,44 +824,113 @@ export default function RecipeForm() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {categoryGroups.map((group) => {
-              const flattened = flattenCategoriesForGroup(group.id);
+              // Build tree for group
+              const cats = allCategories.filter((c) => c.group_id === group.id);
+              const byParent: Record<string, RecipeCategory[]> = {};
+              for (const c of cats) {
+                const p = c.parent_category_id || "__root__";
+                (byParent[p] ||= []).push(c);
+              }
+              const roots = (byParent["__root__"] || []).sort((a,b)=>(a.sort_order-b.sort_order)||a.name.localeCompare(b.name));
+              function mkNode(cat: RecipeCategory): { id: string; name: string; children: any[] } {
+                const children = (byParent[cat.id] || []).sort((a,b)=>(a.sort_order-b.sort_order)||a.name.localeCompare(b.name));
+                return { id: cat.id, name: cat.name, children: children.map(mkNode) };
+              }
+              const tree = roots.map(mkNode);
+
               const selected = selectedCategoryIdsByGroup[group.id] || [];
               const isOpen = !!isGroupDropdownOpen[group.id];
+              const expandedForGroup = expandedByGroup[group.id] || {};
+
+              function toggleExpanded(catId: string) {
+                setExpandedByGroup((prev) => ({
+                  ...prev,
+                  [group.id]: { ...prev[group.id], [catId]: !prev[group.id]?.[catId] },
+                }));
+              }
+
+              function toggleSelected(catId: string) {
+                setSelectedCategoryIdsByGroup((prev) => {
+                  const cur = new Set(prev[group.id] || []);
+                  if (cur.has(catId)) cur.delete(catId); else cur.add(catId);
+                  return { ...prev, [group.id]: Array.from(cur) };
+                });
+              }
+
+              function renderNode(node: { id: string; name: string; children: any[] }, depth: number): React.ReactElement {
+                const hasChildren = node.children.length > 0;
+                const expanded = expandedForGroup[node.id] ?? false;
+                const checked = selected.includes(node.id);
+                return (
+                  <li key={node.id} className="border-t border-gray-100 first:border-t-0">
+                    <div className="flex items-center justify-between py-1.5 text-sm text-gray-900">
+                      <div
+                        className="flex items-center gap-2 cursor-pointer select-none flex-1"
+                        style={{ paddingLeft: Math.max(0, depth) * 14 }}
+                        onClick={() => toggleSelected(node.id)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSelected(node.id); } }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleSelected(node.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="rounded"
+                        />
+                        <span className="select-none">{node.name}</span>
+                      </div>
+                      {hasChildren ? (
+                        <button
+                          type="button"
+                          aria-label="Toggle children"
+                          aria-expanded={expanded}
+                          onClick={(e) => { e.stopPropagation(); toggleExpanded(node.id); }}
+                          className="p-2 text-gray-600 hover:text-gray-800 transition-colors ml-2 mr-1"
+                        >
+                          <FontAwesomeIcon icon={expanded ? 'chevron-up' : 'chevron-down'} size="sm" />
+                        </button>
+                      ) : (
+                        <span className="w-5" />
+                      )}
+                    </div>
+                    {hasChildren && (
+                      <div
+                        className="overflow-hidden transition-[max-height,opacity] duration-200 ease-out"
+                        style={{ maxHeight: expanded ? 800 : 0, opacity: expanded ? 1 : 0 }}
+                      >
+                        <ul>
+                          {node.children.map((ch) => renderNode(ch, depth + 1))}
+                        </ul>
+                      </div>
+                    )}
+                  </li>
+                );
+              }
+
               return (
-                <div key={group.id} className="relative">
+                <div
+                  key={group.id}
+                  ref={(el) => {
+                    dropdownRefs.current[group.id] = el as HTMLDivElement | null;
+                  }}
+                  className="relative"
+                >
                   <label className="block text-sm font-medium text-gray-700">{group.name}</label>
                   <button
                     type="button"
                     onClick={() => setIsGroupDropdownOpen((p) => ({ ...p, [group.id]: !p[group.id] }))}
                     className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-left hover:bg-gray-50"
                   >
-                    {selected.length > 0 ? `${selected.length} ausgewählt` : 'Keine Auswahl'}
+                    <span className={selected.length > 0 ? 'text-gray-900 font-medium' : 'text-gray-500'}>
+                      {selected.length > 0 ? `${selected.length} ausgewählt` : 'Keine Auswahl'}
+                    </span>
                   </button>
                   {isOpen && (
                     <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded shadow p-2 max-h-64 overflow-auto">
-                      <ul className="space-y-1">
-                        {flattened.map((c) => {
-                          const checked = selected.includes(c.id);
-                          return (
-                            <li key={c.id}>
-                              <label className="flex items-center gap-2">
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={(e) => {
-                                    setSelectedCategoryIdsByGroup((prev) => {
-                                      const cur = new Set(prev[group.id] || []);
-                                      if (e.target.checked) cur.add(c.id); else cur.delete(c.id);
-                                      return { ...prev, [group.id]: Array.from(cur) };
-                                    });
-                                  }}
-                                  className="rounded"
-                                />
-                                <span style={{ paddingLeft: `${c.depth * 12}px` }}>{c.name}</span>
-                              </label>
-                            </li>
-                          );
-                        })}
+                      <ul>
+                        {tree.map((n) => renderNode(n, 0))}
                       </ul>
                     </div>
                   )}
