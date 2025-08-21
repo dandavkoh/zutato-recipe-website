@@ -210,7 +210,7 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
         }}
       />
       <section className="bg-white border-b">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <nav className="text-sm text-gray-600 mb-2 flex items-center gap-2">
@@ -290,7 +290,7 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
         </div>
       </section>
       <section className="py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {postsList.length === 0 ? (
             <div className="bg-white border border-gray-200 rounded-xl p-8 text-center text-gray-600">Noch keine Beiträge vorhanden.</div>
           ) : (

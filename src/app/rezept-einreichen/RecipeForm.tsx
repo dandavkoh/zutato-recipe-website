@@ -132,6 +132,15 @@ export default function RecipeForm() {
     { step_number: 1, instruction: "" },
   ]);
 
+  // Wizard state (5 steps)
+  const wizardSteps = ["Rezept", "Zubereitung", "Kategorien", "Rezeptbild", "Vorschau"] as const;
+  type WizardStep = typeof wizardSteps[number];
+  const [wizardStepIdx, setWizardStepIdx] = useState<number>(0);
+
+  function gotoStep(idx: number) {
+    setWizardStepIdx(Math.max(0, Math.min(wizardSteps.length - 1, idx)));
+  }
+
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -408,406 +417,538 @@ export default function RecipeForm() {
         <Toast message={success} type="success" onClose={() => setSuccess(null)} durationMs={2000} />
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700">Titelbild (optional)</label>
-          <div className="mt-1 flex items-center gap-4">
-            <input type="file" accept="image/*" onChange={onImageChange} className="rounded" />
-            {imagePreview && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={imagePreview} alt="Vorschau" className="h-16 w-16 object-cover rounded border" />
-            )}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Rezeptname</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="mt-1 w-full rounded"
-            placeholder="z.B. Milchreis"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Zusätzliche Info</label>
-          <input
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="mt-1 w-full rounded"
-            placeholder="z.B. nach Omas Art"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Portionen</label>
-          <input
-            type="number"
-            min={1}
-            value={portions}
-            onChange={(e) => setPortions(Number(e.target.value))}
-            className="mt-1 w-full rounded"
-          />
-        </div>
-        <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {categoryGroups.map((group) => {
-            const flattened = flattenCategoriesForGroup(group.id);
-            const selected = selectedCategoryIdsByGroup[group.id] || [];
-            const isOpen = !!isGroupDropdownOpen[group.id];
-            return (
-              <div key={group.id} className="relative">
-                <label className="block text-sm font-medium text-gray-700">{group.name}</label>
-                <button
-                  type="button"
-                  onClick={() => setIsGroupDropdownOpen((p) => ({ ...p, [group.id]: !p[group.id] }))}
-                  className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-left hover:bg-gray-50"
-                >
-                  {selected.length > 0 ? `${selected.length} ausgewählt` : 'Keine Auswahl'}
-                </button>
-                {isOpen && (
-                  <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded shadow p-2 max-h-64 overflow-auto">
-                    <ul className="space-y-1">
-                      {flattened.map((c) => {
-                        const checked = selected.includes(c.id);
-                        return (
-                          <li key={c.id}>
-                            <label className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={(e) => {
-                                  setSelectedCategoryIdsByGroup((prev) => {
-                                    const cur = new Set(prev[group.id] || []);
-                                    if (e.target.checked) cur.add(c.id); else cur.delete(c.id);
-                                    return { ...prev, [group.id]: Array.from(cur) };
-                                  });
-                                }}
-                                className="rounded"
-                              />
-                              <span style={{ paddingLeft: `${c.depth * 12}px` }}>{c.name}</span>
-                            </label>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Schwierigkeit</label>
-          <select
-            value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value as Difficulty)}
-            className="mt-1 w-full rounded"
-          >
-            <option value="einfach">einfach</option>
-            <option value="mittel">mittel</option>
-            <option value="schwer">schwer</option>
-          </select>
-        </div>
-        <div className="grid grid-cols-3 gap-4 col-span-1 md:col-span-2">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Arbeitszeit (Minuten)</label>
-            <input
-              type="number"
-              min={0}
-              value={workingMinutes}
-              onChange={(e) => setWorkingMinutes(e.target.value)}
-              className="mt-1 w-full rounded"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Koch/Backzeit (Minuten)</label>
-            <input
-              type="number"
-              min={0}
-              value={cookingMinutes}
-              onChange={(e) => setCookingMinutes(e.target.value)}
-              className="mt-1 w-full rounded"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Ruhezeit (Minuten)</label>
-            <input
-              type="number"
-              min={0}
-              value={restingMinutes}
-              onChange={(e) => setRestingMinutes(e.target.value)}
-              className="mt-1 w-full rounded"
-            />
-          </div>
+      {/* Wizard header */}
+      <div className="overflow-x-auto pb-1">
+        <div className="flex items-center gap-6 justify-start md:justify-center px-4 min-w-max">
+        {wizardSteps.map((label, idx) => {
+          const isActive = idx === wizardStepIdx;
+          const isDone = idx < wizardStepIdx;
+          const bgClass = isActive ? 'bg-orange-600 text-white' : isDone ? 'bg-orange-100 text-orange-900' : 'bg-gray-200 text-gray-800';
+          const hoverClass = isActive ? '' : 'hover:brightness-95';
+          return (
+            <button
+              key={label}
+              type="button"
+              onClick={() => gotoStep(idx)}
+              className={`${bgClass} ${hoverClass} relative rounded-md pl-2 pr-7 py-2 font-semibold shadow-sm transition-colors inline-flex items-center`}
+            >
+              <span className={`inline-flex items-center gap-2`}> 
+                <span className={`inline-flex items-center justify-center w-6 h-6 text-xs font-bold rounded-full border ${isActive ? 'border-white text-white' : isDone ? 'border-orange-900/30' : 'border-gray-600/40'}`}>
+                  {idx + 1}
+                </span>
+                <span>{label}</span>
+              </span>
+              <span
+                className={`${bgClass} absolute top-1/2 left-full w-8 h-8 rounded-md transition-colors`}
+                style={{ transform: 'translate(-22px, -50%) rotate(45deg)' }}
+                aria-hidden="true"
+              />
+            </button>
+          );
+        })}
         </div>
       </div>
 
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-lg font-semibold text-gray-900">Zutaten</h3>
-        </div>
+      {/* Step 1: Rezept (Basics + Zutaten) */}
+      {wizardStepIdx === 0 && (
         <div className="space-y-6">
-          {sections.map((section, sIdx) => (
-            <div key={section.tempId} className="border rounded p-4">
-              <div className="flex items-center gap-3 mb-4">
-                <input
-                  type="text"
-                  value={section.name}
-                  onChange={(e) => setSections((prev) => prev.map((s, i) => i === sIdx ? { ...s, name: e.target.value } : s))}
-                  className="flex-1 rounded"
-                  placeholder="Abschnittsname (optional, z.B. Tortenboden)"
-                />
-                {sections.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeSection(sIdx)}
-                    aria-label="Abschnitt entfernen"
-                    className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded focus:outline-none focus:ring-2 focus:ring-red-500/40"
-                  >
-                    <FontAwesomeIcon icon="trash" size="sm" />
-                  </button>
-                )}
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Rezeptname</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="mt-1 w-full rounded"
+                placeholder="z.B. Milchreis"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Zusätzliche Info</label>
+              <input
+                type="text"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="mt-1 w-full rounded"
+                placeholder="z.B. nach Omas Art"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Portionen</label>
+              <input
+                type="number"
+                min={1}
+                value={portions}
+                onChange={(e) => setPortions(Number(e.target.value))}
+                className="mt-1 w-full rounded"
+              />
+            </div>
+          </div>
 
-              <div className="space-y-3">
-                {section.ingredients.map((ing, iIdx) => (
-                  <div key={ing.tempId} className="grid grid-cols-12 gap-3 items-start">
-                    <div className="col-span-2">
-                      <label className="block text-xs text-gray-500">Menge</label>
-                      <input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        value={ing.quantity}
-                        onChange={(e) => updateIngredient(sIdx, iIdx, (cur) => ({ ...cur, quantity: e.target.value }))}
-                        className="mt-1 w-full rounded"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-xs text-gray-500">Einheit</label>
-                      <select
-                        value={ing.unit_id || ""}
-                        onChange={(e) => updateIngredient(sIdx, iIdx, (cur) => ({ ...cur, unit_id: e.target.value || null }))}
-                        className="mt-1 w-full rounded"
-                      >
-                        <option value="">-</option>
-                        {units.map((u) => (
-                          <option key={u.id} value={u.id}>{u.short_name || u.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="col-span-7">
-                      <label className="block text-xs text-gray-500">Zutat</label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={
-                            ing.link?.kind === "custom"
-                              ? ing.link.custom_ingredient_name
-                              : (searchQueryByIngredientId[ing.tempId] ?? "")
-                          }
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            // setting as custom if user types and then leaves without selecting
-                            updateIngredient(sIdx, iIdx, (cur) => ({
-                              ...cur,
-                              link: val ? { kind: "custom", custom_ingredient_name: val } : null,
-                            }));
-                            setSearchQueryByIngredientId((p) => ({ ...p, [ing.tempId]: val }));
-                            setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: true }));
-                            searchIngredients(ing.tempId, val);
-                          }}
-                          onFocus={() => {
-                            const current = searchQueryByIngredientId[ing.tempId] ?? "";
-                            if (current.trim()) {
-                              setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: true }));
-                            }
-                          }}
-                          onBlur={() => {
-                            // Delay to allow item click (mousedown) to run first
-                            setTimeout(() => {
-                              const selecting = !!isSelectingByClickByIngredientId[ing.tempId];
-                              if (selecting) {
-                                // reset flag and skip auto-select
-                                setIsSelectingByClickByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
-                                return;
-                              }
-                              const userText = (searchQueryByIngredientId[ing.tempId] ?? (ing.link?.kind === "custom" ? ing.link.custom_ingredient_name : "")) || "";
-                              const trimmed = userText.trim();
-                              if (!trimmed) {
-                                setSearchResultsByIngredientId((p) => ({ ...p, [ing.tempId]: [] }));
-                                setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
-                                return;
-                              }
-                              const results = searchResultsByIngredientId[ing.tempId] || [];
-                              const hasExact = results.some((r) => r.title.toLowerCase() === trimmed.toLowerCase());
-                              if (!hasExact) {
-                                // choose custom as first
-                                updateIngredient(sIdx, iIdx, (cur) => ({
-                                  ...cur,
-                                  link: { kind: "custom", custom_ingredient_name: trimmed },
-                                }));
-                                setSearchQueryByIngredientId((p) => ({ ...p, [ing.tempId]: trimmed }));
-                                setSearchResultsByIngredientId((p) => ({ ...p, [ing.tempId]: [] }));
-                                setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
-                                return;
-                              }
-                              if (results.length > 0) {
-                                const r = results[0];
-                                updateIngredient(sIdx, iIdx, (cur) => ({
-                                  ...cur,
-                                  link:
-                                    r.type === "product"
-                                      ? { kind: "product", product_id: r.id, label: r.title }
-                                      : { kind: "group", product_group_id: r.id, label: r.title },
-                                }));
-                                setSearchQueryByIngredientId((p) => ({ ...p, [ing.tempId]: r.title }));
-                                setSearchResultsByIngredientId((p) => ({ ...p, [ing.tempId]: [] }));
-                                setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
-                              }
-                            }, 120);
-                          }}
-                          className="mt-1 w-full rounded"
-                          placeholder="Suche nach Zutat (Produkt oder Produktgruppe) oder frei eingeben"
-                        />
-                        {/* Results dropdown with user's raw input as first suggestion if not exactly matched */}
-                        {(() => {
-                          const userText = (searchQueryByIngredientId[ing.tempId] ?? (ing.link?.kind === "custom" ? ing.link.custom_ingredient_name : "")) || "";
-                          const trimmed = userText.trim();
-                          const results = searchResultsByIngredientId[ing.tempId] || [];
-                          if (!trimmed) return null;
-                          const hasExact = results.some((r) => r.title.toLowerCase() === trimmed.toLowerCase());
-                          const isOpen = !!isDropdownOpenByIngredientId[ing.tempId];
-                          if (!isOpen) return null;
-                          return (
-                            <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded shadow text-gray-900">
-                              <ul className="max-h-56 overflow-auto divide-y divide-gray-100">
-                                {!hasExact && (
-                                  <li
-                                    key={"custom-" + ing.tempId}
-                                    className="px-3 py-2 hover:bg-orange-50 cursor-pointer text-sm text-gray-900"
-                                    onMouseDown={() => {
-                                      setIsSelectingByClickByIngredientId((p) => ({ ...p, [ing.tempId]: true }));
-                                    }}
-                                    onClick={() => {
-                                      updateIngredient(sIdx, iIdx, (cur) => ({
-                                        ...cur,
-                                        link: { kind: "custom", custom_ingredient_name: trimmed },
-                                      }));
-                                      setSearchResultsByIngredientId((p) => ({ ...p, [ing.tempId]: [] }));
-                                      setSearchQueryByIngredientId((p) => ({ ...p, [ing.tempId]: trimmed }));
-                                      setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
-                                      setIsSelectingByClickByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
-                                    }}
-                                  >
-                                    {trimmed}
-                                  </li>
-                                )}
-                                {results.map((r) => (
-                                  <li
-                                    key={r.id + (r.type || "")}
-                                    className="px-3 py-2 hover:bg-orange-50 cursor-pointer text-sm text-gray-900"
-                                    onMouseDown={() => {
-                                      // Mark that we are selecting by click to avoid blur auto-select conflicting
-                                      setIsSelectingByClickByIngredientId((p) => ({ ...p, [ing.tempId]: true }));
-                                    }}
-                                    onClick={() => {
-                                      updateIngredient(sIdx, iIdx, (cur) => ({
-                                        ...cur,
-                                        link:
-                                          r.type === "product"
-                                            ? { kind: "product", product_id: r.id, label: r.title }
-                                            : { kind: "group", product_group_id: r.id, label: r.title },
-                                      }));
-                                      setSearchResultsByIngredientId((p) => ({ ...p, [ing.tempId]: [] }));
-                                      setSearchQueryByIngredientId((p) => ({ ...p, [ing.tempId]: r.title }));
-                                      setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
-                                      setIsSelectingByClickByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
-                                    }}
-                                  >
-                                    {r.title} {r.type ? `(${r.type})` : ""}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          );
-                        })()}
-                        {ing.link && (ing.link as any).label && (
-                          <div className="text-xs text-gray-500 mt-1">Ausgewählt: {(ing.link as any).label}</div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="col-span-1 flex h-full items-start justify-center pt-3">
+          {/* Zutaten */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-semibold text-gray-900">Zutaten</h3>
+            </div>
+            <div className="space-y-6">
+              {sections.map((section, sIdx) => (
+                <div key={section.tempId} className="border rounded p-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <input
+                      type="text"
+                      value={section.name}
+                      onChange={(e) => setSections((prev) => prev.map((s, i) => i === sIdx ? { ...s, name: e.target.value } : s))}
+                      className="flex-1 rounded"
+                      placeholder="Abschnittsname (optional, z.B. Tortenboden)"
+                    />
+                    {sections.length > 1 && (
                       <button
                         type="button"
-                        onClick={() => removeIngredient(sIdx, iIdx)}
-                        aria-label="Zutat entfernen"
+                        onClick={() => removeSection(sIdx)}
+                        aria-label="Abschnitt entfernen"
                         className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded focus:outline-none focus:ring-2 focus:ring-red-500/40"
                       >
                         <FontAwesomeIcon icon="trash" size="sm" />
                       </button>
-                    </div>
+                    )}
                   </div>
-                ))}
-              </div>
 
-              <div className="mt-3">
-                <button type="button" onClick={() => addIngredient(sIdx)} className="text-sm text-orange-600 hover:text-orange-700">Zutat hinzufügen</button>
-              </div>
+                  <div className="space-y-3">
+                    {section.ingredients.map((ing, iIdx) => (
+                      <div key={ing.tempId} className="grid grid-cols-12 gap-3 items-start">
+                        <div className="col-span-2">
+                          <label className="block text-xs text-gray-500">Menge</label>
+                          <input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            value={ing.quantity}
+                            onChange={(e) => updateIngredient(sIdx, iIdx, (cur) => ({ ...cur, quantity: e.target.value }))}
+                            className="mt-1 w-full rounded"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <label className="block text-xs text-gray-500">Einheit</label>
+                          <select
+                            value={ing.unit_id || ""}
+                            onChange={(e) => updateIngredient(sIdx, iIdx, (cur) => ({ ...cur, unit_id: e.target.value || null }))}
+                            className="mt-1 w-full rounded"
+                          >
+                            <option value="">-</option>
+                            {units.map((u) => (
+                              <option key={u.id} value={u.id}>{u.short_name || u.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="col-span-7">
+                          <label className="block text-xs text-gray-500">Zutat</label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={
+                                ing.link?.kind === "custom"
+                                  ? ing.link.custom_ingredient_name
+                                  : (searchQueryByIngredientId[ing.tempId] ?? "")
+                              }
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                updateIngredient(sIdx, iIdx, (cur) => ({
+                                  ...cur,
+                                  link: val ? { kind: "custom", custom_ingredient_name: val } : null,
+                                }));
+                                setSearchQueryByIngredientId((p) => ({ ...p, [ing.tempId]: val }));
+                                setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: true }));
+                                searchIngredients(ing.tempId, val);
+                              }}
+                              onFocus={() => {
+                                const current = searchQueryByIngredientId[ing.tempId] ?? "";
+                                if (current.trim()) {
+                                  setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: true }));
+                                }
+                              }}
+                              onBlur={() => {
+                                setTimeout(() => {
+                                  const selecting = !!isSelectingByClickByIngredientId[ing.tempId];
+                                  if (selecting) {
+                                    setIsSelectingByClickByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                    return;
+                                  }
+                                  const userText = (searchQueryByIngredientId[ing.tempId] ?? (ing.link?.kind === "custom" ? ing.link.custom_ingredient_name : "")) || "";
+                                  const trimmed = userText.trim();
+                                  if (!trimmed) {
+                                    setSearchResultsByIngredientId((p) => ({ ...p, [ing.tempId]: [] }));
+                                    setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                    return;
+                                  }
+                                  const results = searchResultsByIngredientId[ing.tempId] || [];
+                                  const hasExact = results.some((r) => r.title.toLowerCase() === trimmed.toLowerCase());
+                                  if (!hasExact) {
+                                    updateIngredient(sIdx, iIdx, (cur) => ({
+                                      ...cur,
+                                      link: { kind: "custom", custom_ingredient_name: trimmed },
+                                    }));
+                                    setSearchQueryByIngredientId((p) => ({ ...p, [ing.tempId]: trimmed }));
+                                    setSearchResultsByIngredientId((p) => ({ ...p, [ing.tempId]: [] }));
+                                    setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                    return;
+                                  }
+                                  if (results.length > 0) {
+                                    const r = results[0];
+                                    updateIngredient(sIdx, iIdx, (cur) => ({
+                                      ...cur,
+                                      link:
+                                        r.type === "product"
+                                          ? { kind: "product", product_id: r.id, label: r.title }
+                                          : { kind: "group", product_group_id: r.id, label: r.title },
+                                    }));
+                                    setSearchQueryByIngredientId((p) => ({ ...p, [ing.tempId]: r.title }));
+                                    setSearchResultsByIngredientId((p) => ({ ...p, [ing.tempId]: [] }));
+                                    setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                  }
+                                }, 120);
+                              }}
+                              className="mt-1 w-full rounded"
+                              placeholder="Suche nach Zutat (Produkt oder Produktgruppe) oder frei eingeben"
+                            />
+                            {(() => {
+                              const userText = (searchQueryByIngredientId[ing.tempId] ?? (ing.link?.kind === "custom" ? ing.link.custom_ingredient_name : "")) || "";
+                              const trimmed = userText.trim();
+                              const results = searchResultsByIngredientId[ing.tempId] || [];
+                              if (!trimmed) return null;
+                              const hasExact = results.some((r) => r.title.toLowerCase() === trimmed.toLowerCase());
+                              const isOpen = !!isDropdownOpenByIngredientId[ing.tempId];
+                              if (!isOpen) return null;
+                              return (
+                                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded shadow text-gray-900">
+                                  <ul className="max-h-56 overflow-auto divide-y divide-gray-100">
+                                    {!hasExact && (
+                                      <li
+                                        key={"custom-" + ing.tempId}
+                                        className="px-3 py-2 hover:bg-orange-50 cursor-pointer text-sm text-gray-900"
+                                        onMouseDown={() => {
+                                          setIsSelectingByClickByIngredientId((p) => ({ ...p, [ing.tempId]: true }));
+                                        }}
+                                        onClick={() => {
+                                          updateIngredient(sIdx, iIdx, (cur) => ({
+                                            ...cur,
+                                            link: { kind: "custom", custom_ingredient_name: trimmed },
+                                          }));
+                                          setSearchResultsByIngredientId((p) => ({ ...p, [ing.tempId]: [] }));
+                                          setSearchQueryByIngredientId((p) => ({ ...p, [ing.tempId]: trimmed }));
+                                          setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                          setIsSelectingByClickByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                        }}
+                                      >
+                                        {trimmed}
+                                      </li>
+                                    )}
+                                    {results.map((r) => (
+                                      <li
+                                        key={r.id + (r.type || "")}
+                                        className="px-3 py-2 hover:bg-orange-50 cursor-pointer text-sm text-gray-900"
+                                        onMouseDown={() => {
+                                          setIsSelectingByClickByIngredientId((p) => ({ ...p, [ing.tempId]: true }));
+                                        }}
+                                        onClick={() => {
+                                          updateIngredient(sIdx, iIdx, (cur) => ({
+                                            ...cur,
+                                            link:
+                                              r.type === "product"
+                                                ? { kind: "product", product_id: r.id, label: r.title }
+                                                : { kind: "group", product_group_id: r.id, label: r.title },
+                                          }));
+                                          setSearchResultsByIngredientId((p) => ({ ...p, [ing.tempId]: [] }));
+                                          setSearchQueryByIngredientId((p) => ({ ...p, [ing.tempId]: r.title }));
+                                          setIsDropdownOpenByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                          setIsSelectingByClickByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
+                                        }}
+                                      >
+                                        {r.title} {r.type ? `(${r.type})` : ""}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              );
+                            })()}
+                            {ing.link && (ing.link as any).label && (
+                              <div className="text-xs text-gray-500 mt-1">Ausgewählt: {(ing.link as any).label}</div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="col-span-1 flex h-full items-start justify-center pt-3">
+                          <button
+                            type="button"
+                            onClick={() => removeIngredient(sIdx, iIdx)}
+                            aria-label="Zutat entfernen"
+                            className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded focus:outline-none focus:ring-2 focus:ring-red-500/40"
+                          >
+                            <FontAwesomeIcon icon="trash" size="sm" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-3">
+                    <button type="button" onClick={() => addIngredient(sIdx)} className="text-sm text-orange-600 hover:text-orange-700">Zutat hinzufügen</button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <div className="mt-4">
-          <button type="button" onClick={addSection} className="text-sm text-orange-600 hover:text-orange-700">Abschnitt hinzufügen</button>
-        </div>
-      </div>
-
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-lg font-semibold text-gray-900">Zubereitung</h3>
-        </div>
-        <div className="space-y-3">
-          {steps.map((step, idx) => (
-            <div key={idx} className="grid grid-cols-12 gap-3 items-stretch">
-              <div className="col-span-1 flex items-center h-10">
-                <span className="text-gray-500 text-sm">{step.step_number}.</span>
-              </div>
-              <div className="col-span-10">
-                <textarea
-                  value={step.instruction}
-                  onChange={(e) => setSteps((prev) => prev.map((s, i) => i === idx ? { ...s, instruction: e.target.value } : s))}
-                  className="w-full rounded min-h-28"
-                  placeholder="Zubereitungsschritt"
-                  rows={6}
-                />
-              </div>
-              <div className="col-span-1 flex h-full items-center justify-center">
-                <button
-                  type="button"
-                  onClick={() => removeStep(idx)}
-                  aria-label="Schritt entfernen"
-                  className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded focus:outline-none focus:ring-2 focus:ring-red-500/40"
-                >
-                  <FontAwesomeIcon icon="trash" size="sm" />
-                </button>
-              </div>
+            <div className="mt-4">
+              <button type="button" onClick={addSection} className="text-sm text-orange-600 hover:text-orange-700">Abschnitt hinzufügen</button>
             </div>
-          ))}
+          </div>
         </div>
-        <div className="mt-4">
-          <button type="button" onClick={addStep} className="text-sm text-orange-600 hover:text-orange-700">Schritt hinzufügen</button>
-        </div>
-      </div>
+      )}
 
-      <div className="pt-2">
+      {/* Step 2: Zubereitung (Schritte, dann Zeiten und Schwierigkeit) */}
+      {wizardStepIdx === 1 && (
+        <div className="space-y-6">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-semibold text-gray-900">Zubereitung</h3>
+            </div>
+            <div className="space-y-3">
+              {steps.map((step, idx) => (
+                <div key={idx} className="grid grid-cols-12 gap-3 items-stretch">
+                  <div className="col-span-1 flex items-center h-10">
+                    <span className="text-gray-500 text-sm">{step.step_number}.</span>
+                  </div>
+                  <div className="col-span-10">
+                    <textarea
+                      value={step.instruction}
+                      onChange={(e) => setSteps((prev) => prev.map((s, i) => i === idx ? { ...s, instruction: e.target.value } : s))}
+                      className="w-full rounded min-h-28"
+                      placeholder="Zubereitungsschritt"
+                      rows={6}
+                    />
+                  </div>
+                  <div className="col-span-1 flex h-full items-center justify-center">
+                    <button
+                      type="button"
+                      onClick={() => removeStep(idx)}
+                      aria-label="Schritt entfernen"
+                      className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded focus:outline-none focus:ring-2 focus:ring-red-500/40"
+                    >
+                      <FontAwesomeIcon icon="trash" size="sm" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4">
+              <button type="button" onClick={addStep} className="text-sm text-orange-600 hover:text-orange-700">Schritt hinzufügen</button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-semibold text-gray-900">Dauer & Schwierigkeit</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Arbeitszeit (Minuten)</label>
+              <input
+                type="number"
+                min={0}
+                value={workingMinutes}
+                onChange={(e) => setWorkingMinutes(e.target.value)}
+                className="mt-1 w-full rounded"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Koch/Backzeit (Minuten)</label>
+              <input
+                type="number"
+                min={0}
+                value={cookingMinutes}
+                onChange={(e) => setCookingMinutes(e.target.value)}
+                className="mt-1 w-full rounded"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Ruhezeit (Minuten)</label>
+              <input
+                type="number"
+                min={0}
+                value={restingMinutes}
+                onChange={(e) => setRestingMinutes(e.target.value)}
+                className="mt-1 w-full rounded"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Schwierigkeit</label>
+            <select
+              value={difficulty}
+              onChange={(e) => setDifficulty(e.target.value as Difficulty)}
+              className="mt-1 w-full rounded md:w-64"
+            >
+              <option value="einfach">einfach</option>
+              <option value="mittel">mittel</option>
+              <option value="schwer">schwer</option>
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* Step 3: Kategorien */}
+      {wizardStepIdx === 2 && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {categoryGroups.map((group) => {
+              const flattened = flattenCategoriesForGroup(group.id);
+              const selected = selectedCategoryIdsByGroup[group.id] || [];
+              const isOpen = !!isGroupDropdownOpen[group.id];
+              return (
+                <div key={group.id} className="relative">
+                  <label className="block text-sm font-medium text-gray-700">{group.name}</label>
+                  <button
+                    type="button"
+                    onClick={() => setIsGroupDropdownOpen((p) => ({ ...p, [group.id]: !p[group.id] }))}
+                    className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-left hover:bg-gray-50"
+                  >
+                    {selected.length > 0 ? `${selected.length} ausgewählt` : 'Keine Auswahl'}
+                  </button>
+                  {isOpen && (
+                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded shadow p-2 max-h-64 overflow-auto">
+                      <ul className="space-y-1">
+                        {flattened.map((c) => {
+                          const checked = selected.includes(c.id);
+                          return (
+                            <li key={c.id}>
+                              <label className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={(e) => {
+                                    setSelectedCategoryIdsByGroup((prev) => {
+                                      const cur = new Set(prev[group.id] || []);
+                                      if (e.target.checked) cur.add(c.id); else cur.delete(c.id);
+                                      return { ...prev, [group.id]: Array.from(cur) };
+                                    });
+                                  }}
+                                  className="rounded"
+                                />
+                                <span style={{ paddingLeft: `${c.depth * 12}px` }}>{c.name}</span>
+                              </label>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Step 4: Rezeptbild */}
+      {wizardStepIdx === 3 && (
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Titelbild (optional)</label>
+            <div className="mt-1 flex items-center gap-4">
+              <input type="file" accept="image/*" onChange={onImageChange} className="rounded" />
+              {imagePreview && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={imagePreview} alt="Vorschau" className="h-16 w-16 object-cover rounded border" />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Step 5: Vorschau */}
+      {wizardStepIdx === 4 && (
+        <div className="space-y-6 text-gray-900">
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Rezept</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div><span className="text-gray-600">Name:</span> {name || '–'}</div>
+              <div><span className="text-gray-600">Info:</span> {description || '–'}</div>
+              <div><span className="text-gray-600">Portionen:</span> {portions}</div>
+            </div>
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Zubereitung</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+              <div><span className="text-gray-600">Arbeitszeit:</span> {workingMinutes || '–'} Min</div>
+              <div><span className="text-gray-600">Koch/Backzeit:</span> {cookingMinutes || '–'} Min</div>
+              <div><span className="text-gray-600">Ruhezeit:</span> {restingMinutes || '–'} Min</div>
+            </div>
+            <div className="mt-2 text-sm"><span className="text-gray-600">Schwierigkeit:</span> {difficulty}</div>
+            <div className="mt-2 text-sm"><span className="text-gray-600">Schritte:</span> {steps.filter(s => s.instruction.trim()).length}</div>
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Kategorien</h3>
+            <ul className="list-disc pl-5 text-sm">
+              {categoryGroups.map((g) => {
+                const ids = selectedCategoryIdsByGroup[g.id] || [];
+                if (ids.length === 0) return null;
+                const names = allCategories.filter(c => ids.includes(c.id)).map(c => c.name);
+                return <li key={g.id}><span className="text-gray-600">{g.name}:</span> {names.join(', ')}</li>;
+              })}
+              {Object.values(selectedCategoryIdsByGroup).flat().length === 0 && <li>–</li>}
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Rezeptbild</h3>
+            {imagePreview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={imagePreview} alt="Vorschau" className="h-24 w-24 object-cover rounded border" />
+            ) : (
+              <div className="text-sm text-gray-600">Kein Bild ausgewählt</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Wizard navigation */}
+      <div className="pt-2 flex items-center justify-between">
         <button
-          type="submit"
-          disabled={loading}
-          className="inline-flex items-center px-4 py-2 rounded bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50"
+          type="button"
+          onClick={() => gotoStep(wizardStepIdx - 1)}
+          disabled={wizardStepIdx === 0 || loading}
+          className="inline-flex items-center px-4 py-2 rounded border border-gray-300 text-gray-800 hover:bg-gray-50 disabled:opacity-50"
         >
-          {loading ? "Speichern..." : "Rezept erstellen"}
+          Zurück
         </button>
+        {wizardStepIdx < wizardSteps.length - 1 ? (
+          <button
+            type="button"
+            onClick={() => {
+              if (wizardStepIdx === 0) {
+                if (!name.trim()) { setError("Bitte einen Rezeptnamen eingeben."); return; }
+                const anyIng = sections.some((sec) => sec.ingredients.some((ing) => ing.quantity.trim() && (ing.link != null)));
+                if (!anyIng) { setError("Bitte mindestens eine Zutat mit Menge und Namen auswählen."); return; }
+              }
+              if (wizardStepIdx === 1) {
+                const anyStep = steps.some((s) => s.instruction.trim());
+                if (!anyStep) { setError("Bitte mindestens einen Zubereitungsschritt eingeben."); return; }
+              }
+              setError(null);
+              gotoStep(wizardStepIdx + 1);
+            }}
+            disabled={loading}
+            className="inline-flex items-center px-4 py-2 rounded bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50"
+          >
+            Weiter
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={loading}
+            className="inline-flex items-center px-4 py-2 rounded bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50"
+          >
+            {loading ? "Speichern..." : "Rezept erstellen"}
+          </button>
+        )}
       </div>
     </form>
   );
