@@ -13,7 +13,6 @@ type RecipeRow = {
   image_url: string | null;
   created_at: string;
   created_by: string | null;
-  category_name: string | null;
 };
 
 function toSlug(s: string) {
@@ -47,7 +46,7 @@ export default async function MeinKochbuchPage() {
   if (recipeIds.length > 0) {
     const { data } = await supabase
       .from('recipes_with_details')
-      .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, category_name, created_by')
+      .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, created_by')
       .in('id', recipeIds);
     recipes = (data as RecipeRow[]) || [];
     // Keep the same order as in mapping (recent first)
@@ -123,7 +122,6 @@ export default async function MeinKochbuchPage() {
                         <p className="text-sm text-gray-600 line-clamp-2 mt-1">{r.description}</p>
                       )}
                       <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-600">
-                        {r.category_name && <span>🏷️ {r.category_name}</span>}
                         <span>📊 {r.difficulty}</span>
                         {totalTime && <span>⏱️ {totalTime}</span>}
                         <span>⭐ {rating.average ? rating.average.toFixed(1) : '–'} ({rating.count})</span>

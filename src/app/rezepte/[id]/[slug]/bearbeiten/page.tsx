@@ -8,7 +8,8 @@ import Toast from "@/components/Toast";
 type Difficulty = "einfach" | "mittel" | "schwer";
 
 interface Unit { id: string; name: string; short_name?: string | null }
-interface Category { id: string; name: string }
+interface CategoryGroup { id: string; name: string; icon?: string | null; sort_order: number }
+interface Category { id: string; name: string; sort_order: number; group_id: string; parent_category_id?: string | null }
 
 type IngredientLink =
   | { kind: "product"; product_id: string; label: string }
@@ -53,13 +54,16 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [units, setUnits] = useState<Unit[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryGroups, setCategoryGroups] = useState<CategoryGroup[]>([]);
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [selectedCategoryIdsByGroup, setSelectedCategoryIdsByGroup] = useState<Record<string, string[]>>({});
+  const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState<Record<string, boolean>>({});
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [portions, setPortions] = useState<number>(1);
   const [difficulty, setDifficulty] = useState<Difficulty>("mittel");
-  const [categoryId, setCategoryId] = useState<string | "">("");
+  // removed single category; using multi-select by group
   const [workingMinutes, setWorkingMinutes] = useState<string>("");
   const [cookingMinutes, setCookingMinutes] = useState<string>("");
   const [restingMinutes, setRestingMinutes] = useState<string>("");
@@ -114,17 +118,20 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
     const load = async () => {
       try {
         const resolved = await params;
-        const [unitsRes, catRes] = await Promise.all([
+        const [unitsRes, groupRes, catsRes, mappedRes] = await Promise.all([
           supabase.from("recipe_units").select("id, name, short_name, sort_order").order("sort_order", { ascending: true }),
-          supabase.from("recipe_categories").select("id, name, sort_order").order("sort_order", { ascending: true }),
+          supabase.from("recipe_category_groups").select("id, name, icon, sort_order").order("sort_order", { ascending: true }),
+          supabase.from("recipe_categories").select("id, name, sort_order, group_id, parent_category_id").order("sort_order", { ascending: true }),
+          supabase.from("recipe_categories_map").select("category_id, recipe_id").eq("recipe_id", resolved.id),
         ]);
         if (!unitsRes.error && unitsRes.data) setUnits(unitsRes.data as any);
-        if (!catRes.error && catRes.data) setCategories(catRes.data as any);
+        if (!groupRes.error && groupRes.data) setCategoryGroups(groupRes.data as any);
+        if (!catsRes.error && catsRes.data) setAllCategories(catsRes.data as any);
 
         const { data: recipe } = await supabase
           .from("recipes_with_details")
           .select(
-            "id, name, description, portions, difficulty, category_id, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url"
+            "id, name, description, portions, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url"
           )
           .eq("id", resolved.id)
           .maybeSingle();
@@ -134,7 +141,17 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
         setDescription(((recipe as any).description as string) || "");
         setPortions((recipe as any).portions);
         setDifficulty((recipe as any).difficulty);
-        setCategoryId(((recipe as any).category_id as string) || "");
+        // Initialize selected categories mapping by group
+        const mapped = (mappedRes.data as any[]) || [];
+        const selectedByGroup: Record<string, string[]> = {};
+        for (const m of mapped) {
+          const cat = (catsRes.data as any[]).find((c) => c.id === m.category_id);
+          if (cat) {
+            if (!selectedByGroup[cat.group_id]) selectedByGroup[cat.group_id] = [];
+            selectedByGroup[cat.group_id].push(cat.id);
+          }
+        }
+        setSelectedCategoryIdsByGroup(selectedByGroup);
         setWorkingMinutes(((recipe as any).working_time_minutes as number | null)?.toString() || "");
         setCookingMinutes(((recipe as any).cooking_time_minutes as number | null)?.toString() || "");
         setRestingMinutes(((recipe as any).resting_time_minutes as number | null)?.toString() || "");
@@ -235,7 +252,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
         description: description.trim() || undefined,
         portions,
         difficulty,
-        category_id: categoryId || null,
+        category_ids: Object.values(selectedCategoryIdsByGroup).flat().filter(Boolean),
         working_time_minutes: workingMinutes ? Number(workingMinutes) : null,
         cooking_time_minutes: cookingMinutes ? Number(cookingMinutes) : null,
         resting_time_minutes: restingMinutes ? Number(restingMinutes) : null,
@@ -312,14 +329,67 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
             <label className="block text-sm font-medium text-gray-700">Portionen</label>
             <input type="number" min={1} value={portions} onChange={(e) => setPortions(Number(e.target.value))} className="mt-1 w-full rounded" />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Kategorie</label>
-            <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="mt-1 w-full rounded">
-              <option value="">- Keine -</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+          <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {categoryGroups.map((group) => {
+              const cats = allCategories.filter((c) => c.group_id === group.id);
+              const byParent: Record<string, Category[]> = {};
+              for (const c of cats) {
+                const parentId = c.parent_category_id || "__root__";
+                if (!byParent[parentId]) byParent[parentId] = [];
+                byParent[parentId].push(c);
+              }
+              function flattened(parentId: string | null, depth: number, acc: Array<{ id: string; name: string; depth: number }>) {
+                const children = (byParent[parentId || "__root__"] || []).sort((a, b) => (a.sort_order - b.sort_order) || a.name.localeCompare(b.name));
+                for (const ch of children) {
+                  acc.push({ id: ch.id, name: ch.name, depth });
+                  flattened(ch.id, depth + 1, acc);
+                }
+                return acc;
+              }
+              const options = flattened(null, 0, []);
+              const selected = selectedCategoryIdsByGroup[group.id] || [];
+              const isOpen = !!isGroupDropdownOpen[group.id];
+              return (
+                <div key={group.id} className="relative">
+                  <label className="block text-sm font-medium text-gray-700">{group.name}</label>
+                  <button
+                    type="button"
+                    onClick={() => setIsGroupDropdownOpen((p) => ({ ...p, [group.id]: !p[group.id] }))}
+                    className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-left hover:bg-gray-50"
+                  >
+                    {selected.length > 0 ? `${selected.length} ausgewählt` : 'Keine Auswahl'}
+                  </button>
+                  {isOpen && (
+                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded shadow p-2 max-h-64 overflow-auto">
+                      <ul className="space-y-1">
+                        {options.map((o) => {
+                          const checked = selected.includes(o.id);
+                          return (
+                            <li key={o.id}>
+                              <label className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={(e) => {
+                                    setSelectedCategoryIdsByGroup((prev) => {
+                                      const cur = new Set(prev[group.id] || []);
+                                      if (e.target.checked) cur.add(o.id); else cur.delete(o.id);
+                                      return { ...prev, [group.id]: Array.from(cur) };
+                                    });
+                                  }}
+                                  className="rounded"
+                                />
+                                <span style={{ paddingLeft: `${o.depth * 12}px` }}>{o.name}</span>
+                              </label>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Schwierigkeit</label>

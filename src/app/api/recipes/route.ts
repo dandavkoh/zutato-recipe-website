@@ -8,7 +8,7 @@ interface CreateRecipeRequestBody {
   description?: string;
   portions: number;
   difficulty: Difficulty;
-  category_id: string | null;
+  category_ids: string[];
   working_time_minutes?: number | null;
   cooking_time_minutes?: number | null;
   resting_time_minutes?: number | null;
@@ -52,7 +52,6 @@ export async function POST(request: Request) {
         description: body.description ?? null,
         portions: body.portions,
         difficulty: body.difficulty,
-        category_id: body.category_id,
         working_time_minutes: body.working_time_minutes ?? null,
         cooking_time_minutes: body.cooking_time_minutes ?? null,
         resting_time_minutes: body.resting_time_minutes ?? null,
@@ -67,6 +66,17 @@ export async function POST(request: Request) {
     }
 
     const recipeId = recipeInsert.id as string;
+
+    // 1b) Insert category mappings (many-to-many)
+    const uniqueCategoryIds = Array.from(new Set((body.category_ids || []).filter(Boolean)));
+    if (uniqueCategoryIds.length > 0) {
+      const { error: mapErr } = await supabase
+        .from('recipe_categories_map')
+        .insert(uniqueCategoryIds.map((cid) => ({ recipe_id: recipeId, category_id: cid, created_by: user.id })));
+      if (mapErr) {
+        return NextResponse.json({ error: mapErr.message }, { status: 400 });
+      }
+    }
 
     // 2) Insert sections that have a name. We treat unnamed/default section as null section_id for its ingredients
     const namedSections = (body.sections || []).filter((s) => s.name && s.name.trim());

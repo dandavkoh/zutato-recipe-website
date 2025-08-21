@@ -17,7 +17,7 @@ export default async function OpengraphImage({ params }: { params: Promise<Route
 
   const { data: recipe } = await supabase
     .from('recipes_with_details')
-    .select('name, description, image_url, working_time_minutes, cooking_time_minutes, resting_time_minutes, category_name')
+    .select('name, description, image_url, working_time_minutes, cooking_time_minutes, resting_time_minutes')
     .eq('id', id)
     .maybeSingle();
 
@@ -43,7 +43,7 @@ export default async function OpengraphImage({ params }: { params: Promise<Route
   lines.push('ZUTATO');
   lines.push(title);
   const metaParts: string[] = [];
-  if (recipe?.category_name) metaParts.push(`🏷️ ${recipe.category_name}`);
+  // Kategorie entfernen (Many-to-Many)
   if (duration) metaParts.push(`⏱️ ${duration}`);
   if (ratingAverage != null) metaParts.push(`⭐ ${ratingAverage.toFixed(1)}${ratingCount > 0 ? ` (${ratingCount})` : ''}`);
   if (metaParts.length) lines.push(metaParts.join('   '));

@@ -13,9 +13,19 @@ interface Unit {
   short_name?: string | null;
 }
 
+interface RecipeCategoryGroup {
+  id: string;
+  name: string;
+  icon?: string | null;
+  sort_order: number;
+}
+
 interface RecipeCategory {
   id: string;
   name: string;
+  sort_order: number;
+  group_id: string;
+  parent_category_id?: string | null;
 }
 
 export interface ProductOrGroup {
@@ -58,7 +68,7 @@ interface CreateRecipeRequestBody {
   description?: string;
   portions: number;
   difficulty: Difficulty;
-  category_id: string | null;
+  category_ids: string[];
   working_time_minutes?: number | null;
   cooking_time_minutes?: number | null;
   resting_time_minutes?: number | null;
@@ -85,14 +95,16 @@ export default function RecipeForm() {
 
   const [loading, setLoading] = useState(false);
   const [units, setUnits] = useState<Unit[]>([]);
-  const [categories, setCategories] = useState<RecipeCategory[]>([]);
+  const [categoryGroups, setCategoryGroups] = useState<RecipeCategoryGroup[]>([]);
+  const [allCategories, setAllCategories] = useState<RecipeCategory[]>([]);
+  const [selectedCategoryIdsByGroup, setSelectedCategoryIdsByGroup] = useState<Record<string, string[]>>({});
+  const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState<Record<string, boolean>>({});
 
   // form fields
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [portions, setPortions] = useState<number>(4);
   const [difficulty, setDifficulty] = useState<Difficulty>("mittel");
-  const [categoryId, setCategoryId] = useState<string | "">("");
   const [workingMinutes, setWorkingMinutes] = useState<string>("");
   const [cookingMinutes, setCookingMinutes] = useState<string>("");
   const [restingMinutes, setRestingMinutes] = useState<string>("");
@@ -127,20 +139,43 @@ export default function RecipeForm() {
     const loadBasics = async () => {
       setLoading(true);
       try {
-        const [unitsRes, catRes] = await Promise.all([
+        const [unitsRes, catGroupsRes, catsRes] = await Promise.all([
           supabase.from("recipe_units").select("id, name, short_name, sort_order").order("sort_order", { ascending: true }),
-          supabase.from("recipe_categories").select("id, name, sort_order").order("sort_order", { ascending: true }),
+          supabase.from("recipe_category_groups").select("id, name, icon, sort_order").order("sort_order", { ascending: true }),
+          supabase.from("recipe_categories").select("id, name, sort_order, group_id, parent_category_id").order("sort_order", { ascending: true }),
         ]);
 
         if (!unitsRes.error && unitsRes.data) setUnits(unitsRes.data as Unit[]);
-        if (!catRes.error && catRes.data)
-          setCategories(catRes.data as RecipeCategory[]);
+        if (!catGroupsRes.error && catGroupsRes.data) setCategoryGroups(catGroupsRes.data as RecipeCategoryGroup[]);
+        if (!catsRes.error && catsRes.data) setAllCategories(catsRes.data as RecipeCategory[]);
       } finally {
         setLoading(false);
       }
     };
     loadBasics();
   }, [supabase]);
+
+  function flattenCategoriesForGroup(groupId: string): Array<{ id: string; name: string; depth: number }> {
+    const cats = allCategories.filter((c) => c.group_id === groupId);
+    const byParent: Record<string, RecipeCategory[]> = {};
+    for (const c of cats) {
+      const parentId = c.parent_category_id || "__root__";
+      if (!byParent[parentId]) byParent[parentId] = [];
+      byParent[parentId].push(c);
+    }
+    const result: Array<{ id: string; name: string; depth: number }> = [];
+    function dfs(parentId: string | null, depth: number) {
+      const children = byParent[parentId || "__root__"] || [];
+      // ensure stable sort by sort_order then name
+      children.sort((a, b) => (a.sort_order - b.sort_order) || a.name.localeCompare(b.name));
+      for (const ch of children) {
+        result.push({ id: ch.id, name: ch.name, depth });
+        dfs(ch.id, depth + 1);
+      }
+    }
+    dfs(null, 0);
+    return result;
+  }
 
   function onImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] || null;
@@ -299,7 +334,7 @@ export default function RecipeForm() {
         description: description.trim() || undefined,
         portions,
         difficulty,
-        category_id: categoryId || null,
+        category_ids: Object.values(selectedCategoryIdsByGroup).flat().filter(Boolean),
         working_time_minutes: workingMinutes ? Number(workingMinutes) : null,
         cooking_time_minutes: cookingMinutes ? Number(cookingMinutes) : null,
         resting_time_minutes: restingMinutes ? Number(restingMinutes) : null,
@@ -340,7 +375,7 @@ export default function RecipeForm() {
       setDescription("");
       setPortions(4);
       setDifficulty("mittel");
-      setCategoryId("");
+      setSelectedCategoryIdsByGroup({});
       setWorkingMinutes("");
       setCookingMinutes("");
       setRestingMinutes("");
@@ -415,18 +450,52 @@ export default function RecipeForm() {
             className="mt-1 w-full rounded"
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Kategorie</label>
-          <select
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className="mt-1 w-full rounded"
-          >
-            <option value="">- Keine -</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
+        <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {categoryGroups.map((group) => {
+            const flattened = flattenCategoriesForGroup(group.id);
+            const selected = selectedCategoryIdsByGroup[group.id] || [];
+            const isOpen = !!isGroupDropdownOpen[group.id];
+            return (
+              <div key={group.id} className="relative">
+                <label className="block text-sm font-medium text-gray-700">{group.name}</label>
+                <button
+                  type="button"
+                  onClick={() => setIsGroupDropdownOpen((p) => ({ ...p, [group.id]: !p[group.id] }))}
+                  className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-left hover:bg-gray-50"
+                >
+                  {selected.length > 0 ? `${selected.length} ausgewählt` : 'Keine Auswahl'}
+                </button>
+                {isOpen && (
+                  <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded shadow p-2 max-h-64 overflow-auto">
+                    <ul className="space-y-1">
+                      {flattened.map((c) => {
+                        const checked = selected.includes(c.id);
+                        return (
+                          <li key={c.id}>
+                            <label className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={(e) => {
+                                  setSelectedCategoryIdsByGroup((prev) => {
+                                    const cur = new Set(prev[group.id] || []);
+                                    if (e.target.checked) cur.add(c.id); else cur.delete(c.id);
+                                    return { ...prev, [group.id]: Array.from(cur) };
+                                  });
+                                }}
+                                className="rounded"
+                              />
+                              <span style={{ paddingLeft: `${c.depth * 12}px` }}>{c.name}</span>
+                            </label>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700">Schwierigkeit</label>
