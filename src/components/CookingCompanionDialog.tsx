@@ -105,6 +105,52 @@ export default function CookingCompanionDialog({
     return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   }
 
+  // Mobile-friendly helpers for timer
+  function getCurrentTargetMs(): number {
+    if (running) return remainingMs;
+    const mins = Math.max(0, parseInt(minInput || "0", 10) || 0);
+    const secs = Math.max(0, Math.min(59, parseInt(secInput || "0", 10) || 0));
+    return (mins * 60 + secs) * 1000;
+  }
+  function setInputsFromMs(ms: number) {
+    const totalSec = Math.max(0, Math.floor(ms / 1000));
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    setMinInput(String(m));
+    setSecInput(String(s));
+  }
+  function setMs(ms: number) {
+    const clamped = Math.max(0, ms);
+    if (running) setRemainingMs(clamped);
+    setInputsFromMs(clamped);
+  }
+  function addSeconds(delta: number) {
+    const cur = getCurrentTargetMs();
+    setMs(cur + delta * 1000);
+  }
+  function setPresetSeconds(sec: number) {
+    setRunning(false);
+    setMs(sec * 1000);
+  }
+  function tryBeep() {
+    try {
+      const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = 880;
+      o.connect(g);
+      g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.0001, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.3);
+      o.start();
+      o.stop(ctx.currentTime + 0.35);
+    } catch {}
+  }
+
   const totalSteps = steps.length;
   const canPrev = stage === "steps"; // allow going back from Schritt 1 to Zutaten
   const canNext = stage === "steps" && currentIndex < totalSteps - 1;
@@ -245,35 +291,50 @@ export default function CookingCompanionDialog({
                   <span className="text-gray-600">{timerCollapsed ? "▾" : "▴"}</span>
                 </button>
                 {timerCollapsed && (
-                  <div id="companion-timer-panel" className="mt-3 flex flex-col sm:flex-row sm:items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min={0}
-                        placeholder="Min"
-                        value={minInput}
-                        onChange={(e) => setMinInput(e.target.value)}
-                        className="w-24 h-11 border rounded px-3 text-base"
-                      />
-                      <span className="text-lg">:</span>
-                      <input
-                        type="number"
-                        min={0}
-                        max={59}
-                        placeholder="Sek"
-                        value={secInput}
-                        onChange={(e) => setSecInput(e.target.value)}
-                        className="w-24 h-11 border rounded px-3 text-base"
-                      />
+                  <div id="companion-timer-panel" className="mt-3 grid grid-cols-1 gap-3 max-w-full">
+                    {/* Big clock */}
+                    <div className="order-1 flex flex-col items-center justify-center gap-3 bg-white rounded-lg p-3 border">
+                      <div className="text-4xl font-mono tabular-nums text-gray-900">{toClock(remainingMs)}</div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {!running ? (
-                        <button type="button" className="px-4 py-2 rounded bg-orange-600 text-white hover:bg-orange-700" onClick={startTimer}>Start</button>
-                      ) : (
-                        <button type="button" className="px-4 py-2 rounded bg-gray-200 text-gray-900 hover:bg-gray-300" onClick={stopTimer}>Stopp</button>
-                      )}
-                      <button type="button" className="px-4 py-2 rounded bg-white border text-gray-900 hover:bg-gray-50" onClick={resetTimer}>Zurücksetzen</button>
-                      <div className="ml-auto sm:ml-4 text-2xl font-mono tabular-nums text-gray-900">{toClock(remainingMs)}</div>
+
+                    {/* Inputs with +/- controls */}
+                    <div className="order-2 flex flex-col gap-2 bg-white rounded-lg p-3 border overflow-hidden">
+                      <div className="flex flex-wrap items-center justify-center gap-3">
+                        <div className="flex items-center gap-2 justify-center flex-1 min-w-[210px] w-full md:w-auto">
+                          <button type="button" className="h-12 w-12 rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-2xl font-semibold text-gray-900 shadow-sm" onClick={() => addSeconds(-60)} aria-label="-1 Minute">−</button>
+                          <input
+                            type="number"
+                            min={0}
+                            placeholder="Min"
+                            value={minInput}
+                            onChange={(e) => setMinInput(e.target.value)}
+                            className="w-20 h-11 border rounded px-3 text-base text-center"
+                          />
+                          <button type="button" className="h-12 w-12 rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-2xl font-semibold text-gray-900 shadow-sm" onClick={() => addSeconds(60)} aria-label="+1 Minute">+</button>
+                        </div>
+                        <span className="hidden md:inline text-lg">:</span>
+                        <div className="flex items-center gap-2 justify-center flex-1 min-w-[210px] w-full md:w-auto">
+                          <button type="button" className="h-12 w-12 rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-2xl font-semibold text-gray-900 shadow-sm" onClick={() => addSeconds(-5)} aria-label="-5 Sekunden">−</button>
+                          <input
+                            type="number"
+                            min={0}
+                            max={59}
+                            placeholder="Sek"
+                            value={secInput}
+                            onChange={(e) => setSecInput(e.target.value)}
+                            className="w-20 h-11 border rounded px-3 text-base text-center"
+                          />
+                          <button type="button" className="h-12 w-12 rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-2xl font-semibold text-gray-900 shadow-sm" onClick={() => addSeconds(5)} aria-label="+5 Sekunden">+</button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-center gap-2 mt-2">
+                        <button type="button" className="px-5 py-3 rounded bg-white border text-gray-900 hover:bg-gray-50 w-full" onClick={resetTimer}>Zurücksetzen</button>
+                        {!running ? (
+                          <button type="button" className="px-5 py-3 rounded bg-orange-600 text-white hover:bg-orange-700 w-full" onClick={startTimer}>Start</button>
+                        ) : (
+                          <button type="button" className="px-5 py-3 rounded bg-gray-200 text-gray-900 hover:bg-gray-300 w-full" onClick={stopTimer}>Stopp</button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
