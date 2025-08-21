@@ -24,13 +24,14 @@ export default function CategoryFilter({ initialSelectedIds }: { initialSelected
   const containerRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const [pos, setPos] = useState<{ left: number; top: number; width: number; centered: boolean }>({ left: 8, top: 8, width: 520, centered: false });
+  const [pos, setPos] = useState<{ left: number; top: number; width: number; height: number; centered: boolean }>({ left: 8, top: 8, width: 520, height: 520, centered: false });
 
   const [groups, setGroups] = useState<RecipeCategoryGroup[]>([]);
   const [categories, setCategories] = useState<RecipeCategory[]>([]);
 
   const [expandedByGroup, setExpandedByGroup] = useState<Record<string, Record<string, boolean>>>({});
   const [selectedByGroup, setSelectedByGroup] = useState<Record<string, string[]>>({});
+  const [groupOpenById, setGroupOpenById] = useState<Record<string, boolean>>({});
   const initializedRef = useRef<boolean>(false);
 
   // Initialize from URL on first load after categories fetched
@@ -58,6 +59,11 @@ export default function CategoryFilter({ initialSelectedIds }: { initialSelected
       if (!alive) return;
       if (!gr.error && gr.data) setGroups(gr.data as any);
       if (!cr.error && cr.data) setCategories(cr.data as any);
+      if (!gr.error && gr.data) {
+        const state: Record<string, boolean> = {};
+        for (const g of (gr.data as any[])) state[g.id] = false;
+        setGroupOpenById(state);
+      }
     })();
     return () => {
       alive = false;
@@ -85,24 +91,25 @@ export default function CategoryFilter({ initialSelectedIds }: { initialSelected
     if (isMobile) {
       const width = Math.min(560, vw - margin * 2);
       const vh = window.innerHeight;
-      const panelHeight = panelRef.current?.getBoundingClientRect().height ?? 0;
-      const top = Math.max(minTop, Math.min(vh / 2 - (panelHeight || 0) / 2, vh - (panelHeight || 0) - margin));
+      const desired = Math.round(vh * 0.9);
+      const maxHeight = Math.max(320, vh - minTop - margin);
+      const height = Math.min(desired, maxHeight);
+      const top = Math.max(minTop, Math.min(vh / 2 - height / 2, vh - height - margin));
       const left = (vw - width) / 2;
-      setPos({ left, top, width, centered: true });
+      setPos({ left, top, width, height, centered: true });
       return;
     }
     const width = Math.min(720, vw - margin * 2);
     const rect = buttonRef.current.getBoundingClientRect();
     let left = rect.left + rect.width / 2 - width / 2;
     left = Math.max(margin, Math.min(left, vw - width - margin));
-    let top = Math.max(rect.bottom + margin, minTop);
-    const panelHeight = panelRef.current?.getBoundingClientRect().height ?? 0;
     const vh = window.innerHeight;
-    if (panelHeight) {
-      const maxTop = Math.max(minTop, vh - panelHeight - margin);
-      top = Math.min(top, maxTop);
-    }
-    setPos({ left, top, width, centered: false });
+    const desired = Math.round(vh * 0.85);
+    const maxHeight = Math.max(320, vh - minTop - margin);
+    const height = Math.min(desired, maxHeight);
+    let top = Math.max(rect.bottom + margin, minTop);
+    top = Math.min(top, vh - height - margin);
+    setPos({ left, top, width, height, centered: false });
   }
 
   useLayoutEffect(() => {
@@ -159,20 +166,21 @@ export default function CategoryFilter({ initialSelectedIds }: { initialSelected
     const sel = new Set(selectedByGroup[groupId] || []);
     return (
       <div key={node.id} className="pl-2">
-        <div className="flex items-center gap-2 py-1">
+        <div className="flex items-center gap-3 py-2 sm:py-1">
           {hasChildren && (
-            <button type="button" className="text-gray-600 w-5" onClick={() => toggleExpanded(groupId, node.id)} aria-label={expanded ? "Einklappen" : "Ausklappen"}>
+            <button type="button" className="text-gray-600 w-6 sm:w-5 text-lg sm:text-base" onClick={() => toggleExpanded(groupId, node.id)} aria-label={expanded ? "Einklappen" : "Ausklappen"}>
               {expanded ? "▾" : "▸"}
             </button>
           )}
-          {!hasChildren && <span className="w-5" />}
-          <label className="inline-flex items-center gap-2">
+          {!hasChildren && <span className="w-6 sm:w-5" />}
+          <label className="inline-flex items-center gap-3">
             <input
               type="checkbox"
+              className="h-5 w-5 sm:h-4 sm:w-4"
               checked={sel.has(node.id)}
               onChange={() => toggleSelected(groupId, node.id)}
             />
-            <span className="text-sm text-gray-900">{node.name}</span>
+            <span className="text-base sm:text-sm text-gray-900">{node.name}</span>
           </label>
         </div>
         {hasChildren && expanded && (
@@ -202,29 +210,48 @@ export default function CategoryFilter({ initialSelectedIds }: { initialSelected
           {pos.centered && <div className="fixed inset-0 z-30 bg-black/30" onClick={() => setOpen(false)} />}
           <div
             ref={panelRef}
-            className="fixed z-40 rounded-xl border border-gray-200 bg-white shadow-lg p-4 max-h-[70vh] overflow-auto"
-            style={{ left: pos.left, top: pos.top, width: pos.width }}
+            className="fixed z-40 rounded-xl border border-gray-200 bg-white shadow-lg p-0 overflow-hidden flex flex-col"
+            style={{ left: pos.left, top: pos.top, width: pos.width, height: pos.height }}
           >
-            <div className="mb-3">
-              <div className="text-base font-semibold text-gray-900">Kategorien</div>
-              <div className="text-sm text-gray-600">Mehrfachauswahl möglich</div>
+            <div className="p-4 border-b flex items-center justify-between">
+              <div>
+                <div className="text-base font-semibold text-gray-900">Kategorien</div>
+                <div className="text-sm text-gray-600">Mehrfachauswahl möglich</div>
+              </div>
+              <button type="button" aria-label="Schließen" className="text-gray-600 hover:text-gray-900 text-xl leading-none px-2" onClick={() => setOpen(false)}>×</button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {groups.map((g) => {
-                const tree = buildTreeForGroup(g.id);
-                return (
-                  <div key={g.id} className="border border-gray-200 rounded-lg p-3">
-                    <div className="font-semibold text-gray-900 mb-2">{g.name}</div>
-                    <div>
-                      {tree.map((n) => renderNode(g.id, n, 0))}
+            <div className="p-4 overflow-auto flex-1 min-h-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-start">
+                {groups.map((g) => {
+                  const tree = buildTreeForGroup(g.id);
+                  const isOpen = groupOpenById[g.id] ?? false;
+                  const selectedCount = (selectedByGroup[g.id] || []).length;
+                  return (
+                    <div key={g.id} className="border border-gray-200 rounded-lg">
+                      <button type="button" className="w-full flex items-center justify-between px-3 py-3 sm:py-2 text-left" onClick={() => setGroupOpenById((prev) => ({ ...prev, [g.id]: !isOpen }))}>
+                        <span className="font-semibold text-gray-900 text-base sm:text-sm">{g.name}</span>
+                        <span className="flex items-center gap-2 text-gray-600 text-lg sm:text-base">
+                          {selectedCount > 0 && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full border border-orange-300 bg-orange-50 text-orange-800 text-xs">
+                              {selectedCount}
+                            </span>
+                          )}
+                          <span>{isOpen ? "▾" : "▸"}</span>
+                        </span>
+                      </button>
+                      {isOpen && (
+                        <div className="px-3 pb-3">
+                          {tree.map((n) => renderNode(g.id, n, 0))}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
 
-            <div className="mt-4 flex items-center justify-between">
+            <div className="p-4 border-t bg-white flex items-center justify-between">
               <button
                 type="button"
                 className="text-gray-700 hover:text-gray-900 font-semibold"
