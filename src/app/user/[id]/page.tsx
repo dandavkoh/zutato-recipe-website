@@ -30,7 +30,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<Ro
   const { data: recipes } = await supabase
     .from('recipes_with_details')
     .select(
-      'id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, category_name, created_by'
+      'id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, created_by'
     )
     .eq('created_by', id)
     .order('created_at', { ascending: false });

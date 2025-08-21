@@ -16,6 +16,11 @@ steps:
 - checkout: self
   clean: true
 - script: |
+    #git clone --mirror https://DanDavKoh@dev.azure.com/DanDavKoh/Grocery%20App/_git/website
+    #cd website.git
+    #git remote add github https://dandavkoh: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@github.com/dandavkoh/ZUTATO-Website.git
+    #git push --mirror github
+
     git config --global user.name "dandavkoh"
     git config --global user.email "daniel.kohsyk@web.de"
 
