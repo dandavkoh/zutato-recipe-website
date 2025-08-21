@@ -279,7 +279,7 @@ export default function CookingCompanionDialog({
               <div className="border rounded-lg p-3 bg-gray-50">
                 <button
                   type="button"
-                  className="w-full flex items-center justify-between px-2 py-2 rounded-md hover:bg-gray-100"
+                  className="w-full relative flex items-center justify-between px-2 py-2 rounded-md hover:bg-gray-100"
                   onClick={() => setTimerCollapsed((v) => !v)}
                   aria-expanded={timerCollapsed}
                   aria-controls="companion-timer-panel"
@@ -288,6 +288,11 @@ export default function CookingCompanionDialog({
                     <FontAwesomeIcon icon="stopwatch" />
                     Timer
                   </span>
+                  {running && !timerCollapsed && (
+                    <span className="absolute left-1/2 -translate-x-1/2 font-mono tabular-nums text-gray-900 text-base pointer-events-none">
+                      {toClock(remainingMs)}
+                    </span>
+                  )}
                   <span className="text-gray-600">{timerCollapsed ? "▾" : "▴"}</span>
                 </button>
                 {timerCollapsed && (
