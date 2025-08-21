@@ -26,12 +26,16 @@ function formatQuantity(value: number): string {
 export default function IngredientsWithPortionScaler(props: {
   initialPortions: number;
   initialGroups: IngredientGroup[];
+  value?: number; // optional controlled portions
+  onChangePortions?: (value: number) => void; // optional controlled change handler
 }) {
-  const { initialPortions, initialGroups } = props;
+  const { initialPortions, initialGroups, value, onChangePortions } = props;
 
-  const [portions, setPortions] = useState<number>(
+  const [uncontrolledPortions, setUncontrolledPortions] = useState<number>(
     Math.max(1, Math.round(initialPortions || 1))
   );
+  const portions = typeof value === "number" ? Math.max(1, Math.round(value)) : uncontrolledPortions;
+  const setPortions = onChangePortions ?? setUncontrolledPortions;
 
   const scaleFactor = portions / Math.max(1, initialPortions || 1);
 
@@ -46,11 +50,11 @@ export default function IngredientsWithPortionScaler(props: {
   }, [initialGroups, scaleFactor]);
 
   function onMinus() {
-    setPortions((prev) => Math.max(1, prev - 1));
+    setPortions(Math.max(1, portions - 1));
   }
 
   function onPlus() {
-    setPortions((prev) => prev + 1);
+    setPortions(portions + 1);
   }
 
   function onInputChange(e: React.ChangeEvent<HTMLInputElement>) {

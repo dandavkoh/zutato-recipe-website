@@ -8,6 +8,9 @@ import RateRecipeButton from '@/components/RateRecipeButton';
 import AdminRecipeActions from '@/components/AdminRecipeActions';
 import IngredientsWithPortionScaler from '@/components/IngredientsWithPortionScaler';
 import ReportRecipeDialog from '@/components/ReportRecipeDialog';
+import FontAwesomeIcon from '@/components/FontAwesomeIcon';
+import CookingCompanionMount from '@/components/CookingCompanionMount';
+import StartCookingCompanionButton from '@/components/StartCookingCompanionButton';
 
 type Difficulty = 'einfach' | 'mittel' | 'schwer';
 
@@ -198,6 +201,7 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
       ingredient_display_name: i.ingredient_display_name,
     })),
   }));
+  const stepPayload = stepRows.map((s) => ({ id: s.id, step_number: s.step_number, instruction: s.instruction }));
 
   // Fetch rating summary server-side and whether user has rated (for gating UI)
   const { data: ratingRows } = await supabase
@@ -305,30 +309,35 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
       <section className="bg-white border-b">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
-            <div className="md:col-span-2">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{r.name}</h1>
-              {r.description && <p className="text-gray-600 mb-4">{r.description}</p>}
-              <div className="flex flex-wrap gap-4 text-sm text-gray-600 items-center">
-                <span>
-                  👤 {r.created_by && authorNickname ? (
-                    <Link href={`/user/${r.created_by}`} className="text-orange-700 hover:underline">{authorNickname}</Link>
-                  ) : (
-                    author
-                  )}
-                </span>
-                {/* Kategorien-Label entfernt (Many-to-Many) */}
-                {/* Portionenanzeige entfernt, stattdessen unten Skala */}
-                <span>📊 {difficultyLabel}</span>
-                {totalTime && <span>⏱️ {totalTime}</span>}
-                <span>
-                  <RecipeRatingSummary average={ratingAverage} count={ratingCount} />
-                </span>
-              </div>
-              {isAdmin && (
-                <div className="mt-3">
-                  <AdminRecipeActions recipeId={id} editHref={`/rezepte/${id}/${slugify(r.name)}/bearbeiten`} />
+            <div className="md:col-span-2 self-stretch flex flex-col">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">{r.name}</h1>
+                {r.description && <p className="text-gray-600 mb-4">{r.description}</p>}
+                <div className="flex flex-wrap gap-4 text-sm text-gray-600 items-center">
+                  <span>
+                    👤 {r.created_by && authorNickname ? (
+                      <Link href={`/user/${r.created_by}`} className="text-orange-700 hover:underline">{authorNickname}</Link>
+                    ) : (
+                      author
+                    )}
+                  </span>
+                  {/* Kategorien-Label entfernt (Many-to-Many) */}
+                  {/* Portionenanzeige entfernt, stattdessen unten Skala */}
+                  <span>📊 {difficultyLabel}</span>
+                  {totalTime && <span>⏱️ {totalTime}</span>}
+                  <span>
+                    <RecipeRatingSummary average={ratingAverage} count={ratingCount} />
+                  </span>
                 </div>
-              )}
+                {isAdmin && (
+                  <div className="mt-3">
+                    <AdminRecipeActions recipeId={id} editHref={`/rezepte/${id}/${slugify(r.name)}/bearbeiten`} />
+                  </div>
+                )}
+              </div>
+              <div className="mt-6 md:mt-auto">
+                <StartCookingCompanionButton />
+              </div>
             </div>
             <div className="md:col-span-1">
               <div className="w-full h-48 md:h-40 bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg overflow-hidden flex items-center justify-center">
@@ -361,6 +370,16 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
           </div>
         </div>
       </section>
+
+      {/* Cooking Companion dialog mount */}
+      <CookingCompanionMount
+        recipeId={id}
+        recipeName={(r as any).name}
+        initialPortions={(r as any).portions}
+        ingredientGroups={initialIngredientGroups}
+        steps={stepPayload}
+        userHasRated={userHasRated}
+      />
 
       <section className="py-10">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 gap-10">
