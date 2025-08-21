@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import Toast from "@/components/Toast";
+import FontAwesomeIcon from "@/components/FontAwesomeIcon";
 
 type Difficulty = "einfach" | "mittel" | "schwer";
 
@@ -58,6 +59,8 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [selectedCategoryIdsByGroup, setSelectedCategoryIdsByGroup] = useState<Record<string, string[]>>({});
   const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState<Record<string, boolean>>({});
+  const [expandedByGroup, setExpandedByGroup] = useState<Record<string, Record<string, boolean>>>({});
+  const dropdownRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -75,6 +78,14 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Wizard state (5 steps)
+  const wizardSteps = ["Rezept", "Zubereitung", "Kategorien", "Rezeptbild", "Vorschau"] as const;
+  type WizardStep = typeof wizardSteps[number];
+  const [wizardStepIdx, setWizardStepIdx] = useState<number>(0);
+  function gotoStep(idx: number) {
+    setWizardStepIdx(Math.max(0, Math.min(wizardSteps.length - 1, idx)));
+  }
 
   // Ingredient search state (mirror create form behavior)
   const [searchQueryByIngredientId, setSearchQueryByIngredientId] = useState<Record<string, string>>({});
@@ -112,6 +123,17 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
       copy[sectionIdx] = section;
       return copy;
     });
+  }
+
+  function addSection() {
+    setSections((prev) => [
+      ...prev,
+      { tempId: generateId('section'), name: '', sort_order: prev.length, ingredients: [] },
+    ]);
+  }
+
+  function removeSection(index: number) {
+    setSections((prev) => prev.filter((_, i) => i !== index).map((s, i) => ({ ...s, sort_order: i })));
   }
 
   useEffect(() => {
@@ -226,6 +248,34 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
     load();
   }, [params, supabase]);
 
+  // Close any open category dropdown when clicking outside
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      const target = e.target as Node | null;
+      if (!target) return;
+      const openGroups = Object.entries(isGroupDropdownOpen).filter(([, v]) => v).map(([k]) => k);
+      if (openGroups.length === 0) return;
+      const next: Record<string, boolean> = { ...isGroupDropdownOpen };
+      for (const gid of openGroups) {
+        const container = dropdownRefs.current[gid];
+        if (container && !container.contains(target)) next[gid] = false;
+      }
+      if (JSON.stringify(next) !== JSON.stringify(isGroupDropdownOpen)) setIsGroupDropdownOpen(next);
+    }
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [isGroupDropdownOpen]);
+
+  function validate(): string | null {
+    if (!name.trim()) return "Bitte einen Rezeptnamen eingeben.";
+    if (!portions || portions < 1) return "Bitte die Portionen angeben (>= 1).";
+    const anyIngredient = sections.some((sec) => sec.ingredients.some((ing) => String(ing.quantity).trim() && ing.link != null));
+    if (!anyIngredient) return "Bitte mindestens eine Zutat mit Menge und Namen auswählen.";
+    const anyStep = steps.some((s) => s.instruction.trim());
+    if (!anyStep) return "Bitte mindestens einen Zubereitungsschritt eingeben.";
+    return null;
+  }
+
   async function onSave(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -305,117 +355,70 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
         {error && <Toast message={error} type="error" onClose={() => setError(null)} durationMs={2600} />}
         {success && <Toast message={success} type="success" onClose={() => setSuccess(null)} durationMs={2000} />}
 
-        <form onSubmit={onSave} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700">Titelbild (optional)</label>
-            <div className="mt-1 flex items-center gap-4">
-              <input type="file" accept="image/*" onChange={(e)=> { const f=e.target.files?.[0] || null; setImageFile(f); setImagePreview(f ? URL.createObjectURL(f) : imagePreview); }} className="rounded" />
-              {imagePreview && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={imagePreview} alt="Vorschau" className="h-16 w-16 object-cover rounded border" />
-              )}
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Rezeptname</label>
-              <input value={name} onChange={(e) => setName(e.target.value)} className="mt-1 w-full rounded" placeholder="z.B. Milchreis" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Zusätzliche Info</label>
-              <input value={description} onChange={(e) => setDescription(e.target.value)} className="mt-1 w-full rounded" placeholder="z.B. nach Omas Art" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Portionen</label>
-            <input type="number" min={1} value={portions} onChange={(e) => setPortions(Number(e.target.value))} className="mt-1 w-full rounded" />
-          </div>
-          <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {categoryGroups.map((group) => {
-              const cats = allCategories.filter((c) => c.group_id === group.id);
-              const byParent: Record<string, Category[]> = {};
-              for (const c of cats) {
-                const parentId = c.parent_category_id || "__root__";
-                if (!byParent[parentId]) byParent[parentId] = [];
-                byParent[parentId].push(c);
-              }
-              function flattened(parentId: string | null, depth: number, acc: Array<{ id: string; name: string; depth: number }>) {
-                const children = (byParent[parentId || "__root__"] || []).sort((a, b) => (a.sort_order - b.sort_order) || a.name.localeCompare(b.name));
-                for (const ch of children) {
-                  acc.push({ id: ch.id, name: ch.name, depth });
-                  flattened(ch.id, depth + 1, acc);
-                }
-                return acc;
-              }
-              const options = flattened(null, 0, []);
-              const selected = selectedCategoryIdsByGroup[group.id] || [];
-              const isOpen = !!isGroupDropdownOpen[group.id];
-              return (
-                <div key={group.id} className="relative">
-                  <label className="block text-sm font-medium text-gray-700">{group.name}</label>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const err = validate();
+            if (err) { setError(err); return; }
+            if (wizardStepIdx === wizardSteps.length - 1) {
+              onSave(e);
+            } else {
+              setError(null);
+              gotoStep(wizardStepIdx + 1);
+            }
+          }}
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-8"
+        >
+          {/* Wizard header */}
+          <div className="overflow-x-auto pb-1">
+            <div className="flex items-center gap-6 justify-start md:justify-center px-4 min-w-max">
+              {(['Rezept','Zubereitung','Kategorien','Rezeptbild','Vorschau'] as const).map((label, idx) => {
+                const isActive = idx === wizardStepIdx;
+                const isDone = idx < wizardStepIdx;
+                const bgClass = isActive ? 'bg-orange-600 text-white' : isDone ? 'bg-orange-100 text-orange-900' : 'bg-gray-200 text-gray-800';
+                const hoverClass = isActive ? '' : 'hover:brightness-95';
+                return (
                   <button
+                    key={label}
                     type="button"
-                    onClick={() => setIsGroupDropdownOpen((p) => ({ ...p, [group.id]: !p[group.id] }))}
-                    className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-left hover:bg-gray-50"
+                    onClick={() => gotoStep(idx)}
+                    className={`${bgClass} ${hoverClass} relative rounded-md pl-2 pr-7 py-2 font-semibold shadow-sm transition-colors inline-flex items-center`}
                   >
-                    {selected.length > 0 ? `${selected.length} ausgewählt` : 'Keine Auswahl'}
+                    <span className={`inline-flex items-center gap-2`}>
+                      <span className={`inline-flex items-center justify-center w-6 h-6 text-xs font-bold rounded-full border ${isActive ? 'border-white text-white' : isDone ? 'border-orange-900/30' : 'border-gray-600/40'}`}>
+                        {idx + 1}
+                      </span>
+                      <span>{label}</span>
+                    </span>
+                    <span
+                      className={`${bgClass} absolute top-1/2 left-full w-8 h-8 rounded-md transition-colors`}
+                      style={{ transform: 'translate(-22px, -50%) rotate(45deg)' }}
+                      aria-hidden="true"
+                    />
                   </button>
-                  {isOpen && (
-                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded shadow p-2 max-h-64 overflow-auto">
-                      <ul className="space-y-1">
-                        {options.map((o) => {
-                          const checked = selected.includes(o.id);
-                          return (
-                            <li key={o.id}>
-                              <label className="flex items-center gap-2">
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={(e) => {
-                                    setSelectedCategoryIdsByGroup((prev) => {
-                                      const cur = new Set(prev[group.id] || []);
-                                      if (e.target.checked) cur.add(o.id); else cur.delete(o.id);
-                                      return { ...prev, [group.id]: Array.from(cur) };
-                                    });
-                                  }}
-                                  className="rounded"
-                                />
-                                <span style={{ paddingLeft: `${o.depth * 12}px` }}>{o.name}</span>
-                              </label>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Schwierigkeit</label>
-            <select value={difficulty} onChange={(e) => setDifficulty(e.target.value as Difficulty)} className="mt-1 w-full rounded">
-              <option value="einfach">einfach</option>
-              <option value="mittel">mittel</option>
-              <option value="schwer">schwer</option>
-            </select>
-          </div>
-          <div className="grid grid-cols-3 gap-4 col-span-1 md:col-span-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Arbeitszeit (Minuten)</label>
-              <input type="number" min={0} value={workingMinutes} onChange={(e) => setWorkingMinutes(e.target.value)} className="mt-1 w-full rounded" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Koch/Backzeit (Minuten)</label>
-              <input type="number" min={0} value={cookingMinutes} onChange={(e) => setCookingMinutes(e.target.value)} className="mt-1 w-full rounded" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Ruhezeit (Minuten)</label>
-              <input type="number" min={0} value={restingMinutes} onChange={(e) => setRestingMinutes(e.target.value)} className="mt-1 w-full rounded" />
+                );
+              })}
             </div>
           </div>
-        </div>
+        {wizardStepIdx === 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Rezeptname</label>
+              <input value={name} onChange={(e) => setName(e.target.value)} className="mt-1 w-full rounded" placeholder="z.B. Milchreis" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Zusätzliche Info</label>
+              <input value={description} onChange={(e) => setDescription(e.target.value)} className="mt-1 w-full rounded" placeholder="z.B. nach Omas Art" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Portionen</label>
+              <input type="number" min={1} value={portions} onChange={(e) => setPortions(Number(e.target.value))} className="mt-1 w-full rounded" />
+            </div>
+          </div>
+        )}
 
-        {/* Ingredients minimal editing: list section + items */}
+        {/* Step 1 continued: Zutaten */}
+        {wizardStepIdx === 0 && (
         <div>
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-lg font-semibold text-gray-900">Zutaten</h3>
@@ -604,31 +607,193 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
               <button type="button" onClick={() => setSections((prev)=> [...prev, { tempId: generateId('section'), name: '', sort_order: prev.length, ingredients: [] }])} className="text-sm text-orange-600 hover:text-orange-700">Abschnitt hinzufügen</button>
           </div>
         </div>
+        )}
 
-        <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-lg font-semibold text-gray-900">Zubereitung</h3>
-            </div>
-          <div className="space-y-3">
-            {steps.map((st, i) => (
-              <div key={i} className="grid grid-cols-12 gap-3 items-start">
-                  <div className="col-span-1 flex items-center h-10"><span className="text-gray-500 text-sm">{st.step_number}.</span></div>
-                  <textarea value={st.instruction} onChange={(e) => setSteps((prev)=> prev.map((s, idx)=> idx===i ? { ...s, instruction: e.target.value } : s))} className="col-span-10 rounded min-h-28" rows={6} />
-                  <div className="col-span-1 flex h-full items-center justify-center"><button type="button" onClick={()=> setSteps((prev)=> prev.filter((_, idx)=> idx!==i).map((s, idx)=> ({...s, step_number: idx+1})))} className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded">Löschen</button></div>
+        {/* Step 2: Zubereitung (Schritte) + Dauer & Schwierigkeit */}
+        {wizardStepIdx === 1 && (
+          <div className="space-y-6">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-semibold text-gray-900">Zubereitung</h3>
               </div>
-            ))}
-          </div>
-            <div className="mt-4">
-              <button type="button" onClick={() => setSteps((prev)=> [...prev, { step_number: prev.length + 1, instruction: '' }])} className="text-sm text-orange-600 hover:text-orange-700">Schritt hinzufügen</button>
-          </div>
-        </div>
+              <div className="space-y-3">
+                {steps.map((st, i) => (
+                  <div key={i} className="grid grid-cols-12 gap-3 items-start">
+                    <div className="col-span-1 flex items-center h-10"><span className="text-gray-500 text-sm">{st.step_number}.</span></div>
+                    <textarea value={st.instruction} onChange={(e) => setSteps((prev)=> prev.map((s, idx)=> idx===i ? { ...s, instruction: e.target.value } : s))} className="col-span-10 rounded min-h-28" rows={6} />
+                    <div className="col-span-1 flex h-full items-center justify-center"><button type="button" onClick={()=> setSteps((prev)=> prev.filter((_, idx)=> idx!==i).map((s, idx)=> ({...s, step_number: idx+1})))} className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded">Löschen</button></div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4">
+                <button type="button" onClick={() => setSteps((prev)=> [...prev, { step_number: prev.length + 1, instruction: '' }])} className="text-sm text-orange-600 hover:text-orange-700">Schritt hinzufügen</button>
+              </div>
+            </div>
 
-          <div className="pt-2">
-            <button type="submit" disabled={saving} className="inline-flex items-center px-4 py-2 rounded bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50">
-            {saving ? 'Speichern...' : 'Speichern'}
-          </button>
-        </div>
-      </form>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-semibold text-gray-900">Dauer & Schwierigkeit</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Arbeitszeit (Minuten)</label>
+                <input type="number" min={0} value={workingMinutes} onChange={(e) => setWorkingMinutes(e.target.value)} className="mt-1 w-full rounded" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Koch/Backzeit (Minuten)</label>
+                <input type="number" min={0} value={cookingMinutes} onChange={(e) => setCookingMinutes(e.target.value)} className="mt-1 w-full rounded" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Ruhezeit (Minuten)</label>
+                <input type="number" min={0} value={restingMinutes} onChange={(e) => setRestingMinutes(e.target.value)} className="mt-1 w-full rounded" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Schwierigkeit</label>
+              <select value={difficulty} onChange={(e) => setDifficulty(e.target.value as Difficulty)} className="mt-1 w-full rounded md:w-64">
+                <option value="einfach">einfach</option>
+                <option value="mittel">mittel</option>
+                <option value="schwer">schwer</option>
+              </select>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Kategorien */}
+        {wizardStepIdx === 2 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {categoryGroups.map((group) => {
+              // Build tree for group
+              const cats = allCategories.filter((c) => c.group_id === group.id);
+              const byParent: Record<string, Category[]> = {};
+              for (const c of cats) {
+                const p = c.parent_category_id || "__root__";
+                (byParent[p] ||= []).push(c);
+              }
+              const roots = (byParent["__root__"] || []).sort((a,b)=>(a.sort_order-b.sort_order)||a.name.localeCompare(b.name));
+              function mkNode(cat: Category): { id: string; name: string; children: any[] } {
+                const children = (byParent[cat.id] || []).sort((a,b)=>(a.sort_order-b.sort_order)||a.name.localeCompare(b.name));
+                return { id: cat.id, name: cat.name, children: children.map(mkNode) };
+              }
+              const tree = roots.map(mkNode);
+
+              const selected = selectedCategoryIdsByGroup[group.id] || [];
+              const isOpen = !!isGroupDropdownOpen[group.id];
+              const expandedForGroup = expandedByGroup[group.id] || {};
+
+              function toggleExpanded(catId: string) {
+                setExpandedByGroup((prev) => ({ ...prev, [group.id]: { ...prev[group.id], [catId]: !prev[group.id]?.[catId] } }));
+              }
+              function toggleSelected(catId: string) {
+                setSelectedCategoryIdsByGroup((prev) => { const cur = new Set(prev[group.id] || []); if (cur.has(catId)) cur.delete(catId); else cur.add(catId); return { ...prev, [group.id]: Array.from(cur) }; });
+              }
+              function renderNode(node: { id: string; name: string; children: any[] }, depth: number): React.ReactElement {
+                const hasChildren = node.children.length > 0; const expanded = expandedForGroup[node.id] ?? false; const checked = selected.includes(node.id);
+                return (
+                  <li key={node.id} className="border-t border-gray-100 first:border-t-0">
+                    <div className="flex items-center justify-between py-1.5 text-sm text-gray-900">
+                      <div className="flex items-center gap-2 cursor-pointer select-none flex-1" style={{ paddingLeft: Math.max(0, depth) * 14 }} onClick={() => toggleSelected(node.id)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSelected(node.id); } }}>
+                        <input type="checkbox" checked={checked} onChange={() => toggleSelected(node.id)} onClick={(e) => e.stopPropagation()} className="rounded" />
+                        <span className="select-none">{node.name}</span>
+                      </div>
+                      {hasChildren ? (
+                        <button type="button" aria-label="Toggle children" aria-expanded={expanded} onClick={(e) => { e.stopPropagation(); toggleExpanded(node.id); }} className="p-2 text-gray-600 hover:text-gray-800 transition-colors ml-2 mr-1">
+                          <FontAwesomeIcon icon={expanded ? 'chevron-up' : 'chevron-down'} size="sm" />
+                        </button>
+                      ) : (<span className="w-5" />)}
+                    </div>
+                    {hasChildren && (
+                      <div className="overflow-hidden transition-[max-height,opacity] duration-200 ease-out" style={{ maxHeight: expanded ? 800 : 0, opacity: expanded ? 1 : 0 }}>
+                        <ul>
+                          {node.children.map((ch) => renderNode(ch, depth + 1))}
+                        </ul>
+                      </div>
+                    )}
+                  </li>
+                );
+              }
+
+              return (
+                <div key={group.id} ref={(el) => { dropdownRefs.current[group.id] = el as HTMLDivElement | null; }} className="relative">
+                  <label className="block text-sm font-medium text-gray-700">{group.name}</label>
+                  <button type="button" onClick={() => setIsGroupDropdownOpen((p) => ({ ...p, [group.id]: !p[group.id] }))} className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-left hover:bg-gray-50">
+                    <span className={selected.length > 0 ? 'text-gray-900 font-medium' : 'text-gray-500'}>{selected.length > 0 ? `${selected.length} ausgewählt` : 'Keine Auswahl'}</span>
+                  </button>
+                  {isOpen && (
+                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded shadow p-2 max-h-64 overflow-auto">
+                      <ul>
+                        {tree.map((n) => renderNode(n, 0))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Step 4: Rezeptbild */}
+        {wizardStepIdx === 3 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Titelbild (optional)</label>
+            <div className="mt-1 flex items-center gap-4">
+              <input type="file" accept="image/*" onChange={(e)=> { const f=e.target.files?.[0] || null; setImageFile(f); setImagePreview(f ? URL.createObjectURL(f) : imagePreview); }} className="rounded" />
+              {imagePreview && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={imagePreview} alt="Vorschau" className="h-16 w-16 object-cover rounded border" />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Step 5: Vorschau */}
+        {wizardStepIdx === 4 && (
+          <div className="space-y-6 text-gray-900">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Rezept</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <div><span className="text-gray-600">Name:</span> {name || '–'}</div>
+                <div><span className="text-gray-600">Info:</span> {description || '–'}</div>
+                <div><span className="text-gray-600">Portionen:</span> {portions}</div>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Zubereitung</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                <div><span className="text-gray-600">Arbeitszeit:</span> {workingMinutes || '–'} Min</div>
+                <div><span className="text-gray-600">Koch/Backzeit:</span> {cookingMinutes || '–'} Min</div>
+                <div><span className="text-gray-600">Ruhezeit:</span> {restingMinutes || '–'} Min</div>
+              </div>
+              <div className="mt-2 text-sm"><span className="text-gray-600">Schwierigkeit:</span> {difficulty}</div>
+              <div className="mt-2 text-sm"><span className="text-gray-600">Schritte:</span> {steps.filter(s => s.instruction.trim()).length}</div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Kategorien</h3>
+              <ul className="list-disc pl-5 text-sm">
+                {categoryGroups.map((g) => { const ids = selectedCategoryIdsByGroup[g.id] || []; if (ids.length === 0) return null; const names = allCategories.filter(c => ids.includes(c.id)).map(c => c.name); return <li key={g.id}><span className="text-gray-600">{g.name}:</span> {names.join(', ')}</li>; })}
+                {Object.values(selectedCategoryIdsByGroup).flat().length === 0 && <li>–</li>}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Rezeptbild</h3>
+              {imagePreview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={imagePreview} alt="Vorschau" className="h-24 w-24 object-cover rounded border" />
+              ) : (
+                <div className="text-sm text-gray-600">Kein Bild ausgewählt</div>
+              )}
+            </div>
+          </div>
+        )}
+          {/* Wizard navigation */}
+          <div className="pt-2 flex items-center justify-between">
+            <button type="button" onClick={() => gotoStep(wizardStepIdx - 1)} disabled={wizardStepIdx === 0 || saving} className="inline-flex items-center px-4 py-2 rounded border border-gray-300 text-gray-800 hover:bg-gray-50 disabled:opacity-50">Zurück</button>
+            {wizardStepIdx < wizardSteps.length - 1 ? (
+              <button type="button" disabled={saving} onClick={() => { const err = wizardStepIdx === 0 ? (!name.trim() ? 'Bitte einen Rezeptnamen eingeben.' : (sections.some(sec => sec.ingredients.some(ing => String(ing.quantity).trim() && ing.link != null)) ? null : 'Bitte mindestens eine Zutat mit Menge und Namen auswählen.')) : (wizardStepIdx === 1 ? (steps.some(s => s.instruction.trim()) ? null : 'Bitte mindestens einen Zubereitungsschritt eingeben.') : null); if (err) { setError(err); return; } setError(null); gotoStep(wizardStepIdx + 1); }} className="inline-flex items-center px-4 py-2 rounded bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50">Weiter</button>
+            ) : (
+              <button type="submit" disabled={saving} className="inline-flex items-center px-4 py-2 rounded bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50">{saving ? 'Speichern...' : 'Speichern'}</button>
+            )}
+          </div>
+        </form>
       </div>
     </div>
   );
