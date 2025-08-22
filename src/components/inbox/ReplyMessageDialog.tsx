@@ -1,19 +1,18 @@
 'use client'
 
 import React from 'react'
-import Toast from '@/components/Toast'
+import { showToast } from '@/utils/showToast'
 
 export default function ReplyMessageDialog({ recipientId, originalSubject }: { recipientId: string; originalSubject: string }) {
   const [open, setOpen] = React.useState(false)
   const [subject, setSubject] = React.useState(() => originalSubject?.startsWith('Re:') ? originalSubject : `Re: ${originalSubject}`)
   const [content, setContent] = React.useState('')
   const [loading, setLoading] = React.useState(false)
-  const [toast, setToast] = React.useState<string | null>(null)
 
   const send = async () => {
     if (loading) return
-    if (!subject.trim()) { setToast('Betreff erforderlich'); return }
-    if (!content.trim()) { setToast('Nachricht erforderlich'); return }
+    if (!subject.trim()) { showToast('Betreff erforderlich', 'error', 1600); return }
+    if (!content.trim()) { showToast('Nachricht erforderlich', 'error', 1600); return }
     setLoading(true)
     try {
       const res = await fetch('/api/inbox/messages', {
@@ -23,11 +22,11 @@ export default function ReplyMessageDialog({ recipientId, originalSubject }: { r
       })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(j?.error || 'Senden fehlgeschlagen')
-      setToast('Antwort gesendet')
+      showToast('Antwort gesendet', 'success', 1600)
       setOpen(false)
       setContent('')
     } catch (e: any) {
-      setToast(e?.message || 'Senden fehlgeschlagen')
+      showToast(e?.message || 'Senden fehlgeschlagen', 'error', 1600)
     } finally {
       setLoading(false)
     }
@@ -60,7 +59,7 @@ export default function ReplyMessageDialog({ recipientId, originalSubject }: { r
           </div>
         </div>
       )}
-      {toast && <Toast message={toast} type="info" onClose={() => setToast(null)} durationMs={1600} />}
+      
     </div>
   )
 }

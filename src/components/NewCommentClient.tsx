@@ -1,11 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { showToast } from '@/utils/showToast';
 
 export default function NewCommentClient({ recipeId }: { recipeId: string }) {
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,9 +30,8 @@ export default function NewCommentClient({ recipeId }: { recipeId: string }) {
       }
       setText('');
       setSubmitting(false);
-      if (typeof window !== 'undefined') {
-        window.location.reload();
-      }
+      showToast('Kommentar veröffentlicht.', 'success', 2000);
+      router.refresh();
     } catch (e: any) {
       setSubmitting(false);
       setError('Kommentar konnte nicht gespeichert werden');
@@ -38,6 +40,7 @@ export default function NewCommentClient({ recipeId }: { recipeId: string }) {
 
   return (
     <form onSubmit={handleSubmit} className="mb-4">
+      
       <label htmlFor="new-comment" className="sr-only">Kommentar</label>
       <textarea
         id="new-comment"

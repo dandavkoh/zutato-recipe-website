@@ -1,12 +1,11 @@
 'use client'
 
 import React from 'react'
-import Toast from '@/components/Toast'
+import { showToast } from '@/utils/showToast'
 
 export default function FollowThreadButton({ threadId, initiallyFollowing }: { threadId: string; initiallyFollowing: boolean }) {
   const [following, setFollowing] = React.useState(initiallyFollowing)
   const [loading, setLoading] = React.useState(false)
-  const [toast, setToast] = React.useState<string | null>(null)
 
   const toggle = async () => {
     if (loading) return
@@ -19,9 +18,9 @@ export default function FollowThreadButton({ threadId, initiallyFollowing }: { t
         throw new Error(j?.error || 'Aktion fehlgeschlagen')
       }
       setFollowing(!following)
-      setToast(following ? 'Nicht mehr folgen' : 'Thread folgen')
+      showToast(following ? 'Nicht mehr folgen' : 'Thread folgen', 'success', 1600)
     } catch (e: any) {
-      setToast(e?.message || 'Aktion fehlgeschlagen')
+      showToast(e?.message || 'Aktion fehlgeschlagen', 'error', 1600)
     } finally {
       setLoading(false)
     }
@@ -37,7 +36,7 @@ export default function FollowThreadButton({ threadId, initiallyFollowing }: { t
       >
         {following ? 'Gefolgt' : 'Folgen'}
       </button>
-      {toast && <Toast message={toast} type="info" onClose={() => setToast(null)} durationMs={1600} />}
+      
     </div>
   )
 }

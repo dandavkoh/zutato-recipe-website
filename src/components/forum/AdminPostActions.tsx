@@ -1,6 +1,8 @@
 'use client'
 
 import React from 'react'
+import { showToast } from '@/utils/showToast'
+import { useRouter } from 'next/navigation'
 import FontAwesomeIcon from '@/components/FontAwesomeIcon'
 
 export default function AdminPostActions({ postId, initialContent }: { postId: string; initialContent: string }) {
@@ -8,6 +10,8 @@ export default function AdminPostActions({ postId, initialContent }: { postId: s
   const [content, setContent] = React.useState(initialContent)
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [toast, setToast] = React.useState<string | null>(null)
+  const router = useRouter()
 
   const save = async () => {
     if (loading) return
@@ -18,9 +22,12 @@ export default function AdminPostActions({ postId, initialContent }: { postId: s
       const res = await fetch(`/api/forum/posts/${postId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: content.trim() }) })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(j?.error || 'Speichern fehlgeschlagen')
-      if (typeof window !== 'undefined') window.location.reload()
+      showToast('Beitrag gespeichert.', 'success', 2000)
+      setEditing(false)
+      router.refresh()
     } catch (e: any) {
       setError(e?.message || 'Speichern fehlgeschlagen')
+      showToast(e?.message || 'Speichern fehlgeschlagen', 'error', 2000)
     } finally {
       setLoading(false)
     }
@@ -35,9 +42,11 @@ export default function AdminPostActions({ postId, initialContent }: { postId: s
       const res = await fetch(`/api/forum/posts/${postId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_deleted: true }) })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(j?.error || 'Aktion fehlgeschlagen')
-      if (typeof window !== 'undefined') window.location.reload()
+      showToast('Beitrag ausgeblendet', 'success', 2000)
+      router.refresh()
     } catch (e: any) {
       setError(e?.message || 'Aktion fehlgeschlagen')
+      showToast(e?.message || 'Aktion fehlgeschlagen', 'error', 2000)
     } finally {
       setLoading(false)
     }

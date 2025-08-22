@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import Toast from '@/components/Toast'
+import { showToast } from '@/utils/showToast'
 import { useRouter } from 'next/navigation'
 
 export default function AdminCreateForumSection() {
@@ -12,12 +12,11 @@ export default function AdminCreateForumSection() {
   const [sortOrder, setSortOrder] = React.useState<number>(0)
   const [archived, setArchived] = React.useState(false)
   const [loading, setLoading] = React.useState(false)
-  const [toast, setToast] = React.useState<string | null>(null)
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!slug.trim() || !title.trim()) {
-      setToast('Slug und Titel sind erforderlich')
+      showToast('Slug und Titel sind erforderlich', 'error', 1600)
       return
     }
     setLoading(true)
@@ -30,10 +29,10 @@ export default function AdminCreateForumSection() {
       const j = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(j?.error || 'Erstellen fehlgeschlagen')
       setSlug(''); setTitle(''); setDescription(''); setSortOrder(0); setArchived(false)
-      setToast('Bereich erstellt')
+      showToast('Bereich erstellt', 'success', 1600)
       router.refresh()
     } catch (e: any) {
-      setToast(e?.message || 'Erstellen fehlgeschlagen')
+      showToast(e?.message || 'Erstellen fehlgeschlagen', 'error', 1600)
     } finally {
       setLoading(false)
     }
@@ -66,7 +65,7 @@ export default function AdminCreateForumSection() {
       <div>
         <button type="submit" disabled={loading} className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm disabled:opacity-60">{loading ? 'Speichere…' : 'Bereich erstellen'}</button>
       </div>
-      {toast && <Toast message={toast} type="info" onClose={() => setToast(null)} durationMs={1600} />}
+      
     </form>
   )
 }

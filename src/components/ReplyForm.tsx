@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import { showToast } from '@/utils/showToast';
 
 type Kind = 'forum_post' | 'blog_comment' | 'recipe_comment';
 
@@ -75,6 +76,7 @@ export default function ReplyForm({
       onAdded?.();
       // Trigger a refresh so SSR reply lists update instantly
       router.refresh();
+      showToast('Antwort veröffentlicht.', 'success', 2000);
     } finally {
       setBusy(false);
     }

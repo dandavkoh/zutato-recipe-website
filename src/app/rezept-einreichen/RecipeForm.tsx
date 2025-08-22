@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import FontAwesomeIcon from "@/components/FontAwesomeIcon";
-import Toast from "@/components/Toast";
+import { showToast } from "@/utils/showToast";
 
 type Difficulty = "einfach" | "mittel" | "schwer";
 
@@ -159,6 +159,20 @@ export default function RecipeForm() {
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Toast notifications for error/success
+  useEffect(() => {
+    if (error) {
+      showToast(error, 'error', 2600);
+      setError(null);
+    }
+  }, [error]);
+  useEffect(() => {
+    if (success) {
+      showToast(success, 'success', 2000);
+      setSuccess(null);
+    }
+  }, [success]);
 
   useEffect(() => {
     const loadBasics = async () => {
@@ -498,12 +512,7 @@ export default function RecipeForm() {
       }}
       className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-8"
     >
-      {error && (
-        <Toast message={error} type="error" onClose={() => setError(null)} durationMs={2600} />
-      )}
-      {success && (
-        <Toast message={success} type="success" onClose={() => setSuccess(null)} durationMs={2000} />
-      )}
+
 
       {/* Wizard header */}
       <div className="overflow-x-auto pb-1" ref={wizardHeaderWrapperRef} tabIndex={-1}>

@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
+import { showToast } from '@/utils/showToast'
 
 export default function NewThreadPage({ params }: { params: Promise<{ slug: string }> }) {
   // Read slug from server props (Promise) on client route; fallback to empty to build form
@@ -36,6 +37,7 @@ export default function NewThreadPage({ params }: { params: Promise<{ slug: stri
       })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(j?.error || 'Erstellen fehlgeschlagen')
+      showToast('Thread erstellt.', 'success', 2000)
       router.push(`/forum/t/${j.id}`)
     } catch (e: any) {
       setError(e?.message || 'Erstellen fehlgeschlagen')

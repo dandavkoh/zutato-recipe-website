@@ -2,28 +2,27 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
-import Toast from '@/components/Toast'
+import { showToast } from '@/utils/showToast'
 
 export default function OwnerPostActions({ postId, initialContent, renderInline = false }: { postId: string; initialContent: string; renderInline?: boolean }) {
   const router = useRouter()
   const [editing, setEditing] = React.useState(false)
   const [content, setContent] = React.useState(initialContent)
   const [loading, setLoading] = React.useState(false)
-  const [toast, setToast] = React.useState<string | null>(null)
 
   const save = async () => {
     if (loading) return
-    if (!content.trim()) { setToast('Text erforderlich'); return }
+    if (!content.trim()) { showToast('Text erforderlich', 'error', 1800); return }
     setLoading(true)
     try {
       const res = await fetch(`/api/forum/posts/${postId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: content.trim() }) })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(j?.error || 'Speichern fehlgeschlagen')
-      setToast('Gespeichert')
+      showToast('Beitrag gespeichert.', 'success', 2000)
       setEditing(false)
       router.refresh()
     } catch (e: any) {
-      setToast(e?.message || 'Speichern fehlgeschlagen')
+      showToast(e?.message || 'Speichern fehlgeschlagen', 'error', 2000)
     } finally {
       setLoading(false)
     }
@@ -37,10 +36,10 @@ export default function OwnerPostActions({ postId, initialContent, renderInline 
       const res = await fetch(`/api/forum/posts/${postId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_deleted: true }) })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(j?.error || 'Aktion fehlgeschlagen')
-      setToast('Beitrag ausgeblendet')
+      showToast('Beitrag ausgeblendet', 'success', 2000)
       router.refresh()
     } catch (e: any) {
-      setToast(e?.message || 'Aktion fehlgeschlagen')
+      showToast(e?.message || 'Aktion fehlgeschlagen', 'error', 2000)
     } finally {
       setLoading(false)
     }
@@ -66,7 +65,7 @@ export default function OwnerPostActions({ postId, initialContent, renderInline 
             </div>
           </div>
         )}
-        {toast && <Toast message={toast} type="info" onClose={() => setToast(null)} durationMs={1400} />}
+        
       </div>
     )
   }
@@ -87,7 +86,7 @@ export default function OwnerPostActions({ postId, initialContent, renderInline 
           </div>
         </div>
       )}
-      {toast && <Toast message={toast} type="info" onClose={() => setToast(null)} durationMs={1400} />}
+      
     </div>
   )
 }

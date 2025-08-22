@@ -3,7 +3,7 @@
 import React from 'react'
 import FontAwesomeIcon from '@/components/FontAwesomeIcon'
 import { useRouter } from 'next/navigation'
-import Toast from '@/components/Toast'
+import { showToast } from '@/utils/showToast'
 
 export default function AdminThreadEditActions({ threadId, initialTitle, initialBody }: { threadId: string; initialTitle?: string; initialBody?: string }) {
   const router = useRouter()
@@ -26,11 +26,12 @@ export default function AdminThreadEditActions({ threadId, initialTitle, initial
       const res = await fetch(`/api/forum/threads/${threadId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(j?.error || 'Speichern fehlgeschlagen')
-      setToast('Gespeichert')
+      showToast('Thread gespeichert.', 'success', 2000)
       setEditing(false)
       router.refresh()
     } catch (e: any) {
       setError(e?.message || 'Speichern fehlgeschlagen')
+      showToast(e?.message || 'Speichern fehlgeschlagen', 'error', 2000)
     } finally {
       setLoading(false)
     }
@@ -45,10 +46,11 @@ export default function AdminThreadEditActions({ threadId, initialTitle, initial
       const res = await fetch(`/api/forum/threads/${threadId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_deleted: true }) })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(j?.error || 'Aktion fehlgeschlagen')
-      setToast('Thread ausgeblendet')
+      showToast('Thread ausgeblendet', 'success', 2000)
       router.refresh()
     } catch (e: any) {
       setError(e?.message || 'Aktion fehlgeschlagen')
+      showToast(e?.message || 'Aktion fehlgeschlagen', 'error', 2000)
     } finally {
       setLoading(false)
     }
@@ -83,7 +85,7 @@ export default function AdminThreadEditActions({ threadId, initialTitle, initial
           </div>
         </div>
       )}
-      {toast && <Toast message={toast} type="info" onClose={() => setToast(null)} durationMs={1400} />}
+      
     </div>
   )
 }

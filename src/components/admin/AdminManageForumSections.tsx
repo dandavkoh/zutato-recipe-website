@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import Toast from '@/components/Toast'
+import { showToast } from '@/utils/showToast'
 import { useRouter } from 'next/navigation'
 
 type Section = {
@@ -16,7 +16,6 @@ export default function AdminManageForumSections({ initialSections }: { initialS
   const router = useRouter()
   const [rows, setRows] = React.useState(() => initialSections.map(s => ({ ...s })))
   const [loadingSlug, setLoadingSlug] = React.useState<string | null>(null)
-  const [toast, setToast] = React.useState<string | null>(null)
 
   const updateField = (idx: number, key: keyof Section, value: any) => {
     setRows(prev => prev.map((r, i) => i === idx ? { ...r, [key]: value } : r))
@@ -24,7 +23,7 @@ export default function AdminManageForumSections({ initialSections }: { initialS
 
   const save = async (idx: number, originalSlug: string) => {
     const s = rows[idx]
-    if (!s.slug.trim() || !s.title.trim()) { setToast('Slug und Titel sind erforderlich'); return }
+    if (!s.slug.trim() || !s.title.trim()) { showToast('Slug und Titel sind erforderlich', 'error', 1600); return }
     setLoadingSlug(originalSlug)
     try {
       const res = await fetch(`/api/forum/sections/${encodeURIComponent(originalSlug)}`, {
@@ -34,10 +33,10 @@ export default function AdminManageForumSections({ initialSections }: { initialS
       })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(j?.error || 'Speichern fehlgeschlagen')
-      setToast('Gespeichert')
+      showToast('Gespeichert', 'success', 1600)
       router.refresh()
     } catch (e: any) {
-      setToast(e?.message || 'Speichern fehlgeschlagen')
+      showToast(e?.message || 'Speichern fehlgeschlagen', 'error', 1600)
     } finally {
       setLoadingSlug(null)
     }
@@ -50,10 +49,10 @@ export default function AdminManageForumSections({ initialSections }: { initialS
       const res = await fetch(`/api/forum/sections/${encodeURIComponent(slug)}`, { method: 'DELETE' })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(j?.error || 'Löschen fehlgeschlagen')
-      setToast('Bereich gelöscht')
+      showToast('Bereich gelöscht', 'success', 1600)
       router.refresh()
     } catch (e: any) {
-      setToast(e?.message || 'Löschen fehlgeschlagen')
+      showToast(e?.message || 'Löschen fehlgeschlagen', 'error', 1600)
     } finally {
       setLoadingSlug(null)
     }
@@ -97,7 +96,7 @@ export default function AdminManageForumSections({ initialSections }: { initialS
           ))}
         </div>
       )}
-      {toast && <Toast message={toast} type="info" onClose={() => setToast(null)} durationMs={1600} />}
+      
     </div>
   )
 }

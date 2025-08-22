@@ -1,11 +1,14 @@
 'use client'
 
 import React from 'react'
+import { useRouter } from 'next/navigation'
+import { showToast } from '@/utils/showToast'
 
 export default function NewPostEditor({ threadId, disabled }: { threadId: string; disabled?: boolean }) {
   const [content, setContent] = React.useState('')
   const [saving, setSaving] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const router = useRouter()
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -23,7 +26,8 @@ export default function NewPostEditor({ threadId, disabled }: { threadId: string
       const j = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(j?.error || 'Antwort fehlgeschlagen')
       setContent('')
-      if (typeof window !== 'undefined') window.location.reload()
+      showToast('Beitrag veröffentlicht.', 'success', 2000)
+      router.refresh()
     } catch (e: any) {
       setError(e?.message || 'Antwort fehlgeschlagen')
     } finally {

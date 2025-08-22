@@ -5,7 +5,7 @@ import FontAwesomeIcon from '@/components/FontAwesomeIcon';
 import { AuthApi } from '@/lib/authApi';
 import { validateEmail, validatePassword, getPasswordStrength } from '@/utils/clientAuthUtils';
 import { UserSettingsApi } from '@/lib/userSettings';
-import Toast from '@/components/Toast';
+import { showToast } from '@/utils/showToast';
 
 interface AccountFormProps {
   initialUser: {
@@ -235,12 +235,7 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
 
   return (
     <div>
-      {successMessage && (
-        <Toast message={successMessage} type="success" onClose={() => setSuccessMessage('')} durationMs={2400} />
-      )}
-      {nicknameSuccess && (
-        <Toast message={nicknameSuccess} type="success" onClose={() => setNicknameSuccess('')} durationMs={2400} />
-      )}
+      {/* Inline green banner remains; global toasts not needed here */}
       {successMessage && (
         <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
           <div className="text-green-700 text-sm">{successMessage}</div>

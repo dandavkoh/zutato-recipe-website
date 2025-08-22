@@ -1,12 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { showToast } from '@/utils/showToast';
 
 export default function EditCommentClient({ commentId, recipeId, initialText }: { commentId: string; recipeId: string; initialText: string }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(initialText);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const handleSave = async () => {
     const trimmed = text.trim();
@@ -27,9 +30,8 @@ export default function EditCommentClient({ commentId, recipeId, initialText }: 
       }
       setSaving(false);
       setEditing(false);
-      if (typeof window !== 'undefined') {
-        window.location.reload();
-      }
+      showToast('Kommentar gespeichert.', 'success', 2000);
+      router.refresh();
     } catch (e: any) {
       setSaving(false);
       setError('Kommentar konnte nicht gespeichert werden');

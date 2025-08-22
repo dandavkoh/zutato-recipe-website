@@ -3,7 +3,7 @@
 import React from 'react'
 import FontAwesomeIcon from '@/components/FontAwesomeIcon'
 import { useRouter } from 'next/navigation'
-import Toast from '@/components/Toast'
+import { showToast } from '@/utils/showToast'
 
 export default function AdminThreadActions({ threadId, isClosed, isArchived }: { threadId: string; isClosed: boolean; isArchived: boolean }) {
   const router = useRouter()
@@ -24,10 +24,10 @@ export default function AdminThreadActions({ threadId, isClosed, isArchived }: {
       if (!res.ok) throw new Error(j?.error || 'Aktion fehlgeschlagen')
       if (field === 'is_closed') setClosed(!closed)
       if (field === 'is_archived') setArchived(!archived)
-      setToast('Gespeichert')
+      showToast('Gespeichert', 'success', 1400)
       router.refresh()
     } catch (e: any) {
-      setToast(e?.message || 'Aktion fehlgeschlagen')
+      showToast(e?.message || 'Aktion fehlgeschlagen', 'error', 1600)
     } finally {
       setLoading(false)
     }
@@ -47,7 +47,7 @@ export default function AdminThreadActions({ threadId, isClosed, isArchived }: {
           {archived ? 'Entarchivieren' : 'Archivieren'}
         </span>
       </button>
-      {toast && <Toast message={toast} type="info" onClose={() => setToast(null)} durationMs={1400} />}
+      
     </div>
   )
 }

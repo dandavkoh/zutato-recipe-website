@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import Toast from "@/components/Toast";
+import { showToast } from "@/utils/showToast";
 import FontAwesomeIcon from "@/components/FontAwesomeIcon";
 
 type Difficulty = "einfach" | "mittel" | "schwer";
@@ -80,6 +80,20 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Toast notifications for error/success
+  useEffect(() => {
+    if (error) {
+      showToast(error, 'error', 2600);
+      setError(null);
+    }
+  }, [error]);
+  useEffect(() => {
+    if (success) {
+      showToast(success, 'success', 2000);
+      setSuccess(null);
+    }
+  }, [success]);
 
   // Wizard state (5 steps)
   const wizardSteps = ["Rezept", "Zubereitung", "Kategorien", "Rezeptbild", "Vorschau"] as const;
@@ -378,8 +392,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
           <p className="text-gray-600">Passe dein Rezept an und speichere die Änderungen</p>
         </div>
 
-        {error && <Toast message={error} type="error" onClose={() => setError(null)} durationMs={2600} />}
-        {success && <Toast message={success} type="success" onClose={() => setSuccess(null)} durationMs={2000} />}
+        
 
         <form
           onKeyDown={(e) => {

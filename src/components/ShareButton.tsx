@@ -2,7 +2,8 @@
 
 import React from 'react'
 import FontAwesomeIcon from '@/components/FontAwesomeIcon'
-import Toast from '@/components/Toast'
+import { showToast } from '@/utils/showToast'
+
 
 type Props = {
   title: string
@@ -13,8 +14,6 @@ type Props = {
 }
 
 export default function ShareButton({ title, text, url, className = '', label = 'Teilen' }: Props) {
-  const [toast, setToast] = React.useState<string | null>(null)
-
   const doShare = async () => {
     try {
       const shareUrl = url || (typeof window !== 'undefined' ? window.location.href : '')
@@ -23,22 +22,19 @@ export default function ShareButton({ title, text, url, className = '', label = 
         text: text || title,
         url: shareUrl,
       }
-      // Native share if available
       if (typeof navigator !== 'undefined' && typeof (navigator as any).share === 'function') {
         await (navigator as any).share(shareData)
         return
       }
-      // Fallback: copy link
       if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(shareUrl)
-        setToast('Link kopiert')
+        showToast('Link kopiert', 'success', 1600)
         return
       }
-      // Last resort: open Twitter intent
       const tw = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text || title)}`
       window.open(tw, '_blank', 'noopener,noreferrer')
     } catch {
-      setToast('Teilen nicht möglich')
+      showToast('Teilen nicht möglich', 'error', 1600)
     }
   }
 
@@ -53,7 +49,6 @@ export default function ShareButton({ title, text, url, className = '', label = 
         <FontAwesomeIcon icon="share" style="solid" />
         {label}
       </button>
-      {toast && <Toast message={toast} type="success" onClose={() => setToast(null)} durationMs={1600} />}
     </div>
   )
 }
