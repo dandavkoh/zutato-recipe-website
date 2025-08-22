@@ -357,8 +357,10 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
         throw new Error(err?.error || "Speichern fehlgeschlagen");
       }
       setSuccess("Rezept gespeichert.");
-      // Optional: zurück zur Detailseite
-      // router.push(`/rezepte/${params.id}/${encodeURIComponent(params.slug)}`)
+      // Redirect to the detail page with success flag
+      const resolvedParams = await params;
+      const slugParam = encodeURIComponent(resolvedParams.slug);
+      router.push(`/rezepte/${resolvedParams.id}/${slugParam}?success=updated`);
     } catch (e: any) {
       setError(e?.message || "Unbekannter Fehler");
     } finally {

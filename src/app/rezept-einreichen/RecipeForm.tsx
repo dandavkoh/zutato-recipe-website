@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import FontAwesomeIcon from "@/components/FontAwesomeIcon";
 import Toast from "@/components/Toast";
@@ -90,8 +91,18 @@ function generateId(prefix: string = "id"): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+}
+
 export default function RecipeForm() {
   const supabase = useMemo(() => createClient(), []);
+  const router = useRouter();
 
   const [loading, setLoading] = useState(false);
   const [units, setUnits] = useState<Unit[]>([]);
@@ -451,30 +462,13 @@ export default function RecipeForm() {
         throw new Error(err?.error || "Erstellen fehlgeschlagen");
       }
       const data = await res.json();
-      setSuccess("Rezept erfolgreich erstellt.");
-      // Optionally redirect to recipe page later
-      // Reset form minimal
-      setName("");
-      setDescription("");
-      setPortions(4);
-      setDifficulty("mittel");
-      setSelectedCategoryIdsByGroup({});
-      setWorkingMinutes("");
-      setCookingMinutes("");
-      setRestingMinutes("");
-      setSections([
-        {
-          tempId: generateId("section"),
-          name: "",
-          sort_order: 0,
-          ingredients: [
-            { tempId: generateId("ing"), quantity: "", unit_id: null, link: null, sort_order: 0 },
-          ],
-        },
-      ]);
-      setSteps([{ step_number: 1, instruction: "" }]);
-      setImageFile(null);
-      setImagePreview(null);
+      const createdId = (data as any)?.id as string | undefined;
+      const slug = slugify(name || "");
+      if (createdId) {
+        router.push(`/rezepte/${createdId}/${slug}?success=created`);
+      } else {
+        setSuccess("Rezept erfolgreich erstellt.");
+      }
     } catch (e: any) {
       setError(e?.message || "Ein Fehler ist aufgetreten");
     } finally {

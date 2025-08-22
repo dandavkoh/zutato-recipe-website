@@ -124,6 +124,7 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
   const supabase = await createClient();
   const { id, slug } = await props.params;
   const q = props.searchParams ? await props.searchParams : undefined;
+  const search = q as any;
 
   const { data: recipe, error: recipeError } = await supabase
     .from('recipes_with_details')
@@ -249,6 +250,13 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {search?.success && (
+        <div className="bg-green-50 border-b border-green-200">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-3 text-green-800 text-sm">
+            {search.success === 'created' ? 'Rezept wurde erfolgreich erstellt.' : search.success === 'updated' ? 'Rezept wurde erfolgreich gespeichert.' : 'Aktion erfolgreich.'}
+          </div>
+        </div>
+      )}
       {/* Structured Data for Google (Recipe JSON-LD) */}
       <Script id="recipe-ld-json" type="application/ld+json"
         dangerouslySetInnerHTML={{
