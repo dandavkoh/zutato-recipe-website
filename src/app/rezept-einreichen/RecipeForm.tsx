@@ -340,6 +340,23 @@ export default function RecipeForm() {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+
+    // If not on the last step, treat submit like clicking "Weiter"
+    if (wizardStepIdx < wizardSteps.length - 1) {
+      if (wizardStepIdx === 0) {
+        if (!name.trim()) { setError("Bitte einen Rezeptnamen eingeben."); return; }
+        const anyIng = sections.some((sec) => sec.ingredients.some((ing) => ing.quantity.trim() && (ing.link != null)));
+        if (!anyIng) { setError("Bitte mindestens eine Zutat mit Menge und Namen auswählen."); return; }
+      }
+      if (wizardStepIdx === 1) {
+        const anyStep = steps.some((s) => s.instruction.trim());
+        if (!anyStep) { setError("Bitte mindestens einen Zubereitungsschritt eingeben."); return; }
+      }
+      gotoStep(wizardStepIdx + 1);
+      return;
+    }
+
+    // Only on the last step we actually create the recipe
     const validationError = validate();
     if (validationError) {
       setError(validationError);
