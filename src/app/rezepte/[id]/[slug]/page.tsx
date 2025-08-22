@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import Link from 'next/link';
 import ShareButton from '@/components/ShareButton';
+import ScrollToTopOnMount from '@/components/ScrollToTopOnMount';
 import RateRecipeButton from '@/components/RateRecipeButton';
 import AdminRecipeActions from '@/components/AdminRecipeActions';
 import IngredientsWithPortionScaler from '@/components/IngredientsWithPortionScaler';
@@ -250,6 +251,7 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <ScrollToTopOnMount when={Boolean(search?.success)} />
       {search?.success && (
         <div className="bg-green-50 border-b border-green-200">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-3 text-green-800 text-sm">
