@@ -479,6 +479,16 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
               <div key={section.tempId} className="border rounded p-4">
                   <div className="flex items-center gap-3 mb-4">
                     <input value={section.name} onChange={(e) => setSections((prev) => prev.map((s, i) => i === sIdx ? { ...s, name: e.target.value } : s))} className="flex-1 rounded" placeholder="Abschnittsname (optional, z.B. Tortenboden)" />
+                    {sections.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setSections((prev) => prev.filter((_, i) => i !== sIdx).map((s, i) => ({ ...s, sort_order: i })))}
+                        aria-label="Abschnitt entfernen"
+                        className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
+                      >
+                        <FontAwesomeIcon icon="trash" size="sm" />
+                      </button>
+                    )}
                   </div>
                 <div className="space-y-3">
                   {section.ingredients.map((ing, iIdx) => (
@@ -630,7 +640,9 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
                           </div>
                         </div>
                         <div className="col-span-1 flex h-full items-start justify-center pt-3">
-                          <button type="button" onClick={() => setSections((prev) => { const cp=[...prev]; const sec={...cp[sIdx]}; sec.ingredients = sec.ingredients.filter((_, j)=> j!==iIdx).map((ing2, j)=> ({...ing2, sort_order: j})); cp[sIdx]=sec; return cp; })} className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded">Löschen</button>
+                          <button type="button" onClick={() => setSections((prev) => { const cp=[...prev]; const sec={...cp[sIdx]}; sec.ingredients = sec.ingredients.filter((_, j)=> j!==iIdx).map((ing2, j)=> ({...ing2, sort_order: j})); cp[sIdx]=sec; return cp; })} aria-label="Zutat entfernen" className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded">
+                            <FontAwesomeIcon icon="trash" size="sm" />
+                          </button>
                       </div>
                     </div>
                   ))}
