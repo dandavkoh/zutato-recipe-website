@@ -101,6 +101,8 @@ export default function RecipeForm() {
   const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState<Record<string, boolean>>({});
   const [expandedByGroup, setExpandedByGroup] = useState<Record<string, Record<string, boolean>>>({});
   const dropdownRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+  const wizardHeaderWrapperRef = React.useRef<HTMLDivElement | null>(null);
+  const wizardHeaderScrollerRef = React.useRef<HTMLDivElement | null>(null);
 
   // form fields
   const [name, setName] = useState("");
@@ -140,6 +142,7 @@ export default function RecipeForm() {
   const [wizardStepIdx, setWizardStepIdx] = useState<number>(0);
 
   function gotoStep(idx: number) {
+    try { (document.activeElement as HTMLElement | null)?.blur(); } catch {}
     setWizardStepIdx(Math.max(0, Math.min(wizardSteps.length - 1, idx)));
   }
 
@@ -187,6 +190,36 @@ export default function RecipeForm() {
     document.addEventListener('mousedown', onDocClick);
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [isGroupDropdownOpen]);
+
+  // On step change: after layout settles, move focus to header (preventScroll),
+  // scroll page to top, and center active step horizontally in the header container
+  useEffect(() => {
+    const wrapper = wizardHeaderWrapperRef.current;
+    const scroller = wizardHeaderWrapperRef.current;
+    const run = () => {
+      try { (wrapper as any)?.focus?.({ preventScroll: true }); } catch {}
+      try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch {}
+      if (scroller) {
+        const activeBtn = scroller.querySelector<HTMLButtonElement>(`button[data-step-idx="${wizardStepIdx}"]`);
+        if (activeBtn) {
+          const btnRect = activeBtn.getBoundingClientRect();
+          const contRect = scroller.getBoundingClientRect();
+          const deltaLeft = (btnRect.left + btnRect.width / 2) - (contRect.left + contRect.width / 2);
+          const targetLeft = Math.max(0, scroller.scrollLeft + deltaLeft);
+          scroller.scrollTo({ left: targetLeft, behavior: 'smooth' });
+        }
+      }
+    };
+    const id1 = requestAnimationFrame(() => {
+      const id2 = requestAnimationFrame(run);
+      (run as any)._id2 = id2;
+    });
+    return () => {
+      cancelAnimationFrame(id1);
+      const id2 = (run as any)._id2;
+      if (typeof id2 === 'number') cancelAnimationFrame(id2);
+    };
+  }, [wizardStepIdx]);
 
   function flattenCategoriesForGroup(groupId: string): Array<{ id: string; name: string; depth: number }> {
     const cats = allCategories.filter((c) => c.group_id === groupId);
@@ -450,7 +483,27 @@ export default function RecipeForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-8">
+    <form
+      onSubmit={onSubmit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && wizardStepIdx < wizardSteps.length - 1) {
+          e.preventDefault();
+          // mimic Weiter button validation per step
+          if (wizardStepIdx === 0) {
+            if (!name.trim()) { setError("Bitte einen Rezeptnamen eingeben."); return; }
+            const anyIng = sections.some((sec) => sec.ingredients.some((ing) => ing.quantity.trim() && (ing.link != null)));
+            if (!anyIng) { setError("Bitte mindestens eine Zutat mit Menge und Namen auswählen."); return; }
+          }
+          if (wizardStepIdx === 1) {
+            const anyStep = steps.some((s) => s.instruction.trim());
+            if (!anyStep) { setError("Bitte mindestens einen Zubereitungsschritt eingeben."); return; }
+          }
+          setError(null);
+          gotoStep(wizardStepIdx + 1);
+        }
+      }}
+      className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-8"
+    >
       {error && (
         <Toast message={error} type="error" onClose={() => setError(null)} durationMs={2600} />
       )}
@@ -459,8 +512,8 @@ export default function RecipeForm() {
       )}
 
       {/* Wizard header */}
-      <div className="overflow-x-auto pb-1">
-        <div className="flex items-center gap-6 justify-start md:justify-center px-4 min-w-max">
+      <div className="overflow-x-auto pb-1" ref={wizardHeaderWrapperRef} tabIndex={-1}>
+        <div className="flex items-center gap-6 justify-start md:justify-center px-4 min-w-max" ref={wizardHeaderScrollerRef}>
         {wizardSteps.map((label, idx) => {
           const isActive = idx === wizardStepIdx;
           const isDone = idx < wizardStepIdx;
@@ -470,6 +523,7 @@ export default function RecipeForm() {
             <button
               key={label}
               type="button"
+              data-step-idx={idx}
               onClick={() => gotoStep(idx)}
               className={`${bgClass} ${hoverClass} relative rounded-md pl-2 pr-7 py-2 font-semibold shadow-sm transition-colors inline-flex items-center`}
             >
@@ -1032,7 +1086,9 @@ export default function RecipeForm() {
         {wizardStepIdx < wizardSteps.length - 1 ? (
           <button
             type="button"
-            onClick={() => {
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
               if (wizardStepIdx === 0) {
                 if (!name.trim()) { setError("Bitte einen Rezeptnamen eingeben."); return; }
                 const anyIng = sections.some((sec) => sec.ingredients.some((ing) => ing.quantity.trim() && (ing.link != null)));

@@ -61,6 +61,8 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
   const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState<Record<string, boolean>>({});
   const [expandedByGroup, setExpandedByGroup] = useState<Record<string, Record<string, boolean>>>({});
   const dropdownRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+  const wizardHeaderWrapperRef = React.useRef<HTMLDivElement | null>(null);
+  const wizardHeaderScrollerRef = React.useRef<HTMLDivElement | null>(null);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -266,6 +268,28 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [isGroupDropdownOpen]);
 
+  // On step change: after layout, focus header (preventScroll), scroll to top, center active step in header container
+  useEffect(() => {
+    const wrapper = wizardHeaderWrapperRef.current;
+    const scroller = wizardHeaderWrapperRef.current;
+    const run = () => {
+      try { (wrapper as any)?.focus?.({ preventScroll: true }); } catch {}
+      try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch {}
+      if (scroller) {
+        const activeBtn = scroller.querySelector<HTMLButtonElement>(`button[data-step-idx="${wizardStepIdx}"]`);
+        if (activeBtn) {
+          const btnRect = activeBtn.getBoundingClientRect();
+          const contRect = scroller.getBoundingClientRect();
+          const deltaLeft = (btnRect.left + btnRect.width / 2) - (contRect.left + contRect.width / 2);
+          const targetLeft = Math.max(0, scroller.scrollLeft + deltaLeft);
+          scroller.scrollTo({ left: targetLeft, behavior: 'smooth' });
+        }
+      }
+    };
+    const id1 = requestAnimationFrame(() => { const id2 = requestAnimationFrame(run); (run as any)._id2 = id2; });
+    return () => { cancelAnimationFrame(id1); const id2 = (run as any)._id2; if (typeof id2 === 'number') cancelAnimationFrame(id2); };
+  }, [wizardStepIdx]);
+
   function validate(): string | null {
     if (!name.trim()) return "Bitte einen Rezeptnamen eingeben.";
     if (!portions || portions < 1) return "Bitte die Portionen angeben (>= 1).";
@@ -356,6 +380,17 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
         {success && <Toast message={success} type="success" onClose={() => setSuccess(null)} durationMs={2000} />}
 
         <form
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && wizardStepIdx < wizardSteps.length - 1) {
+              e.preventDefault();
+              const err = wizardStepIdx === 0
+                ? (!name.trim() ? 'Bitte einen Rezeptnamen eingeben.' : (sections.some(sec => sec.ingredients.some(ing => String(ing.quantity).trim() && ing.link != null)) ? null : 'Bitte mindestens eine Zutat mit Menge und Namen auswählen.'))
+                : (wizardStepIdx === 1 ? (steps.some(s => s.instruction.trim()) ? null : 'Bitte mindestens einen Zubereitungsschritt eingeben.') : null);
+              if (err) { setError(err); return; }
+              setError(null);
+              gotoStep(wizardStepIdx + 1);
+            }
+          }}
           onSubmit={(e) => {
             e.preventDefault();
             const err = validate();
@@ -370,8 +405,8 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
           className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-8"
         >
           {/* Wizard header */}
-          <div className="overflow-x-auto pb-1">
-            <div className="flex items-center gap-6 justify-start md:justify-center px-4 min-w-max">
+          <div className="overflow-x-auto pb-1" ref={wizardHeaderWrapperRef} tabIndex={-1}>
+            <div className="flex items-center gap-6 justify-start md:justify-center px-4 min-w-max" ref={wizardHeaderScrollerRef}>
               {(['Rezept','Zubereitung','Kategorien','Rezeptbild','Vorschau'] as const).map((label, idx) => {
                 const isActive = idx === wizardStepIdx;
                 const isDone = idx < wizardStepIdx;
@@ -381,6 +416,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
                   <button
                     key={label}
                     type="button"
+                    data-step-idx={idx}
                     onClick={() => gotoStep(idx)}
                     className={`${bgClass} ${hoverClass} relative rounded-md pl-2 pr-7 py-2 font-semibold shadow-sm transition-colors inline-flex items-center`}
                   >
@@ -788,7 +824,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
           <div className="pt-2 flex items-center justify-between">
             <button type="button" onClick={() => gotoStep(wizardStepIdx - 1)} disabled={wizardStepIdx === 0 || saving} className="inline-flex items-center px-4 py-2 rounded border border-gray-300 text-gray-800 hover:bg-gray-50 disabled:opacity-50">Zurück</button>
             {wizardStepIdx < wizardSteps.length - 1 ? (
-              <button type="button" disabled={saving} onClick={() => { const err = wizardStepIdx === 0 ? (!name.trim() ? 'Bitte einen Rezeptnamen eingeben.' : (sections.some(sec => sec.ingredients.some(ing => String(ing.quantity).trim() && ing.link != null)) ? null : 'Bitte mindestens eine Zutat mit Menge und Namen auswählen.')) : (wizardStepIdx === 1 ? (steps.some(s => s.instruction.trim()) ? null : 'Bitte mindestens einen Zubereitungsschritt eingeben.') : null); if (err) { setError(err); return; } setError(null); gotoStep(wizardStepIdx + 1); }} className="inline-flex items-center px-4 py-2 rounded bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50">Weiter</button>
+              <button type="button" disabled={saving} onClick={(e) => { e.preventDefault(); e.stopPropagation(); const err = wizardStepIdx === 0 ? (!name.trim() ? 'Bitte einen Rezeptnamen eingeben.' : (sections.some(sec => sec.ingredients.some(ing => String(ing.quantity).trim() && ing.link != null)) ? null : 'Bitte mindestens eine Zutat mit Menge und Namen auswählen.')) : (wizardStepIdx === 1 ? (steps.some(s => s.instruction.trim()) ? null : 'Bitte mindestens einen Zubereitungsschritt eingeben.') : null); if (err) { setError(err); return; } setError(null); gotoStep(wizardStepIdx + 1); }} className="inline-flex items-center px-4 py-2 rounded bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50">Weiter</button>
             ) : (
               <button type="submit" disabled={saving} className="inline-flex items-center px-4 py-2 rounded bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50">{saving ? 'Speichern...' : 'Speichern'}</button>
             )}
