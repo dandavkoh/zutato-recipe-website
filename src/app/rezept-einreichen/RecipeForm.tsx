@@ -634,9 +634,12 @@ export default function RecipeForm() {
                             className="mt-1 w-full rounded"
                           >
                             <option value="">-</option>
-                            {units.map((u) => (
-                              <option key={u.id} value={u.id}>{u.short_name || u.name}</option>
-                            ))}
+                            {units
+                              .slice()
+                              .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                              .map((u) => (
+                                <option key={u.id} value={u.id}>{u.name}</option>
+                              ))}
                           </select>
                         </div>
                         <div className="col-span-7">

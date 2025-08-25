@@ -501,7 +501,10 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
                           <label className="block text-xs text-gray-500">Einheit</label>
                           <select value={ing.unit_id || ""} onChange={(e) => setSections((prev) => { const cp=[...prev]; const sec={...cp[sIdx]}; const ings=[...sec.ingredients]; ings[iIdx] = { ...ings[iIdx], unit_id: e.target.value || null }; sec.ingredients=ings; cp[sIdx]=sec; return cp; })} className="mt-1 w-full rounded">
                         <option value="">-</option>
-                        {units.map((u) => <option key={u.id} value={u.id}>{u.short_name || u.name}</option>)}
+                        {units
+                          .slice()
+                          .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                          .map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                       </select>
                         </div>
                         <div className="col-span-7">

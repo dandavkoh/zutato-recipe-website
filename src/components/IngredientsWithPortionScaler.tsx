@@ -106,7 +106,7 @@ export default function IngredientsWithPortionScaler(props: {
             {group.items.map((ing) => (
               <li key={ing.id} className="flex items-start justify-between">
                 <span className="text-gray-900">
-                  {formatQuantity(ing.quantity)} {ing.unit_short_name || ing.unit_name || ""} {ing.ingredient_display_name}
+                  {formatQuantity(ing.quantity)} {ing.unit_name || ing.unit_short_name || ""} {ing.ingredient_display_name}
                 </span>
               </li>
             ))}
