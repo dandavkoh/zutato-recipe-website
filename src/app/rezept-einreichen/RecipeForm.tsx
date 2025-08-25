@@ -626,7 +626,7 @@ export default function RecipeForm() {
                             className="mt-1 w-full rounded"
                           />
                         </div>
-                        <div className="col-span-2">
+                        <div className="col-span-4">
                           <label className="block text-xs text-gray-500">Einheit</label>
                           <select
                             value={ing.unit_id || ""}
@@ -642,7 +642,7 @@ export default function RecipeForm() {
                               ))}
                           </select>
                         </div>
-                        <div className="col-span-7">
+                        <div className="col-span-5">
                           <label className="block text-xs text-gray-500">Zutat</label>
                           <div className="relative">
                             <input

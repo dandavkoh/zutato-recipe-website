@@ -497,7 +497,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
                           <label className="block text-xs text-gray-500">Menge</label>
                           <input type="number" min={0} step="0.01" value={ing.quantity} onChange={(e) => setSections((prev) => { const cp=[...prev]; const sec={...cp[sIdx]}; const ings=[...sec.ingredients]; ings[iIdx] = { ...ings[iIdx], quantity: e.target.value }; sec.ingredients=ings; cp[sIdx]=sec; return cp; })} className="mt-1 w-full rounded" />
                         </div>
-                        <div className="col-span-2">
+                        <div className="col-span-4">
                           <label className="block text-xs text-gray-500">Einheit</label>
                           <select value={ing.unit_id || ""} onChange={(e) => setSections((prev) => { const cp=[...prev]; const sec={...cp[sIdx]}; const ings=[...sec.ingredients]; ings[iIdx] = { ...ings[iIdx], unit_id: e.target.value || null }; sec.ingredients=ings; cp[sIdx]=sec; return cp; })} className="mt-1 w-full rounded">
                         <option value="">-</option>
@@ -507,7 +507,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
                           .map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                       </select>
                         </div>
-                        <div className="col-span-7">
+                        <div className="col-span-5">
                           <label className="block text-xs text-gray-500">Zutat</label>
                           <div className="relative">
                             <input
