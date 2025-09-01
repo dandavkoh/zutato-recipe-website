@@ -127,7 +127,7 @@ function LoginPageInner() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 flex flex-col">
       {/* Content */}
-      <div className="flex-1 flex items-center justify-center px-4 py-12">
+      <div className="flex-1 flex items-start justify-center px-4 pt-8 md:pt-12 pb-12">
         <div className="w-full max-w-md">
           {/* Header */}
           <div className="text-center mb-8">
