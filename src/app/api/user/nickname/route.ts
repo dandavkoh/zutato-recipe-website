@@ -18,11 +18,19 @@ export async function GET() {
       .eq('user_id', user.id)
       .maybeSingle();
     if (error) {
+      try {
+        const Sentry = await import('@sentry/nextjs');
+        Sentry.captureException(error);
+      } catch {}
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
     const nickname = (row as any)?.nickname as string | null;
     return NextResponse.json({ hasNickname: Boolean(nickname && nickname.trim()), nickname: nickname || '' }, { status: 200 });
   } catch (e: any) {
+    try {
+      const Sentry = await import('@sentry/nextjs');
+      Sentry.captureException(e);
+    } catch {}
     return NextResponse.json({ error: e?.message || 'Unbekannter Fehler' }, { status: 500 });
   }
 }
@@ -61,6 +69,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (e: any) {
+    try {
+      const Sentry = await import('@sentry/nextjs');
+      Sentry.captureException(e);
+    } catch {}
     return NextResponse.json({ error: e?.message || 'Unbekannter Fehler' }, { status: 500 });
   }
 }

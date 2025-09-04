@@ -93,7 +93,8 @@ function LoginPageInner() {
         setErrors({ general: result.error || 'Anmeldung fehlgeschlagen' });
       }
     } catch (error) {
-      console.error('Login error:', error);
+      const { reportError } = await import('@/utils/reportError');
+      reportError(error, { where: 'login.handleSubmit' });
       setErrors({ general: 'Anmeldung fehlgeschlagen. Bitte überprüfen Sie Ihre E-Mail und Ihr Passwort.' });
     } finally {
       setIsLoading(false);
@@ -117,7 +118,8 @@ function LoginPageInner() {
         setErrors({ general: result.error || 'Fehler beim Senden der Passwort-Reset-E-Mail' });
       }
     } catch (error) {
-      console.error('Password reset error:', error);
+      const { reportError } = await import('@/utils/reportError');
+      reportError(error, { where: 'login.handleForgotPassword' });
       setErrors({ general: 'Fehler beim Senden der Passwort-Reset-E-Mail. Bitte versuchen Sie es erneut.' });
     } finally {
       setIsLoading(false);

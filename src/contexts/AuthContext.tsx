@@ -25,9 +25,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const currentUser = await AuthApi.getCurrentUser();
         setUser(currentUser);
       } catch (error) {
-        // Don't log AuthSessionMissingError as it's expected for non-authenticated users
         if (error instanceof Error && error.message !== 'Auth session missing!') {
-          console.error('Error checking user:', error);
+          const { reportError } = await import('@/utils/reportError');
+          reportError(error, { where: 'AuthContext.checkUser' });
         }
       } finally {
         setLoading(false);

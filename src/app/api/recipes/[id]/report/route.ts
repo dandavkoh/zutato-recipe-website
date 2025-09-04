@@ -35,6 +35,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     return NextResponse.json({ success: true }, { status: 201 })
   } catch (e: any) {
+    try { const Sentry = await import('@sentry/nextjs'); Sentry.captureException(e); } catch {}
     return NextResponse.json({ error: e?.message || 'Unbekannter Fehler' }, { status: 500 })
   }
 }

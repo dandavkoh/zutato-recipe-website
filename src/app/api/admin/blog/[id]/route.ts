@@ -54,6 +54,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (e: any) {
+    try { const Sentry = await import('@sentry/nextjs'); Sentry.captureException(e); } catch {}
     return NextResponse.json({ error: e?.message || 'Unbekannter Fehler' }, { status: 500 });
   }
 }
@@ -75,6 +76,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (e: any) {
+    try { const Sentry = await import('@sentry/nextjs'); Sentry.captureException(e); } catch {}
     return NextResponse.json({ error: e?.message || 'Unbekannter Fehler' }, { status: 500 });
   }
 }

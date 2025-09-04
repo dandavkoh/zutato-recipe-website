@@ -38,6 +38,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
     return NextResponse.json({ success: true })
   } catch (e: any) {
+    try { const Sentry = await import('@sentry/nextjs'); Sentry.captureException(e); } catch {}
     return NextResponse.json({ error: e?.message || 'Unbekannter Fehler' }, { status: 500 })
   }
 }

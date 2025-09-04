@@ -88,7 +88,8 @@ export default function RegisterPage() {
         setErrors({ email: result.error || 'Registrierung fehlgeschlagen' });
       }
     } catch (error) {
-      console.error('Registration error:', error);
+      const { reportError } = await import('@/utils/reportError');
+      reportError(error, { where: 'register.handleSubmit' });
       setErrors({ email: 'Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.' });
     } finally {
       setIsLoading(false);

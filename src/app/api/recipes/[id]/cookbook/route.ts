@@ -26,6 +26,7 @@ export async function GET(_request: Request, context: Params) {
 
     return NextResponse.json({ inCookbook: Boolean(row) }, { status: 200 });
   } catch (e: any) {
+    try { const Sentry = await import('@sentry/nextjs'); Sentry.captureException(e); } catch {}
     return NextResponse.json({ error: e?.message || 'Unbekannter Fehler' }, { status: 500 });
   }
 }
@@ -59,6 +60,7 @@ export async function POST(_request: Request, context: Params) {
 
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (e: any) {
+    try { const Sentry = await import('@sentry/nextjs'); Sentry.captureException(e); } catch {}
     return NextResponse.json({ error: e?.message || 'Unbekannter Fehler' }, { status: 500 });
   }
 }
@@ -88,6 +90,7 @@ export async function DELETE(_request: Request, context: Params) {
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (e: any) {
+    try { const Sentry = await import('@sentry/nextjs'); Sentry.captureException(e); } catch {}
     return NextResponse.json({ error: e?.message || 'Unbekannter Fehler' }, { status: 500 });
   }
 }

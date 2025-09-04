@@ -25,7 +25,9 @@ export default function NicknameGuard() {
           setOpen(!j?.hasNickname);
           setNickname(j?.nickname || '');
         }
-      } catch {
+      } catch (err) {
+        const { reportError } = await import('@/utils/reportError');
+        reportError(err, { where: 'NicknameGuard.check' });
         // fail open
         if (!cancelled) setOpen(false);
       } finally {
@@ -83,7 +85,9 @@ export default function NicknameGuard() {
       }
       setSaving(false);
       setOpen(false);
-    } catch {
+    } catch (err) {
+      const { reportError } = await import('@/utils/reportError');
+      reportError(err, { where: 'NicknameGuard.handleSave' });
       setSaving(false);
       setError('Konnte Accountnamen nicht speichern');
     }

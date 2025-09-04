@@ -47,7 +47,8 @@ export class AuthApi {
       });
 
       if (error) {
-        console.error('Login error:', error);
+        const { reportError } = await import('@/utils/reportError');
+        reportError(error, { where: 'AuthApi.login' });
         return {
           success: false,
           error: this.getErrorMessage(error)
@@ -78,7 +79,8 @@ export class AuthApi {
         error: 'Anmeldung fehlgeschlagen'
       };
     } catch (error) {
-      console.error('Unexpected login error:', error);
+      const { reportError } = await import('@/utils/reportError');
+      reportError(error, { where: 'AuthApi.login.unexpected' });
       return {
         success: false,
         error: 'Ein unerwarteter Fehler ist aufgetreten'
@@ -102,7 +104,8 @@ export class AuthApi {
       });
 
       if (error) {
-        console.error('Registration error:', error);
+        const { reportError } = await import('@/utils/reportError');
+        reportError(error, { where: 'AuthApi.register' });
         return {
           success: false,
           error: this.getErrorMessage(error)
@@ -134,7 +137,8 @@ export class AuthApi {
         error: 'Registrierung fehlgeschlagen'
       };
     } catch (error) {
-      console.error('Unexpected registration error:', error);
+      const { reportError } = await import('@/utils/reportError');
+      reportError(error, { where: 'AuthApi.register.unexpected' });
       return {
         success: false,
         error: 'Ein unerwarteter Fehler ist aufgetreten'
@@ -151,7 +155,8 @@ export class AuthApi {
       });
 
       if (error) {
-        console.error('Password reset error:', error);
+        const { reportError } = await import('@/utils/reportError');
+        reportError(error, { where: 'AuthApi.resetPassword' });
         return {
           success: false,
           error: this.getErrorMessage(error)
@@ -163,7 +168,8 @@ export class AuthApi {
         message: 'Passwort-Reset-E-Mail wurde gesendet. Bitte überprüfen Sie Ihren Posteingang.'
       };
     } catch (error) {
-      console.error('Unexpected password reset error:', error);
+      const { reportError } = await import('@/utils/reportError');
+      reportError(error, { where: 'AuthApi.resetPassword.unexpected' });
       return {
         success: false,
         error: 'Ein unerwarteter Fehler ist aufgetreten'
@@ -179,9 +185,9 @@ export class AuthApi {
       
       // AuthSessionMissingError is expected for non-authenticated users
       if (error) {
-        // Don't log AuthSessionMissingError as it's expected for non-authenticated users
         if (error.message !== 'Auth session missing!') {
-          console.error('Get current user error:', error);
+          const { reportError } = await import('@/utils/reportError');
+          reportError(error, { where: 'AuthApi.getCurrentUser' });
         }
         return null;
       }
@@ -201,9 +207,9 @@ export class AuthApi {
 
       return null;
     } catch (error) {
-      // Don't log AuthSessionMissingError as it's expected for non-authenticated users
       if (error instanceof Error && error.message !== 'Auth session missing!') {
-        console.error('Unexpected get current user error:', error);
+        const { reportError } = await import('@/utils/reportError');
+        reportError(error, { where: 'AuthApi.getCurrentUser.unexpected' });
       }
       return null;
     }
@@ -215,12 +221,14 @@ export class AuthApi {
       const supabase = createClient();
       const { error } = await supabase.auth.signOut();
       if (error) {
-        console.error('Logout error:', error);
+        const { reportError } = await import('@/utils/reportError');
+        reportError(error, { where: 'AuthApi.logout' });
       }
       
 
     } catch (error) {
-      console.error('Unexpected logout error:', error);
+      const { reportError } = await import('@/utils/reportError');
+      reportError(error, { where: 'AuthApi.logout.unexpected' });
     }
   }
 
@@ -231,9 +239,9 @@ export class AuthApi {
       const { data: { user }, error } = await supabase.auth.getUser();
       return !error && !!user;
     } catch (error) {
-      // Don't log AuthSessionMissingError as it's expected for non-authenticated users
       if (error instanceof Error && error.message !== 'Auth session missing!') {
-        console.error('Auth check failed:', error);
+        const { reportError } = await import('@/utils/reportError');
+        reportError(error, { where: 'AuthApi.isAuthenticated' });
       }
       return false;
     }
@@ -326,7 +334,8 @@ export class AuthApi {
         } : undefined
       };
     } catch (error) {
-      console.error('Update profile error:', error);
+      const { reportError } = await import('@/utils/reportError');
+      reportError(error, { where: 'AuthApi.updateProfile' });
       return {
         success: false,
         error: 'Ein unerwarteter Fehler ist aufgetreten'
@@ -386,7 +395,8 @@ export class AuthApi {
         } : undefined
       };
     } catch (error) {
-      console.error('Update password error:', error);
+      const { reportError } = await import('@/utils/reportError');
+      reportError(error, { where: 'AuthApi.updatePassword' });
       return {
         success: false,
         error: 'Ein unerwarteter Fehler ist aufgetreten'

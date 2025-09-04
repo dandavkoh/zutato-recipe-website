@@ -48,7 +48,9 @@ export default function Header() {
         }
         const j = await res.json();
         if (alive) setIsAdmin(Boolean(j?.isAdmin));
-      } catch {
+      } catch (err) {
+        const { reportError } = await import('@/utils/reportError');
+        reportError(err, { where: 'Header.is-admin' });
         if (alive) setIsAdmin(false);
       }
     };

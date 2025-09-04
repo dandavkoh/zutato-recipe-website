@@ -139,6 +139,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ id: recipeId }, { status: 201 });
   } catch (e: any) {
+    try {
+      const Sentry = await import('@sentry/nextjs');
+      Sentry.captureException(e);
+    } catch {}
     return NextResponse.json({ error: e?.message || "Unbekannter Fehler" }, { status: 500 });
   }
 }

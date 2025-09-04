@@ -164,6 +164,8 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
         setErrors({ email: result.error || 'Fehler beim Aktualisieren des Profils' });
       }
     } catch (error) {
+      const { reportError } = await import('@/utils/reportError');
+      reportError(error, { where: 'AccountForm.handleSaveProfile' });
       setErrors({ email: 'Fehler beim Aktualisieren des Profils' });
     } finally {
       setLoading(false);
@@ -220,6 +222,8 @@ export default function AccountForm({ initialUser }: AccountFormProps) {
         setErrors({ currentPassword: result.error || 'Fehler beim Ändern des Passworts' });
       }
     } catch (error) {
+      const { reportError } = await import('@/utils/reportError');
+      reportError(error, { where: 'AccountForm.handleChangePassword' });
       setErrors({ currentPassword: 'Fehler beim Ändern des Passworts' });
     } finally {
       setLoading(false);

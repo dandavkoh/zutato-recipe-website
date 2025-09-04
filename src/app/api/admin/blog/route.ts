@@ -53,6 +53,7 @@ export async function POST(request: Request) {
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ id: (data as any).id }, { status: 201 });
   } catch (e: any) {
+    try { const Sentry = await import('@sentry/nextjs'); Sentry.captureException(e); } catch {}
     return NextResponse.json({ error: e?.message || 'Unbekannter Fehler' }, { status: 500 });
   }
 }
