@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -45,6 +46,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const isProd = process.env.NODE_ENV === 'production';
+  const umamiScriptUrl = process.env.NEXT_PUBLIC_UMAMI_SCRIPT_URL;
+  const umamiWebsiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID;
+  const umamiDataDomains = process.env.NEXT_PUBLIC_UMAMI_DATA_DOMAINS || new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').hostname;
   return (
     <html lang="de">
       <head>
@@ -65,6 +70,15 @@ export default function RootLayout({
           <Footer />
           <NicknameGuard />
         </AuthProvider>
+        {isProd && umamiScriptUrl && umamiWebsiteId ? (
+          <Script
+            src={umamiScriptUrl}
+            data-website-id={umamiWebsiteId}
+            data-domains={umamiDataDomains}
+            strategy="afterInteractive"
+            defer
+          />
+        ) : null}
       </body>
     </html>
   );
