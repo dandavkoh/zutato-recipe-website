@@ -398,7 +398,7 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
               </div>
             )}
             <div className="mt-6 flex justify-center">
-              <ShareButton title={r.name} text={r.description || r.name} label="Rezept teilen" />
+              <ShareButton title={r.name} text={r.description || r.name} label="Rezept teilen" context={{ kind: 'recipe', recipeId: id }} />
             </div>
             <div className="mt-8">
               <CommentsSection recipeId={id} currentUserId={user ? user.id : null} slug={slug} page={commentsPage} />

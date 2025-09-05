@@ -10,6 +10,7 @@ import {
   validatePassword
 } from '@/utils/clientAuthUtils';
 import { useAuth } from '@/contexts/AuthContext';
+import { AnalyticsEvents, trackEvent } from '@/utils/analytics';
 
 interface RegisterFormData {
   email: string;
@@ -83,6 +84,8 @@ export default function RegisterPage() {
       );
 
       if (result.success) {
+        // Fire Umami conversion event for completed registration
+        trackEvent(AnalyticsEvents.RegistrationCompleted);
         router.push('/login?message=' + encodeURIComponent('Registrierung erfolgreich! Bitte bestätigen Sie Ihre E-Mail-Adresse.'));
       } else {
         setErrors({ email: result.error || 'Registrierung fehlgeschlagen' });

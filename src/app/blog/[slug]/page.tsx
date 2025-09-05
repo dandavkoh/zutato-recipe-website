@@ -114,7 +114,7 @@ export default async function BlogPostPage({ params, searchParams }: { params: P
             <div className="whitespace-pre-wrap text-gray-900 leading-7">{post.content}</div>
           </article>
           <div className="mt-6 flex justify-center">
-            <ShareButton title={post.title} text={post.meta_description || post.title} label="Artikel teilen" />
+            <ShareButton title={post.title} text={post.meta_description || post.title} label="Artikel teilen" context={{ kind: 'blog', postId: post.id }} />
           </div>
           {isAdmin && (
             <div className="mt-4">

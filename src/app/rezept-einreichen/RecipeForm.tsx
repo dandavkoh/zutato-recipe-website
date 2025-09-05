@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import FontAwesomeIcon from "@/components/FontAwesomeIcon";
 import { showToast } from "@/utils/showToast";
+import { AnalyticsEvents, trackEvent } from "@/utils/analytics";
 
 type Difficulty = "einfach" | "mittel" | "schwer";
 
@@ -479,6 +480,8 @@ export default function RecipeForm() {
       const createdId = (data as any)?.id as string | undefined;
       const slug = slugify(name || "");
       if (createdId) {
+        // Fire Umami conversion event for recipe submission
+        trackEvent(AnalyticsEvents.RecipeSubmitted, { recipe_id: createdId });
         router.push(`/rezepte/${createdId}/${slug}?success=created`);
       } else {
         setSuccess("Rezept erfolgreich erstellt.");

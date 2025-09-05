@@ -3,6 +3,7 @@
 import React from 'react'
 import FontAwesomeIcon from '@/components/FontAwesomeIcon'
 import { showToast } from '@/utils/showToast'
+import { AnalyticsEvents, trackEvent } from '@/utils/analytics'
 
 
 type Props = {
@@ -11,9 +12,10 @@ type Props = {
   url?: string
   className?: string
   label?: string
+  context?: { kind: 'recipe'; recipeId: string } | { kind: 'blog'; postId: string }
 }
 
-export default function ShareButton({ title, text, url, className = '', label = 'Teilen' }: Props) {
+export default function ShareButton({ title, text, url, className = '', label = 'Teilen', context }: Props) {
   const doShare = async () => {
     try {
       const shareUrl = url || (typeof window !== 'undefined' ? window.location.href : '')
@@ -21,6 +23,12 @@ export default function ShareButton({ title, text, url, className = '', label = 
         title,
         text: text || title,
         url: shareUrl,
+      }
+      // Track CTA click before attempting share
+      if (context?.kind === 'recipe') {
+        trackEvent(AnalyticsEvents.ClickShareRecipe, { recipe_id: context.recipeId })
+      } else if (context?.kind === 'blog') {
+        trackEvent(AnalyticsEvents.ClickShareBlog, { post_id: context.postId })
       }
       if (typeof navigator !== 'undefined' && typeof (navigator as any).share === 'function') {
         await (navigator as any).share(shareData)

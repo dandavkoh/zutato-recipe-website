@@ -2,6 +2,7 @@
 
 import React from 'react';
 import FontAwesomeIcon from '@/components/FontAwesomeIcon';
+import { AnalyticsEvents, trackEvent } from '@/utils/analytics';
 
 type Props = {
   recipeId: string;
@@ -29,6 +30,7 @@ export default function CookbookToggleButton({ recipeId, initialInCookbook }: Pr
       }
       setInCookbook(!inCookbook);
       setToast(inCookbook ? 'Aus Kochbuch entfernt' : 'Zum Kochbuch hinzugefügt');
+      trackEvent(AnalyticsEvents.ClickSaveRecipe, { recipe_id: recipeId, action: inCookbook ? 'remove' : 'add' });
       hideToastLater();
     } catch (e) {
       setToast('Aktion fehlgeschlagen');

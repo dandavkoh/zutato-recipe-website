@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import FontAwesomeIcon from '@/components/FontAwesomeIcon';
+import { AnalyticsEvents, trackEvent } from '@/utils/analytics';
 
 type RatingDialogProps = {
   recipeId: string;
@@ -53,6 +54,8 @@ export default function RatingDialog({ recipeId, isOpen, onClose, onSubmitted }:
         return;
       }
       setSubmitting(false);
+      // Fire Umami conversion event for rating submitted
+      trackEvent(AnalyticsEvents.RatingSubmitted, { recipe_id: recipeId, rating: selectedValue });
       onSubmitted();
       onClose();
     } catch (e: any) {
