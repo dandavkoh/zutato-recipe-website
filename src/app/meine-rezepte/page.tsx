@@ -35,7 +35,7 @@ function toSlug(s: string) {
 export default async function MeineRezeptePage({
   searchParams,
 }: {
-  searchParams?: { page?: string };
+  searchParams?: Promise<{ page?: string }>;
 }) {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
@@ -45,7 +45,8 @@ export default async function MeineRezeptePage({
 
   const userId = userData.user.id;
   const PAGE_SIZE = 25;
-  const page = Math.max(1, Number(searchParams?.page) || 1);
+  const q = searchParams ? await searchParams : undefined;
+  const page = Math.max(1, Number((q?.page as string) || '1') || 1);
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 

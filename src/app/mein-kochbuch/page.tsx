@@ -27,7 +27,7 @@ function formatTotalMinutes(w: number | null, c: number | null, r: number | null
 export default async function MeinKochbuchPage({
   searchParams,
 }: {
-  searchParams?: { page?: string };
+  searchParams?: Promise<{ page?: string }>;
 }) {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
@@ -37,7 +37,8 @@ export default async function MeinKochbuchPage({
 
   const userId = auth.user.id;
   const PAGE_SIZE = 25;
-  const page = Math.max(1, Number(searchParams?.page) || 1);
+  const q = searchParams ? await searchParams : undefined;
+  const page = Math.max(1, Number((q?.page as string) || '1') || 1);
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 

@@ -1,10 +1,11 @@
 import { createClient } from '@/utils/supabase/server';
 
-export async function GET(_: Request, { params }: { params: { page: string } }): Promise<Response> {
+export async function GET(_: Request, { params }: { params: Promise<{ page: string }> }): Promise<Response> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
   const supabase = await createClient();
   const PAGE_SIZE = 10000;
-  const pageNum = Math.max(1, parseInt(params.page || '1'));
+  const { page } = await params;
+  const pageNum = Math.max(1, parseInt(page || '1'));
   const from = (pageNum - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
