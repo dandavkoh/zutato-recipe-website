@@ -37,7 +37,7 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
   const supabase = await createClient();
 
   const q = await searchParams;
-  const pageSize = 10;
+  const pageSize = 25;
   const pageNum = Math.max(1, parseInt(q?.page || '1'));
   const from = (pageNum - 1) * pageSize;
   const to = from + pageSize - 1;
