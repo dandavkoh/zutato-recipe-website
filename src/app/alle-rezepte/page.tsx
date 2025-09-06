@@ -113,7 +113,7 @@ export default async function AlleRezeptePage({ searchParams }: { searchParams: 
     }
   })();
 
-  const pageSize = 10;
+  const pageSize = 25;
   const pageNum = Math.max(1, parseInt(Array.isArray(pageRaw) ? pageRaw[0] || '1' : pageRaw || '1'));
   const from = (pageNum - 1) * pageSize;
   const to = from + pageSize;

@@ -41,7 +41,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
 
   let results: RecipeResult[] = [];
   if (term) {
-    const { data } = await supabase.rpc('search_recipes', { term, limit_fts: 15, limit_fuzzy: 10 });
+    const { data } = await supabase.rpc('search_recipes', { term, limit_fts: 15, limit_fuzzy: 15 });
     results = (data as RecipeResult[]) || [];
   }
 

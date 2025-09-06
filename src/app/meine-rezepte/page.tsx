@@ -32,7 +32,11 @@ function toSlug(s: string) {
   return s.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
 }
 
-export default async function MeineRezeptePage() {
+export default async function MeineRezeptePage({
+  searchParams,
+}: {
+  searchParams?: { page?: string };
+}) {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData?.user) {
@@ -40,16 +44,23 @@ export default async function MeineRezeptePage() {
   }
 
   const userId = userData.user.id;
+  const PAGE_SIZE = 25;
+  const page = Math.max(1, Number(searchParams?.page) || 1);
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
 
   // Only my own recipes, exclude soft-deleted
-  const { data, error } = await supabase
+  const { data, error, count } = await supabase
     .from('recipes')
-    .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at')
+    .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at', { count: 'exact' })
     .eq('created_by', userId)
     .eq('is_deleted', false)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .range(from, to);
 
   const recipes: RecipeRow[] = (data as RecipeRow[]) || [];
+  const totalCount = typeof count === 'number' ? count : recipes.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   // Compute rating summary like on Alle-Rezepte
   const recipeIds = recipes.map((r) => r.id);
@@ -153,6 +164,37 @@ export default async function MeineRezeptePage() {
               })}
             </div>
           )}
+        </div>
+      </section>
+      <section className="pb-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mt-8 flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              Seite {page} von {totalPages}
+            </div>
+            <div className="flex gap-2">
+              {page > 1 ? (
+                <Link
+                  href={`/meine-rezepte?page=${page - 1}`}
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  Zurück
+                </Link>
+              ) : (
+                <span className="px-4 py-2 rounded-lg border border-gray-200 text-gray-300">Zurück</span>
+              )}
+              {page < totalPages ? (
+                <Link
+                  href={`/meine-rezepte?page=${page + 1}`}
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  Weiter
+                </Link>
+              ) : (
+                <span className="px-4 py-2 rounded-lg border border-gray-200 text-gray-300">Weiter</span>
+              )}
+            </div>
+          </div>
         </div>
       </section>
     </div>

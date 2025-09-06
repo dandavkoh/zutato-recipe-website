@@ -24,7 +24,11 @@ function formatTotalMinutes(w: number | null, c: number | null, r: number | null
   return total > 0 ? `${total} Min` : null;
 }
 
-export default async function MeinKochbuchPage() {
+export default async function MeinKochbuchPage({
+  searchParams,
+}: {
+  searchParams?: { page?: string };
+}) {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth?.user) {
@@ -32,15 +36,22 @@ export default async function MeinKochbuchPage() {
   }
 
   const userId = auth.user.id;
+  const PAGE_SIZE = 25;
+  const page = Math.max(1, Number(searchParams?.page) || 1);
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
 
   // Fetch favorites mapping
-  const { data: mappings } = await supabase
+  const { data: mappings, count: mappingsCount } = await supabase
     .from('user_cookbook_recipes')
-    .select('recipe_id')
+    .select('recipe_id', { count: 'exact' })
     .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .range(from, to);
 
   const recipeIds = (mappings as { recipe_id: string }[] | null)?.map((m) => m.recipe_id) || [];
+  const totalCount = typeof mappingsCount === 'number' ? mappingsCount : recipeIds.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   let recipes: RecipeRow[] = [];
   if (recipeIds.length > 0) {
@@ -132,6 +143,37 @@ export default async function MeinKochbuchPage() {
               })}
             </div>
           )}
+        </div>
+      </section>
+      <section className="pb-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mt-8 flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              Seite {page} von {totalPages}
+            </div>
+            <div className="flex gap-2">
+              {page > 1 ? (
+                <Link
+                  href={`/mein-kochbuch?page=${page - 1}`}
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  Zurück
+                </Link>
+              ) : (
+                <span className="px-4 py-2 rounded-lg border border-gray-200 text-gray-300">Zurück</span>
+              )}
+              {page < totalPages ? (
+                <Link
+                  href={`/mein-kochbuch?page=${page + 1}`}
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  Weiter
+                </Link>
+              ) : (
+                <span className="px-4 py-2 rounded-lg border border-gray-200 text-gray-300">Weiter</span>
+              )}
+            </div>
+          </div>
         </div>
       </section>
     </div>
