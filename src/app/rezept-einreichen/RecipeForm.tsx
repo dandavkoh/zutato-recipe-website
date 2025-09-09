@@ -782,7 +782,7 @@ export default function RecipeForm() {
                                           setIsSelectingByClickByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
                                         }}
                                       >
-                                        {r.title} {r.type ? `(${r.type})` : ""}
+                                        {r.title}
                                       </li>
                                     ))}
                                   </ul>

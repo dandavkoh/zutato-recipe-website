@@ -660,7 +660,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
                                           setIsSelectingByClickByIngredientId((p) => ({ ...p, [ing.tempId]: false }));
                                         }}
                                       >
-                                        {r.title} {r.type ? `(${r.type})` : ''}
+                                        {r.title}
                                       </li>
                                     ))}
                                   </ul>
