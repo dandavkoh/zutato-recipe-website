@@ -16,6 +16,9 @@ type RecipeDetails = {
   id: string;
   name: string;
   description: string | null;
+  user_description: string | null;
+  admin_description: string | null;
+  is_draft: boolean;
   portions: number;
   difficulty: Difficulty;
   image_url: string | null;
@@ -74,8 +77,8 @@ export async function generateMetadata(props: { params: Promise<RouteParams> }):
   const supabase = await createClient();
   const { id, slug } = await props.params;
   const { data } = await supabase
-    .from('recipes_with_details')
-    .select('name, description, image_url, created_by, creator_name, creator_email')
+    .from('recipes')
+    .select('name, description, image_url, created_by')
     .eq('id', id)
     .maybeSingle();
 
@@ -128,15 +131,31 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
   const search = q as any;
 
   const { data: recipe, error: recipeError } = await supabase
-    .from('recipes_with_details')
+    .from('recipes')
     .select(
-      'id, name, description, portions, difficulty, image_url, working_time_minutes, cooking_time_minutes, resting_time_minutes, created_at, creator_name, creator_email, created_by'
+      'id, name, description, user_description, admin_description, is_draft, portions, difficulty, image_url, working_time_minutes, cooking_time_minutes, resting_time_minutes, created_at, created_by'
     )
     .eq('id', id)
     .maybeSingle();
 
   if (recipeError || !recipe) {
     notFound();
+  }
+
+  // Gate drafts: only owner or admin may view
+  const draftCheck = recipe as unknown as { is_draft?: boolean; created_by?: string | null };
+  if (draftCheck?.is_draft) {
+    const { data: auth } = await supabase.auth.getUser();
+    const currentUserId = auth?.user?.id || null;
+    let isAdminForDraft = false;
+    try {
+      const { data: rpcVal } = await supabase.rpc('current_user_is_admin');
+      isAdminForDraft = Boolean(rpcVal);
+    } catch {}
+    const isOwner = currentUserId && draftCheck.created_by === currentUserId;
+    if (!isOwner && !isAdminForDraft) {
+      notFound();
+    }
   }
 
   const { data: ingredients } = await supabase
@@ -169,7 +188,7 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
       .maybeSingle();
     authorNickname = ((nickRow as any)?.nickname as string | null) ?? null;
   }
-  const author = authorNickname || r.creator_name || r.creator_email || 'Unbekannt';
+  const author = authorNickname || 'Unbekannt';
 
   // Group ingredients by section (null => Default/Unnamed)
   const grouped: Array<{ name: string | null; sortOrder: number | null; items: IngredientRow[] }> = [];
@@ -371,6 +390,27 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
           </div>
         </div>
       </section>
+
+      {(r.admin_description || r.user_description) && (
+        <section className="bg-white border-b">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="space-y-6">
+              {isAdmin && r.admin_description && (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                  <h2 className="text-sm font-semibold text-orange-800 mb-1">Admin-Hinweis</h2>
+                  <div className="text-sm text-orange-900 whitespace-pre-line">{r.admin_description}</div>
+                </div>
+              )}
+              {r.user_description && (
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <h2 className="text-sm font-semibold text-gray-900 mb-1">Beschreibung</h2>
+                  <div className="text-gray-800 whitespace-pre-line">{r.user_description}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="py-10">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 gap-10">

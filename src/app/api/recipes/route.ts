@@ -6,6 +6,9 @@ type Difficulty = "einfach" | "mittel" | "schwer";
 interface CreateRecipeRequestBody {
   name: string;
   description?: string;
+  user_description?: string;
+  admin_description?: string;
+  is_draft?: boolean;
   portions: number;
   difficulty: Difficulty;
   category_ids: string[];
@@ -30,7 +33,9 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as CreateRecipeRequestBody;
 
-    if (!body?.name || !body?.portions || !body?.difficulty) {
+    const requestedDraft = Boolean(body?.is_draft);
+    // For drafts, relax validation: only name required (portions/difficulty optional)
+    if (!body?.name || (!requestedDraft && (!body?.portions || !body?.difficulty))) {
       return NextResponse.json({ error: "Ungültige Eingaben" }, { status: 400 });
     }
 
@@ -44,14 +49,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Nicht authentifiziert" }, { status: 401 });
     }
 
+    // Determine admin for optional admin_description
+    let isAdmin = false;
+    try {
+      const { data: rpcVal } = await supabase.rpc('current_user_is_admin');
+      isAdmin = Boolean(rpcVal);
+    } catch {
+      const { data: settings } = await supabase
+        .from('user_settings')
+        .select('is_admin')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      isAdmin = Boolean((settings as any)?.is_admin);
+    }
+
     // 1) Create recipe
     const { data: recipeInsert, error: recipeError } = await supabase
       .from("recipes")
       .insert({
         name: body.name,
         description: body.description ?? null,
-        portions: body.portions,
-        difficulty: body.difficulty,
+        user_description: (body.user_description ?? '').trim() || null,
+        admin_description: isAdmin ? ((body.admin_description ?? '').trim() || null) : null,
+        is_draft: requestedDraft,
+        portions: body.portions ?? 1,
+        difficulty: body.difficulty ?? 'mittel',
         working_time_minutes: body.working_time_minutes ?? null,
         cooking_time_minutes: body.cooking_time_minutes ?? null,
         resting_time_minutes: body.resting_time_minutes ?? null,
@@ -67,7 +89,7 @@ export async function POST(request: Request) {
 
     const recipeId = recipeInsert.id as string;
 
-    // 1b) Insert category mappings (many-to-many)
+    // 1b) Insert category mappings (many-to-many) for non-empty input
     const uniqueCategoryIds = Array.from(new Set((body.category_ids || []).filter(Boolean)));
     if (uniqueCategoryIds.length > 0) {
       const { error: mapErr } = await supabase
@@ -81,7 +103,7 @@ export async function POST(request: Request) {
     // 2) Insert sections that have a name. We treat unnamed/default section as null section_id for its ingredients
     const namedSections = (body.sections || []).filter((s) => s.name && s.name.trim());
     const sectionIdByTempId: Record<string, string> = {};
-    if (namedSections.length > 0) {
+    if (!requestedDraft && namedSections.length > 0) {
       const { data: sectionInserts, error: secErr } = await supabase
         .from("recipe_ingredient_sections")
         .insert(
@@ -107,7 +129,7 @@ export async function POST(request: Request) {
     }
 
     // 3) Insert ingredients
-    if ((body.ingredients || []).length > 0) {
+    if (!requestedDraft && (body.ingredients || []).length > 0) {
       const ingredientsPayload = body.ingredients.map((ing) => ({
         recipe_id: recipeId,
         section_id: ing.sectionTempId ? sectionIdByTempId[ing.sectionTempId] ?? null : null,
@@ -125,7 +147,7 @@ export async function POST(request: Request) {
     }
 
     // 4) Insert steps
-    if ((body.steps || []).length > 0) {
+    if (!requestedDraft && (body.steps || []).length > 0) {
       const stepsPayload = body.steps.map((st) => ({
         recipe_id: recipeId,
         step_number: st.step_number,

@@ -50,9 +50,10 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
   let recipes: RecipeRow[] = [];
   if (ids.length > 0) {
     const { data } = await supabase
-      .from('recipes_with_details')
+      .from('recipes')
       .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, created_by')
-      .in('id', ids);
+      .in('id', ids)
+      .eq('is_draft', false);
     recipes = (data as RecipeRow[]) || [];
     // Keep the same order by rank coming from RPC
     const orderIndex = new Map(ids.map((id, idx) => [id, idx] as const));
@@ -60,9 +61,10 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
   } else if (term) {
     // Fallback: simple ILIKE search on name if RPC returns no results
     const { data } = await supabase
-      .from('recipes_with_details')
+      .from('recipes')
       .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, created_by')
       .ilike('name', `%${term}%`)
+      .eq('is_draft', false)
       .limit(50);
     recipes = (data as RecipeRow[]) || [];
   }

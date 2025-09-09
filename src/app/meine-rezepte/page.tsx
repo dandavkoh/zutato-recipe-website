@@ -18,6 +18,7 @@ type RecipeRow = {
   resting_time_minutes: number | null;
   image_url: string | null;
   created_at: string;
+  is_draft?: boolean;
 };
 
 function getTotalMinutes(r: RecipeRow): number | null {
@@ -53,7 +54,7 @@ export default async function MeineRezeptePage({
   // Only my own recipes, exclude soft-deleted
   const { data, error, count } = await supabase
     .from('recipes')
-    .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at', { count: 'exact' })
+    .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, is_draft', { count: 'exact' })
     .eq('created_by', userId)
     .eq('is_deleted', false)
     .order('created_at', { ascending: false })
@@ -125,7 +126,11 @@ export default async function MeineRezeptePage({
                         )}
                       </div>
                       <div className="absolute top-4 right-4 bg-white bg-opacity-90 text-gray-600 px-2 py-1 rounded text-xs">
-                        {new Date(r.created_at).toLocaleDateString('de-DE')}
+                        {r.is_draft ? (
+                          <span className="text-orange-700 font-semibold">Entwurf</span>
+                        ) : (
+                          new Date(r.created_at).toLocaleDateString('de-DE')
+                        )}
                       </div>
                     </div>
                     <div className="p-6">

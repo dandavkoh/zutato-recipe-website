@@ -6,6 +6,9 @@ type Difficulty = "einfach" | "mittel" | "schwer";
 interface UpdateRecipeRequestBody {
   name: string;
   description?: string;
+  user_description?: string;
+  admin_description?: string;
+  is_draft?: boolean;
   portions: number;
   difficulty: Difficulty;
   category_ids: string[];
@@ -46,6 +49,20 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       return NextResponse.json({ error: "Nicht authentifiziert" }, { status: 401 });
     }
 
+    // Determine admin status once for this request
+    let isAdmin = false;
+    try {
+      const { data: rpcVal } = await supabase.rpc('current_user_is_admin');
+      isAdmin = Boolean(rpcVal);
+    } catch {
+      const { data: settings } = await supabase
+        .from('user_settings')
+        .select('is_admin')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      isAdmin = Boolean((settings as any)?.is_admin);
+    }
+
     // Ensure user owns the recipe or is admin
     const { data: recipeRow, error: fetchErr } = await supabase
       .from("recipes")
@@ -55,34 +72,27 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     if (fetchErr || !recipeRow) {
       return NextResponse.json({ error: fetchErr?.message || "Rezept existiert nicht" }, { status: 404 });
     }
-    if (recipeRow.created_by !== user.id) {
-      let isAdmin = false;
-      try {
-        const { data: rpcVal } = await supabase.rpc('current_user_is_admin');
-        isAdmin = Boolean(rpcVal);
-      } catch {
-        const { data: settings } = await supabase
-          .from('user_settings')
-          .select('is_admin')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        isAdmin = Boolean((settings as any)?.is_admin);
-      }
-      if (!isAdmin) {
-        return NextResponse.json({ error: "Keine Berechtigung" }, { status: 403 });
-      }
+    if (recipeRow.created_by !== user.id && !isAdmin) {
+      return NextResponse.json({ error: "Keine Berechtigung" }, { status: 403 });
     }
 
     // 1) Update recipe metadata
     const updatePayload: any = {
       name: body.name,
       description: body.description ?? null,
+      user_description: (body.user_description ?? '').trim() || null,
       portions: body.portions,
       difficulty: body.difficulty,
       working_time_minutes: body.working_time_minutes ?? null,
       cooking_time_minutes: body.cooking_time_minutes ?? null,
       resting_time_minutes: body.resting_time_minutes ?? null,
     };
+    if (typeof body.is_draft === 'boolean') {
+      updatePayload.is_draft = body.is_draft;
+    }
+    if (isAdmin && typeof body.admin_description !== 'undefined') {
+      updatePayload.admin_description = (body.admin_description ?? '').trim() || null;
+    }
     if (typeof body.image_url !== 'undefined') {
       updatePayload.image_url = body.image_url;
     }

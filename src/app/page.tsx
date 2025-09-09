@@ -35,8 +35,9 @@ export default async function HomePage() {
 
   const weekAgoIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const { data: recentRows } = await supabase
-    .from('recipes_with_details')
+    .from('recipes')
     .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, created_by')
+    .eq('is_draft', false)
     .gte('created_at', weekAgoIso)
     .order('created_at', { ascending: false })
     .limit(300);

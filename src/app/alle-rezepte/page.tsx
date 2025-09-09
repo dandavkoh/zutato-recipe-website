@@ -149,8 +149,9 @@ export default async function AlleRezeptePage({ searchParams }: { searchParams: 
     hasNext = false;
   } else if (sort === 'newest') {
     let base = supabase
-      .from('recipes_with_details')
-      .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, created_by');
+      .from('recipes')
+      .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, created_by')
+      .eq('is_draft', false);
     if (selectedCatIds.length > 0) base = base.in('id', idsForSelectedCategories as string[]);
     if (diff) base = base.eq('difficulty', diff);
     const { data: allRows } = await base.order('created_at', { ascending: false }).limit(300);
@@ -193,8 +194,9 @@ export default async function AlleRezeptePage({ searchParams }: { searchParams: 
     recipes = allRecipes.slice(start, end);
   } else if (!catFilterEmpty) {
     let base = supabase
-      .from('recipes_with_details')
-      .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, created_by');
+      .from('recipes')
+      .select('id, name, description, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_at, created_by')
+      .eq('is_draft', false);
     if (selectedCatIds.length > 0) base = base.in('id', idsForSelectedCategories as string[]);
     if (diff) base = base.eq('difficulty', diff);
     const { data: allRows } = await base.order('created_at', { ascending: false }).limit(300);

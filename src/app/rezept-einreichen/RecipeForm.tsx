@@ -68,6 +68,9 @@ interface StepRow {
 interface CreateRecipeRequestBody {
   name: string;
   description?: string;
+  user_description?: string;
+  admin_description?: string; // ignored on client; server fills if admin
+  is_draft?: boolean;
   portions: number;
   difficulty: Difficulty;
   category_ids: string[];
@@ -119,6 +122,7 @@ export default function RecipeForm() {
   // form fields
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [userDescription, setUserDescription] = useState("");
   const [portions, setPortions] = useState<number>(4);
   const [difficulty, setDifficulty] = useState<Difficulty>("mittel");
   const [workingMinutes, setWorkingMinutes] = useState<string>("");
@@ -441,6 +445,7 @@ export default function RecipeForm() {
       const body: CreateRecipeRequestBody = {
         name: name.trim(),
         description: description.trim() || undefined,
+        user_description: userDescription.trim() || undefined,
         portions,
         difficulty,
         category_ids: Object.values(selectedCategoryIdsByGroup).flat().filter(Boolean),
@@ -573,6 +578,15 @@ export default function RecipeForm() {
                 onChange={(e) => setDescription(e.target.value)}
                 className="mt-1 w-full rounded"
                 placeholder="z.B. nach Omas Art"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700">Beschreibung (optional, vom Nutzer)</label>
+              <textarea
+                value={userDescription}
+                onChange={(e) => setUserDescription(e.target.value)}
+                className="mt-1 w-full rounded min-h-24"
+                placeholder="Deine ausführliche Beschreibung zum Rezept"
               />
             </div>
             <div>
@@ -1116,13 +1130,84 @@ export default function RecipeForm() {
             Weiter
           </button>
         ) : (
-          <button
-            type="submit"
-            disabled={loading}
-            className="inline-flex items-center px-4 py-2 rounded bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50"
-          >
-            {loading ? "Speichern..." : "Rezept erstellen"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={loading}
+              onClick={async () => {
+                // minimal validation for draft: need a name
+                if (!name.trim()) { setError("Bitte einen Rezeptnamen eingeben."); return; }
+                setLoading(true);
+                try {
+                  let uploadedImageUrl: string | null = null;
+                  if (imageFile) {
+                    const ext = imageFile.name.split('.').pop()?.toLowerCase() || 'jpg';
+                    const path = `recipes/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+                    const { data: storageData } = await supabase.storage.from('public-bucket').upload(path, imageFile, { cacheControl: '3600', upsert: false });
+                    if (storageData) {
+                      const { data: publicUrl } = supabase.storage.from('public-bucket').getPublicUrl(storageData.path);
+                      uploadedImageUrl = publicUrl.publicUrl;
+                    }
+                  }
+                  const body: CreateRecipeRequestBody = {
+                    name: name.trim(),
+                    description: description.trim() || undefined,
+                    user_description: userDescription.trim() || undefined,
+                    is_draft: true,
+                    portions,
+                    difficulty,
+                    category_ids: Object.values(selectedCategoryIdsByGroup).flat().filter(Boolean),
+                    working_time_minutes: workingMinutes ? Number(workingMinutes) : null,
+                    cooking_time_minutes: cookingMinutes ? Number(cookingMinutes) : null,
+                    resting_time_minutes: restingMinutes ? Number(restingMinutes) : null,
+                    image_url: uploadedImageUrl,
+                    sections: sections.map((s) => ({ tempId: s.tempId, name: s.name.trim(), sort_order: s.sort_order })),
+                    ingredients: sections.flatMap((s) =>
+                      s.ingredients
+                        .filter((ing) => ing.quantity.trim() && ing.link)
+                        .map((ing, idx) => ({
+                          sectionTempId: s.name.trim() ? s.tempId : null,
+                          quantity: Number(ing.quantity),
+                          unit_id: ing.unit_id || null,
+                          product_group_id: ing.link?.kind === 'group' ? ing.link.product_group_id : null,
+                          product_id: ing.link?.kind === 'product' ? ing.link.product_id : null,
+                          custom_ingredient_name: ing.link?.kind === 'custom' ? ing.link.custom_ingredient_name : null,
+                          sort_order: idx,
+                        }))
+                    ),
+                    steps: steps.filter((s) => s.instruction.trim()).map((s) => ({ step_number: s.step_number, instruction: s.instruction.trim() })),
+                  };
+                  const res = await fetch('/api/recipes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                  if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err?.error || 'Zwischenspeichern fehlgeschlagen');
+                  }
+                  const data = await res.json();
+                  const createdId = (data as any)?.id as string | undefined;
+                  const slug = slugify(name || '');
+                  if (createdId) {
+                    router.push(`/rezepte/${createdId}/${slug}?success=created`);
+                  } else {
+                    setSuccess('Entwurf gespeichert.');
+                  }
+                } catch (e: any) {
+                  setError(e?.message || 'Ein Fehler ist aufgetreten');
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              className="inline-flex items-center px-4 py-2 rounded border border-gray-300 text-gray-800 hover:bg-gray-50 disabled:opacity-50"
+            >
+              Als Entwurf speichern
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="inline-flex items-center px-4 py-2 rounded bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50"
+            >
+              {loading ? "Speichern..." : "Rezept erstellen"}
+            </button>
+          </div>
         )}
       </div>
     </form>

@@ -67,6 +67,9 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [portions, setPortions] = useState<number>(1);
+  const [userDescription, setUserDescription] = useState("");
+  const [adminDescription, setAdminDescription] = useState("");
+  const [isDraft, setIsDraft] = useState<boolean>(false);
   const [difficulty, setDifficulty] = useState<Difficulty>("mittel");
   // removed single category; using multi-select by group
   const [workingMinutes, setWorkingMinutes] = useState<string>("");
@@ -80,6 +83,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   // Toast notifications for error/success
   useEffect(() => {
@@ -167,9 +171,9 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
         if (!catsRes.error && catsRes.data) setAllCategories(catsRes.data as any);
 
         const { data: recipe } = await supabase
-          .from("recipes_with_details")
+          .from("recipes")
           .select(
-            "id, name, description, portions, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url"
+            "id, name, description, user_description, admin_description, is_draft, portions, difficulty, working_time_minutes, cooking_time_minutes, resting_time_minutes, image_url, created_by"
           )
           .eq("id", resolved.id)
           .maybeSingle();
@@ -177,6 +181,9 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
 
         setName((recipe as any).name);
         setDescription(((recipe as any).description as string) || "");
+        setUserDescription(((recipe as any).user_description as string) || "");
+        setAdminDescription(((recipe as any).admin_description as string) || "");
+        setIsDraft(Boolean((recipe as any).is_draft));
         setPortions((recipe as any).portions);
         setDifficulty((recipe as any).difficulty);
         // Initialize selected categories mapping by group
@@ -255,6 +262,12 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
           .eq("recipe_id", resolved.id)
           .order("step_number", { ascending: true });
         setSteps(((stepsData as any[]) || []).map((s) => ({ step_number: s.step_number, instruction: s.instruction })));
+
+        // Check admin
+        try {
+          const { data: rpcVal } = await supabase.rpc('current_user_is_admin');
+          setIsAdmin(Boolean(rpcVal));
+        } catch {}
       } catch (e: any) {
         setError(e?.message || "Fehler beim Laden des Rezepts");
       } finally {
@@ -335,9 +348,12 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
         }
       }
 
-      const payload = {
+      const payload: any = {
         name: name.trim(),
         description: description.trim() || undefined,
+        user_description: userDescription.trim() || undefined,
+        ...(isAdmin ? { admin_description: adminDescription.trim() || undefined } : {}),
+        is_draft: isDraft,
         portions,
         difficulty,
         category_ids: Object.values(selectedCategoryIdsByGroup).flat().filter(Boolean),
@@ -460,6 +476,20 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
             <div>
               <label className="block text-sm font-medium text-gray-700">Zusätzliche Info</label>
               <input value={description} onChange={(e) => setDescription(e.target.value)} className="mt-1 w-full rounded" placeholder="z.B. nach Omas Art" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700">Beschreibung (optional, vom Nutzer)</label>
+              <textarea value={userDescription} onChange={(e) => setUserDescription(e.target.value)} className="mt-1 w-full rounded min-h-24" placeholder="Deine ausführliche Beschreibung zum Rezept" />
+            </div>
+            {isAdmin && (
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700">Admin-Beschreibung (nur für Admins sichtbar/editierbar)</label>
+                <textarea value={adminDescription} onChange={(e) => setAdminDescription(e.target.value)} className="mt-1 w-full rounded min-h-24" placeholder="Interne Beschreibung oder redaktionelle Hinweise" />
+              </div>
+            )}
+            <div className="md:col-span-2 flex items-center gap-2">
+              <input id="isDraft" type="checkbox" checked={isDraft} onChange={(e) => setIsDraft(e.target.checked)} />
+              <label htmlFor="isDraft" className="text-sm text-gray-800">Als Entwurf speichern (nicht öffentlich sichtbar)</label>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Portionen</label>
