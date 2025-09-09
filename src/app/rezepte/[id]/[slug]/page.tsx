@@ -78,14 +78,17 @@ export async function generateMetadata(props: { params: Promise<RouteParams> }):
   const { id, slug } = await props.params;
   const { data } = await supabase
     .from('recipes')
-    .select('name, description, image_url, created_by')
+    .select('name, description, user_description, admin_description, image_url')
     .eq('id', id)
     .maybeSingle();
 
   if (!data) return { title: 'Rezept', description: 'Rezeptdetails' };
 
   const name = (data as any).name as string;
-  const description = ((data as any).description as string | null) || 'Rezeptdetails';
+  const description = ((data as any).user_description as string | null)
+    || ((data as any).admin_description as string | null)
+    || ((data as any).description as string | null)
+    || 'Rezeptdetails';
   const imageUrl = ((data as any).image_url as string | null) || null;
 
   // Der vollständige kanonische Pfad inkl. Slug aus der Route
