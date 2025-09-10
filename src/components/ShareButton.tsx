@@ -19,9 +19,12 @@ export default function ShareButton({ title, text, url, className = '', label = 
   const doShare = async () => {
     try {
       const shareUrl = url || (typeof window !== 'undefined' ? window.location.href : '')
+      const siteName = 'ZUTATO'
+      const prefix = `Schau mal, was ich bei ${siteName} gefunden habe: ${title}`
+      const finalText = text ? `${prefix} – ${text}` : prefix
       const shareData: ShareData = {
         title,
-        text: text || title,
+        text: finalText,
         url: shareUrl,
       }
       // Track CTA click before attempting share
@@ -39,7 +42,7 @@ export default function ShareButton({ title, text, url, className = '', label = 
         showToast('Link kopiert', 'success', 1600)
         return
       }
-      const tw = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text || title)}`
+      const tw = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(finalText)}`
       window.open(tw, '_blank', 'noopener,noreferrer')
     } catch {
       showToast('Teilen nicht möglich', 'error', 1600)
