@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
+import PageViewTracker from '@/components/PageViewTracker';
 
 type RecipeRow = {
   id: string;
@@ -92,6 +93,7 @@ export default async function MeinKochbuchPage({
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <PageViewTracker event="page_view" contentType="page" metadata={{ page: 'mein-kochbuch' }} />
       <section className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between gap-3 flex-wrap">

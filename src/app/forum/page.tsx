@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import type { Metadata } from 'next';
+import PageViewTracker from '@/components/PageViewTracker';
 
 export const metadata: Metadata = {
   title: 'Forum – ZUTATO',
@@ -48,6 +49,7 @@ export default async function ForumHomePage({ searchParams }: { searchParams?: P
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <PageViewTracker event="forum_view" contentType="forum" />
       <section className="bg-white border-b">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <h1 className="text-3xl font-bold text-gray-900">Forum</h1>

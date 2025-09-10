@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import type { Metadata } from 'next';
 import VoteButton from '@/components/VoteButton';
+import PageViewTracker from '@/components/PageViewTracker';
 
 type RouteParams = { slug: string };
 
@@ -117,6 +118,7 @@ export default async function ForumSectionPage({ params, searchParams }: { param
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <PageViewTracker event="forum_section_view" contentType="forum_section" contentId={(section as any).id as string} metadata={{ slug }} />
       <section className="bg-white border-b">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-start justify-between gap-4">

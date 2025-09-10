@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server';
 import RecipeRatingSummary from '@/components/RecipeRatingSummary';
 import RecipeCarousel from '@/components/RecipeCarousel';
 import EzoicAd from '@/components/EzoicAd';
+import PageViewTracker from '@/components/PageViewTracker';
 
 type RecipeRow = {
   id: string;
@@ -94,6 +95,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen">
+      <PageViewTracker event="page_view" contentType="page" metadata={{ page: 'root' }} />
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-orange-50 to-orange-100 py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

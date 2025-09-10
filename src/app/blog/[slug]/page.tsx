@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import ShareButton from '@/components/ShareButton';
 import AdminBlogPostActions from '@/components/AdminBlogPostActions';
+import PageViewTracker from '@/components/PageViewTracker';
 
 type RouteParams = { slug: string };
 
@@ -76,6 +77,7 @@ export default async function BlogPostPage({ params, searchParams }: { params: P
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <PageViewTracker event="blog_post_view" contentType="blog_post" contentId={post.id} metadata={{ slug }} />
       <Script id="article-ld-json" type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({

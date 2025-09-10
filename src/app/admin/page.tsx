@@ -60,6 +60,10 @@ export default async function AdminPage() {
               <div className="text-xl font-semibold text-gray-900 group-hover:text-orange-700">Meldungen</div>
               <div className="mt-2 text-gray-600 text-sm">Gemeldete Inhalte prüfen und bearbeiten</div>
             </Link>
+            <Link href="/admin/analytics" className="group block bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow">
+              <div className="text-xl font-semibold text-gray-900 group-hover:text-orange-700">Analytics</div>
+              <div className="mt-2 text-gray-600 text-sm">Insights zu Seitenaufrufen und Interaktionen</div>
+            </Link>
           </div>
         </div>
       </section>

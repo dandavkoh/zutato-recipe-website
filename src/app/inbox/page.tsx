@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import MessageActions from '@/components/inbox/MessageActions'
 import ReplyMessageDialog from '@/components/inbox/ReplyMessageDialog'
 import ReportMessageDialog from '@/components/inbox/ReportMessageDialog'
+import PageViewTracker from '@/components/PageViewTracker'
 
 export const metadata = { title: 'Postfach' }
 
@@ -48,6 +49,7 @@ export default async function InboxPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <PageViewTracker event="page_view" contentType="page" metadata={{ page: 'inbox' }} />
       <section className="bg-white border-b">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <h1 className="text-2xl font-bold text-gray-900">Postfach</h1>

@@ -14,6 +14,7 @@ import NewPostEditor from '@/components/forum/NewPostEditor';
 import ReportThreadDialog from '@/components/forum/ReportThreadDialog';
 import ReportPostDialog from '@/components/forum/ReportPostDialog';
 import VoteButton from '@/components/VoteButton';
+import PageViewTracker from '@/components/PageViewTracker';
 /* Replies UI intentionally not imported for forum (Antworten entfernt) */
 
 export const runtime = 'nodejs'
@@ -190,6 +191,7 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <PageViewTracker event="forum_thread_view" contentType="forum_thread" contentId={id} />
       <Script id="discussion-ld-json" type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({

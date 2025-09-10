@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import type { Metadata } from 'next';
+import PageViewTracker from '@/components/PageViewTracker';
 
 type PublicPost = {
   id: string;
@@ -53,6 +54,7 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <PageViewTracker event="blog_view" contentType="blog" />
       <section className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <h1 className="text-3xl font-bold text-gray-900">Blog</h1>

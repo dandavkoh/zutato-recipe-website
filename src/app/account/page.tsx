@@ -1,6 +1,7 @@
 import { requireAuth } from '@/utils/serverAuthUtils';
 import Link from 'next/link';
 import AccountForm from './AccountForm';
+import PageViewTracker from '@/components/PageViewTracker';
 
 export const metadata = {
   title: 'Account verwalten - ZUTATO',
@@ -12,6 +13,7 @@ export default async function AccountPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <PageViewTracker event="page_view" contentType="page" metadata={{ page: 'account' }} />
       <section className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between">

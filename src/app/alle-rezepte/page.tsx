@@ -5,6 +5,7 @@ import RecipeRatingSummary from '@/components/RecipeRatingSummary';
 import DurationFilter from '@/components/DurationFilter';
 import IngredientFilter from '@/components/IngredientFilter';
 import CategoryFilter from '@/components/CategoryFilter';
+import PageViewTracker from '@/components/PageViewTracker';
 
 export const metadata: Metadata = {
   title: 'Alle Rezepte - ZUTATO',
@@ -299,6 +300,7 @@ export default async function AlleRezeptePage({ searchParams }: { searchParams: 
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <PageViewTracker event="page_view" contentType="page" metadata={{ page: 'alle-rezepte', sort, diff, max: maxKey, cats_count: selectedCatIds.length }} />
       {/* Header Section */}
       <section className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

@@ -9,6 +9,7 @@ import RateRecipeButton from '@/components/RateRecipeButton';
 import AdminRecipeActions from '@/components/AdminRecipeActions';
 import IngredientsWithPortionScaler from '@/components/IngredientsWithPortionScaler';
 import ReportRecipeDialog from '@/components/ReportRecipeDialog';
+import PageViewTracker from '@/components/PageViewTracker';
 
 type Difficulty = 'einfach' | 'mittel' | 'schwer';
 
@@ -273,6 +274,7 @@ export default async function RecipeDetailPage(props: { params: Promise<RoutePar
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <PageViewTracker event="recipe_view" contentType="recipe" contentId={id} metadata={{ slug }} />
       <ScrollToTopOnMount when={Boolean(search?.success)} />
       {search?.success && (
         <div className="bg-green-50 border-b border-green-200">
