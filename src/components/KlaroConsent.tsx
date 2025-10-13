@@ -47,7 +47,6 @@ export default function KlaroConsent() {
     const appName = process.env.NEXT_PUBLIC_APP_NAME || 'ZUTATO'
     const env = process.env.NEXT_PUBLIC_RUNTIME_ENV || 'production'
     const ezoicEnabled = (process.env.NEXT_PUBLIC_EZOIC_ENABLED || 'false') === 'true'
-    const ezoicTagId = process.env.NEXT_PUBLIC_EZOIC_TAG_ID || ''
 
     // Klaro config – adjust texts and services as needed
     const config = {
@@ -108,9 +107,9 @@ export default function KlaroConsent() {
               default: false,
               callback: (consent: boolean) => {
                 if (consent) {
-                  enableEzoicPersonalized(ezoicTagId)
+                  enableEzoicPersonalized()
                 } else {
-                  enableEzoicNonPersonalized(ezoicTagId)
+                  enableEzoicNonPersonalized()
                 }
               },
             }
@@ -134,8 +133,7 @@ export default function KlaroConsent() {
   )
 }
 
-function loadEzoic(tagId: string, afterLoad: () => void) {
-  if (!tagId) return
+function loadEzoic(afterLoad: () => void) {
   const existing = document.getElementById('ezoic-tag') as HTMLScriptElement | null
   if (existing) {
     afterLoad()
@@ -143,14 +141,14 @@ function loadEzoic(tagId: string, afterLoad: () => void) {
   }
   const s = document.createElement('script')
   s.id = 'ezoic-tag'
-  s.src = `https://g.ezoic.net/ezoic/ezoic.js?${encodeURIComponent(tagId)}`
+  s.src = `https://www.ezojs.com/ezoic/sa.min.js`
   s.async = true
   s.onload = () => afterLoad()
   document.head.appendChild(s)
 }
 
-function enableEzoicPersonalized(tagId: string) {
-  loadEzoic(tagId, () => {
+function enableEzoicPersonalized() {
+  loadEzoic(() => {
     // Personalized ads (default). Ensure library is ready and enable.
     window.ezstandalone = window.ezstandalone || {}
     window.ezstandalone.cmd = window.ezstandalone.cmd || []
@@ -164,8 +162,8 @@ function enableEzoicPersonalized(tagId: string) {
   })
 }
 
-function enableEzoicNonPersonalized(tagId: string) {
-  loadEzoic(tagId, () => {
+function enableEzoicNonPersonalized() {
+  loadEzoic(() => {
     // Non-personalized: limitCookies instructs Ezoic to reduce cookie usage
     window.ezstandalone = window.ezstandalone || {}
     window.ezstandalone.cmd = window.ezstandalone.cmd || []
