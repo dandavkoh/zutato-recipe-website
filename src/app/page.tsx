@@ -127,14 +127,14 @@ export default async function HomePage() {
       </section>
 
       {/* High-visibility, non-intrusive ad below hero */}
-      <div className="bg-white">
+      {/* <div className="bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <EzoicAd className="my-2" />
         </div>
-      </div>
+      </div> */}
 
       {/* Featured Categories */}
-      <section className="py-16 bg-white">
+      {/* <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
             Beliebte Kategorien
@@ -160,7 +160,7 @@ export default async function HomePage() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Featured Recipes: Top 10 dieser Woche */}
       <section className="py-16 bg-gray-50">
@@ -227,7 +227,7 @@ export default async function HomePage() {
               Teile deine Lieblingsrezepte, lerne von anderen Köchen und werde Teil 
               der größten Koch-Community Deutschlands.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="text-center">
                 <div className="text-4xl mb-4">👥</div>
                 <h3 className="font-semibold text-lg text-gray-900 mb-2">50.000+ Mitglieder</h3>
@@ -243,7 +243,7 @@ export default async function HomePage() {
                 <h3 className="font-semibold text-lg text-gray-900 mb-2">Monatliche Challenges</h3>
                 <p className="text-gray-600">Wettbewerbe und Events für alle Kochbegeisterten</p>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </section>
