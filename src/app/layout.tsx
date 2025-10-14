@@ -57,13 +57,37 @@ export default function RootLayout({
           rel="stylesheet" 
           href="/fontawesome/css/all.min.css" 
         />
+        {/* vvv Ezoic integration vvv */}
+        <Script
+          src="https://cmp.gatekeeperconsent.com/min.js"
+          strategy="afterInteractive"
+          data-cfasync="false"
+        />
+        <Script
+          src="https://the.gatekeeperconsent.com/cmp.min.js"
+          strategy="afterInteractive"
+          data-cfasync="false"
+        />
+        <Script
+          src="//www.ezojs.com/ezoic/sa.min.js"
+          strategy="afterInteractive"
+          async
+        />
+        <Script id="ez-inline" strategy="afterInteractive">
+          {`
+            window.ezstandalone = window.ezstandalone || {};
+            ezstandalone.cmd = ezstandalone.cmd || [];
+          `}
+        </Script>
+        {/* ^^^ Ezoic integration ^^^ */}
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
         <AuthProvider>
           <Header />
-          <KlaroConsent />
+          {/* TODO: Currently unused */}
+          {/* <KlaroConsent /> */}
           <main className="flex-1">
             {children}
           </main>
